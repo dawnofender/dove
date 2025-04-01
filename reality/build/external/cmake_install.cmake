@@ -1,4 +1,4 @@
-# Install script for directory: /home/dawn-admin/repos/dove/reality/external
+# Install script for directory: /home/dawn/repos/dove/reality/external
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,19 +44,19 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/dawn-admin/repos/dove/reality/build/external/glfw-3.1.2/cmake_install.cmake")
-  include("/home/dawn-admin/repos/dove/reality/build/external/assimp-3.0.1270/contrib/zlib/cmake_install.cmake")
-  include("/home/dawn-admin/repos/dove/reality/build/external/assimp-3.0.1270/code/cmake_install.cmake")
-  include("/home/dawn-admin/repos/dove/reality/build/external/bullet-2.81-rev2613/src/BulletSoftBody/cmake_install.cmake")
-  include("/home/dawn-admin/repos/dove/reality/build/external/bullet-2.81-rev2613/src/BulletCollision/cmake_install.cmake")
-  include("/home/dawn-admin/repos/dove/reality/build/external/bullet-2.81-rev2613/src/BulletDynamics/cmake_install.cmake")
-  include("/home/dawn-admin/repos/dove/reality/build/external/bullet-2.81-rev2613/src/LinearMath/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/glfw-3.1.2/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/assimp-3.0.1270/contrib/zlib/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/assimp-3.0.1270/code/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/bullet-2.81-rev2613/src/BulletSoftBody/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/bullet-2.81-rev2613/src/BulletCollision/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/bullet-2.81-rev2613/src/BulletDynamics/cmake_install.cmake")
+  include("/home/dawn/repos/dove/reality/build/external/bullet-2.81-rev2613/src/LinearMath/cmake_install.cmake")
 
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "/home/dawn-admin/repos/dove/reality/build/external/install_local_manifest.txt"
+  file(WRITE "/home/dawn/repos/dove/reality/build/external/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

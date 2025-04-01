@@ -13,6 +13,8 @@ using namespace glm;
 #include <common/controls.hpp>
 #include <common/setup.hpp>
 
+#include <common/SimplexNoise.h>
+
 
 int main(){
     

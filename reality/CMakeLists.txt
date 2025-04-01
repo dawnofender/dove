@@ -20,6 +20,7 @@ include_directories(
 	external/glew-1.13.0/include/
 	external/assimp-3.0.1270/include/
 	external/bullet-2.81-rev2613/src/
+  	external/SimplexNoise/src/
 	.
 )
 
@@ -39,14 +40,16 @@ add_definitions(
 
 add_executable(reality
     src/reality.cpp
-    assets/shaders/TransformVertexShader.vertexshader
-    assets/shaders/TextureFragmentShader.fragmentshader
+    src/TransformVertexShader.vertexshader
+    src/TextureFragmentShader.fragmentshader
     common/shader.cpp
     common/shader.hpp
 	common/controls.cpp
 	common/controls.hpp
 	common/texture.cpp
 	common/texture.hpp
+	common/SimplexNoise.cpp
+	common/SimplexNoise.h
 )
 
 target_link_libraries(reality ${ALL_LIBS})

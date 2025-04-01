@@ -16,6 +16,8 @@ using namespace glm;
 #include <common/controls.hpp>
 #include <common/vboindexer.hpp>
 
+#include <common/SimplexNoise.h>
+
 struct cell {
     int type;
     bool visible;
@@ -29,15 +31,37 @@ struct meshData {
     int tris;
 };
 
-class Fabric {
+float mix(const float a, const float b, const float c) {
+    return(a * (1 - c) + (b * c));
+}
+
+
+class Cell {
 private: 
+    int type;
+    bool visible;
+    bool transparent;
+    bool sides[6];
+
     int size;
-    std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
+    int res;
+    std::vector<std::vector<std::vector<Cell>>> cells;  // 3D array
 
 public: 
 
-    Fabric(int s) {
+    Cell(int t, bool transparent, )
+    Fabric(int s, int r) {
         size = s;
+        res = r;
+    }
+};
+
+
+class Gaia: private Cell {
+public: 
+    Gaia(int s, int o) {
+        size = s;
+        octaves = o;
         generateCells();
     }
 
@@ -49,17 +73,36 @@ public:
             )
         );
 
+        const float scale = 64.0f;
+        const float lacunarity = 2.0f;
+        const float persistance = 1.0f;
+        const int octaves = 5;
+        const SimplexNoise simplex(0.1f/scale, 0.5f, lacunarity, persistance);
+
         // generate wavy terrain
         // cell types first
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                for (int k = 0; k < size; k++) {
-                    if(j < sin(i/3)*4 + size / 2) {
-                        cells[i][j][k].type = 1;
-                        cells[i][j][k].transparent = false;
+
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                for (int z = 0; z < size; z++) {
+
+                    //if(j < sin(i/3)*4 + size / 2) {
+                    //    cells[i][j][k].type = 1;
+                    //    cells[i][j][k].transparent = false;
+                    //} else {
+                    //    cells[i][j][k].type = 0;
+                    //    cells[i][j][k].transparent = true;
+                    //}
+
+                    //const float noise = simplex.noise(i, j, k); 
+                    const float noise = simplex.fractal(octaves, x, y, z);
+                    const float earth = y - (32 * noise) < 32;
+                    if (earth) {
+                        cells[x][y][z].type = 1;
+                        cells[x][y][z].transparent = false;
                     } else {
-                        cells[i][j][k].type = 0;
-                        cells[i][j][k].transparent = true;
+                        cells[x][y][z].type = 0;
+                        cells[x][y][z].transparent = true;
                     }
 
                     //if (j > size / 2) {
@@ -319,9 +362,10 @@ public:
         return(mesh);
     }
 };
-    
+   
 int main(){
     
+
     // #########
     // # setup #
     // #########
@@ -381,7 +425,7 @@ int main(){
     // # model generation #
     // ####################
     
-    Fabric world(64);
+    Fabric world(256);
     
     meshData worldMesh = world.generateMeshData();
     
