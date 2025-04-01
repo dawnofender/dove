@@ -18,12 +18,38 @@ using namespace glm;
 
 #include <common/SimplexNoise.h>
 
-struct cell {
-    int type;
-    bool visible;
+// better cell class - implement later 
+//class Cell {
+//protected: 
+//    std::vector<std::shared_ptr<Organelle>> organelles;
+//public: 
+//    Cell() = default;
+//    Cell(std::array<Organelle> o) {
+//        organelles = o;
+//    }
+//    
+//    void AddComponent(std::shared_ptr<Component> component) {
+//
+//    }
+//
+//    Organelle getOrganelle(int i) {
+//        return organelles[i];
+//    }
+//};
+
+struct matter {
+    //std::map<char*, float> composition; 
     bool transparent;
     bool sides[6];  // x, y, z, -x, -y, -z
+    //std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
 };
+
+struct cell {
+    bool transparent;
+    bool sides[6];  // x, y, z, -x, -y, -z
+    std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
+};
+
 
 struct meshData {
     std::vector<GLfloat> vData;
@@ -31,60 +57,44 @@ struct meshData {
     int tris;
 };
 
-float mix(const float a, const float b, const float c) {
-    return(a * (1 - c) + (b * c));
-}
 
-
-class Cell {
+class Gaia{
 private: 
-    int type;
-    bool visible;
-    bool transparent;
-    bool sides[6];
-
     int size;
-    int res;
-    std::vector<std::vector<std::vector<Cell>>> cells;  // 3D array
+    int resolution;
+    cell planet;
+    int octaves;
 
 public: 
-
-    Cell(int t, bool transparent, )
-    Fabric(int s, int r) {
+    Gaia(int s, int r, int o) {
         size = s;
-        res = r;
-    }
-};
-
-
-class Gaia: private Cell {
-public: 
-    Gaia(int s, int o) {
-        size = s;
+        resolution = r;
         octaves = o;
-        generateCells();
+        generateCells(planet, octaves);
     }
 
-    void generateCells() {
+    void generateCells(cell pCell, int octaves) {
 
-        cells = std::vector<std::vector<std::vector<cell>>> (
+        pCell.cells = std::vector<std::vector<std::vector<cell>>> (
             size, std::vector<std::vector<cell>> (
                 size, std::vector<cell>(size, cell())
             )
         );
 
-        const float scale = 64.0f;
-        const float lacunarity = 2.0f;
-        const float persistance = 1.0f;
-        const int octaves = 5;
-        const SimplexNoise simplex(0.1f/scale, 0.5f, lacunarity, persistance);
+
+        const float nScale = 64.0f;
+        const float nLacunarity = 2.0f;
+        const float nPersistance = 1.0f;
+        const int nOctaves = 5;
+        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
 
         // generate wavy terrain
         // cell types first
-
+        cell cMatter;
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
                 for (int z = 0; z < size; z++) {
+                    cMatter = pCell.cells[x][y][z];
 
                     //if(j < sin(i/3)*4 + size / 2) {
                     //    cells[i][j][k].type = 1;
@@ -95,45 +105,43 @@ public:
                     //}
 
                     //const float noise = simplex.noise(i, j, k); 
-                    const float noise = simplex.fractal(octaves, x, y, z);
-                    const float earth = y - (32 * noise) < 32;
-                    if (earth) {
-                        cells[x][y][z].type = 1;
-                        cells[x][y][z].transparent = false;
-                    } else {
-                        cells[x][y][z].type = 0;
-                        cells[x][y][z].transparent = true;
+                    const float noise = simplex.fractal(nOctaves, x, y, z);
+                    const float solid = y - (32 * noise) < 32;
+                    cMatter.transparent = !solid;
+
+                    pCell.cells[x][y][z] = cMatter;
+                    
+
+                    if (octaves > 0){
+                        generateCells(pCell.cells[x][y][z], octaves-1);
+
                     }
-
-                    //if (j > size / 2) {
-                    //    cells[i][j][k].type = 1;
-                    //    cells[i][j][k].transparent = false;
-                    //}
-
-                    //cells[i][j][k].type = 1;
-                    //cells[i][j][k].transparent = false;
-
                 }
             }
         }
 
+        if (octaves > 1) {
+            return;
+        }
+
         // which sides should be rendered? 
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                for (int k = 0; k < size; k++) {
-                    if(cells[i][j][k].transparent){
-                        std::fill(cells[i][j][k].sides, cells[i][j][k].sides + 6, false);
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                for (int z = 0; z < size; z++) {
+                    cMatter = pCell.cells[x][y][z];
+                    if(cMatter.transparent){
+                        std::fill(cMatter.sides, cMatter.sides + 6, false);
                         continue;
                     } else {
                         // check if adjascent blocks are transparent
                         // chunk are assumed to be transparent for now
-                        //                        chunk edges     ||  adjascent blocks
-                        cells[i][j][k].sides[0] = (i == size - 1) ||  cells[i + 1][j][k].transparent;
-                        cells[i][j][k].sides[1] = (j == size - 1) ||  cells[i][j + 1][k].transparent;
-                        cells[i][j][k].sides[2] = (k == size - 1) ||  cells[i][j][k + 1].transparent;                               
-                        cells[i][j][k].sides[3] = (i == 0)        ||  cells[i - 1][j][k].transparent;     
-                        cells[i][j][k].sides[4] = (j == 0)        ||  cells[i][j - 1][k].transparent;
-                        cells[i][j][k].sides[5] = (k == 0)        ||  cells[i][j][k - 1].transparent;    
+                        //                 chunk edges     ||  adjascent blocks
+                        cMatter.sides[0] = (x == size - 1) ||  pCell.cells[x + 1][y][z].transparent;
+                        cMatter.sides[1] = (y == size - 1) ||  pCell.cells[x][y + 1][z].transparent;
+                        cMatter.sides[2] = (z == size - 1) ||  pCell.cells[x][y][z + 1].transparent;                               
+                        cMatter.sides[3] = (x == 0)        ||  pCell.cells[x - 1][y][z].transparent;     
+                        cMatter.sides[4] = (y == 0)        ||  pCell.cells[x][y - 1][z].transparent;
+                        cMatter.sides[5] = (z == 0)        ||  pCell.cells[x][y][z - 1].transparent;    
                     } 
                 }
             }
@@ -425,7 +433,7 @@ int main(){
     // # model generation #
     // ####################
     
-    Fabric world(256);
+    Gaia world(16, 16, 4);
     
     meshData worldMesh = world.generateMeshData();
     
