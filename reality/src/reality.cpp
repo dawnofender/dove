@@ -47,6 +47,7 @@ struct matter {
 struct cell {
     bool transparent;
     bool sides[6];  // x, y, z, -x, -y, -z
+    int octave;
     std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
 };
 
@@ -54,7 +55,7 @@ struct cell {
 struct meshData {
     std::vector<GLfloat> vData;
     std::vector<GLfloat> cData;
-    int tris;
+    int verts;
 };
 
 
@@ -70,290 +71,301 @@ public:
         size = s;
         resolution = r;
         octaves = o;
-        generateCells(planet, octaves);
+        generateCell(planet, octaves, 0, 0, 0);
     }
 
-    void generateCells(cell pCell, int octaves) {
+    void generateCell(cell &c, int cOctave, int x, int y, int z) {
 
-        pCell.cells = std::vector<std::vector<std::vector<cell>>> (
+        c.cells = std::vector<std::vector<std::vector<cell>>> (
             size, std::vector<std::vector<cell>> (
                 size, std::vector<cell>(size, cell())
             )
         );
 
+        std::cout << "Generating cell at (";
+        std::cout <<  x;
+        std::cout <<  ", ";
+        std::cout <<  y;
+        std::cout <<  ", ";
+        std::cout <<  z;
+        std::cout <<  "), octave ";
+        std::cout <<  cOctave;
+        std::cout <<  "\n";
 
+
+        //generate noisy hills terrain
         const float nScale = 64.0f;
         const float nLacunarity = 2.0f;
         const float nPersistance = 1.0f;
         const int nOctaves = 5;
         const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        const float noise = simplex.fractal(nOctaves, x, y, z);
+        
+        const float solid = y - (32 * noise) < 32;
+        c.transparent = !solid;
 
-        // generate wavy terrain
-        // cell types first
-        cell cMatter;
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                for (int z = 0; z < size; z++) {
-                    cMatter = pCell.cells[x][y][z];
+        c.octave = cOctave;
 
-                    //if(j < sin(i/3)*4 + size / 2) {
-                    //    cells[i][j][k].type = 1;
-                    //    cells[i][j][k].transparent = false;
-                    //} else {
-                    //    cells[i][j][k].type = 0;
-                    //    cells[i][j][k].transparent = true;
-                    //}
 
-                    //const float noise = simplex.noise(i, j, k); 
-                    const float noise = simplex.fractal(nOctaves, x, y, z);
-                    const float solid = y - (32 * noise) < 32;
-                    cMatter.transparent = !solid;
-
-                    pCell.cells[x][y][z] = cMatter;
-                    
-
-                    if (octaves > 0){
-                        generateCells(pCell.cells[x][y][z], octaves-1);
-
+        if (cOctave > 0){
+            for (int x = 0; x < size; x++) {
+                for (int y = 0; y < size; y++) {
+                    for (int z = 0; z < size; z++) {
+                        if (cOctave > 0){
+                            generateCell(c.cells[x][y][z], cOctave-1, x, y, z);
+                        }
                     }
                 }
             }
         }
 
-        if (octaves > 1) {
-            return;
-        }
+        std::cout << "Done generating cell at (";
+        std::cout <<  x;
+        std::cout <<  ", ";
+        std::cout <<  y;
+        std::cout <<  ", ";
+        std::cout <<  z;
+        std::cout <<  "), octave ";
+        std::cout <<  cOctave;
+        std::cout <<  "\n";
 
-        // which sides should be rendered? 
+        // which sides should be rendered?
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
                 for (int z = 0; z < size; z++) {
-                    cMatter = pCell.cells[x][y][z];
-                    if(cMatter.transparent){
-                        std::fill(cMatter.sides, cMatter.sides + 6, false);
+                    cell &cCell = c.cells[x][y][z];
+                    if(cCell.transparent){
+                        std::fill(cCell.sides, cCell.sides + 6, false);
                         continue;
                     } else {
                         // check if adjascent blocks are transparent
                         // chunk are assumed to be transparent for now
                         //                 chunk edges     ||  adjascent blocks
-                        cMatter.sides[0] = (x == size - 1) ||  pCell.cells[x + 1][y][z].transparent;
-                        cMatter.sides[1] = (y == size - 1) ||  pCell.cells[x][y + 1][z].transparent;
-                        cMatter.sides[2] = (z == size - 1) ||  pCell.cells[x][y][z + 1].transparent;                               
-                        cMatter.sides[3] = (x == 0)        ||  pCell.cells[x - 1][y][z].transparent;     
-                        cMatter.sides[4] = (y == 0)        ||  pCell.cells[x][y - 1][z].transparent;
-                        cMatter.sides[5] = (z == 0)        ||  pCell.cells[x][y][z - 1].transparent;    
+                        cCell.sides[0] = (x == size - 1) ||  c.cells[x + 1][y][z].transparent;
+                        cCell.sides[1] = (y == size - 1) ||  c.cells[x][y + 1][z].transparent;
+                        cCell.sides[2] = (z == size - 1) ||  c.cells[x][y][z + 1].transparent;                               
+                        cCell.sides[3] = (x == 0)        ||  c.cells[x - 1][y][z].transparent;     
+                        cCell.sides[4] = (y == 0)        ||  c.cells[x][y - 1][z].transparent;
+                        cCell.sides[5] = (z == 0)        ||  c.cells[x][y][z - 1].transparent;    
                     } 
                 }
             }
         }
-
     }
     
-    meshData generateMeshData() {
+    meshData generateMeshData(cell &c, meshData &mesh, int &dInd) {
 
-        // first, count how many vertices we need
-        int sCount = 0;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                for (int k = 0; k < size; k++) {
-                    if (cells[i][j][k].transparent){
+        std::cout << "Generating mesh...";
+        // // first, count how many vertices we need
+        // int sCount = 0;
+        // for (int x = 0; x < size; x++) {
+        //     for (int y = 0; y < size; y++) {
+        //         for (int z = 0; z < size; z++) {
+        //             if (c.cells[x][y][z].transparent || cell.octave > 0){
+        //                 continue;
+        //             } else {
+        //                 for (bool b : c.cells[x][y][z].sides) {
+        //                     sCount += b;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        
+        // static int dCount = sCount * 18; // 2 tris * 3 vertices * 3 floats
+
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                for (int z = 0; z < size; z++) {
+                    cell &cCell = c.cells[x][y][x];
+                    if (cCell.transparent){
                         continue;
+                    } else if (cCell.octave > 0) {
+                        generateMeshData(cCell, mesh, dInd);
                     } else {
-                        for (bool b : cells[i][j][k].sides) {
+                        static int sCount = 0;
+                        for (bool b : cCell.sides) {
                             sCount += b;
                         }
-                    }
-                }
-            }
-        }
-        
-        static int tCount = sCount * 2;
-        static int dCount = sCount * 18; // 2 tris * 3 vertices * 3 floats
-        std::vector<GLfloat> vData(dCount);         
-        std::vector<GLfloat> cData(dCount);         
+                        mesh.verts += sCount*6; // 1 side = 2 tris = 6 verts
+                        mesh.vData.resize(dInd + sCount*18); // 1 side = 6 verts = 18 floats
 
-        int dInd = 0;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                for (int k = 0; k < size; k++) {
-                    if (cells[i][j][k].transparent){
-                        continue;
-                    } else {
                         // +x
-                        if(cells[i][j][k].sides[0]){
-                            vData[dInd]    = i+1.0f; // triangle 1
-                            vData[dInd+1]  = j+1.0f;
-                            vData[dInd+2]  = k+1.0f;
-                            
-                            vData[dInd+3]  = i+1.0f;
-                            vData[dInd+4]  = j;
-                            vData[dInd+5]  = k+1.0f;
+                        if(cCell.sides[0]){
 
-                            vData[dInd+6]  = i+1.0f;
-                            vData[dInd+7]  = j;
-                            vData[dInd+8]  = k;
+                            mesh.vData[dInd]    = x+1.0f; // triangle 1
+                            mesh.vData[dInd+1]  = y+1.0f;
+                            mesh.vData[dInd+2]  = z+1.0f;
                             
-                            vData[dInd+9]  = i+1.0f; // triangle 2
-                            vData[dInd+10] = j+1.0f;
-                            vData[dInd+11] = k+1.0f;
-                            
-                            vData[dInd+12] = i+1.0f;
-                            vData[dInd+13] = j;
-                            vData[dInd+14] = k;
+                            mesh.vData[dInd+3]  = x+1.0f;
+                            mesh.vData[dInd+4]  = y;     
+                            mesh.vData[dInd+5]  = z+1.0f;
 
-                            vData[dInd+15] = i+1.0f;
-                            vData[dInd+16] = j+1.0f;
-                            vData[dInd+17] = k;
+                            mesh.vData[dInd+6]  = x+1.0f;
+                            mesh.vData[dInd+7]  = y;     
+                            mesh.vData[dInd+8]  = z;     
+
+                            mesh.vData[dInd+9]  = x+1.0f; // triangle 2
+                            mesh.vData[dInd+10] = y+1.0f;
+                            mesh.vData[dInd+11] = z+1.0f;
+                                                   
+                            mesh.vData[dInd+12] = x+1.0f;
+                            mesh.vData[dInd+13] = y;     
+                            mesh.vData[dInd+14] = z;     
+                                                   
+                            mesh.vData[dInd+15] = x+1.0f;
+                            mesh.vData[dInd+16] = y+1.0f;
+                            mesh.vData[dInd+17] = z;     
 
                             dInd += 18;
                         }
 
                         // +y
-                        if(cells[i][j][k].sides[1]){
+                        if(cCell.sides[1]){
                             
-                            vData[dInd]    = i; // triangle 1
-                            vData[dInd+1]  = j+1.0f;
-                            vData[dInd+2]  = k;
-                                              
-                            vData[dInd+3]  = i;
-                            vData[dInd+4]  = j+1.0f;
-                            vData[dInd+5]  = k+1.0f;
-                                              
-                            vData[dInd+6]  = i+1.0f;
-                            vData[dInd+7]  = j+1.0f;
-                            vData[dInd+8]  = k+1.0f;
-                                              
-                            vData[dInd+9]  = i; // triangle 2
-                            vData[dInd+10] = j+1.0f;
-                            vData[dInd+11] = k;
-                                              
-                            vData[dInd+12] = i+1.0f;
-                            vData[dInd+13] = j+1.0f;
-                            vData[dInd+14] = k+1.0f;
-                                              
-                            vData[dInd+15] = i+1.0f;
-                            vData[dInd+16] = j+1.0f;
-                            vData[dInd+17] = k;
+                            mesh.vData[dInd]    = x; // triangle 1
+                            mesh.vData[dInd+1]  = y+1.0f;
+                            mesh.vData[dInd+2]  = z;
+                                                   
+                            mesh.vData[dInd+3]  = x;
+                            mesh.vData[dInd+4]  = y+1.0f;
+                            mesh.vData[dInd+5]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+6]  = x+1.0f;
+                            mesh.vData[dInd+7]  = y+1.0f;
+                            mesh.vData[dInd+8]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+9]  = x; // triangle 2
+                            mesh.vData[dInd+10] = y+1.0f;
+                            mesh.vData[dInd+11] = z;
+                                                   
+                            mesh.vData[dInd+12] = x+1.0f;
+                            mesh.vData[dInd+13] = y+1.0f;
+                            mesh.vData[dInd+14] = z+1.0f;
+                                                   
+                            mesh.vData[dInd+15] = x+1.0f;
+                            mesh.vData[dInd+16] = y+1.0f;
+                            mesh.vData[dInd+17] = z;
 
                             dInd += 18;
                         }
                         
                         // +z
-                        if(cells[i][j][k].sides[2]){
+                        if(cCell.sides[2]){
                             
-                            vData[dInd]    = i; // triangle 1
-                            vData[dInd+1]  = j+1.0f;
-                            vData[dInd+2]  = k+1.0f;
-                                              
-                            vData[dInd+3]  = i;
-                            vData[dInd+4]  = j;
-                            vData[dInd+5]  = k+1.0f;
-                                              
-                            vData[dInd+6]  = i+1.0f;
-                            vData[dInd+7]  = j;
-                            vData[dInd+8]  = k+1.0f;
-                                              
-                            vData[dInd+9]  = i; // triangle 2
-                            vData[dInd+10] = j+1.0f;
-                            vData[dInd+11] = k+1.0f;
-                                              
-                            vData[dInd+12] = i+1.0f;
-                            vData[dInd+13] = j;
-                            vData[dInd+14] = k+1.0f;
-                                              
-                            vData[dInd+15] = i+1.0f;
-                            vData[dInd+16] = j+1.0f;
-                            vData[dInd+17] = k+1.0f;
+                            mesh.vData[dInd]    = x; // triangle 1
+                            mesh.vData[dInd+1]  = y+1.0f;
+                            mesh.vData[dInd+2]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+3]  = x;
+                            mesh.vData[dInd+4]  = y;
+                            mesh.vData[dInd+5]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+6]  = x+1.0f;
+                            mesh.vData[dInd+7]  = y;
+                            mesh.vData[dInd+8]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+9]  = x; // triangle 2
+                            mesh.vData[dInd+10] = y+1.0f;
+                            mesh.vData[dInd+11] = z+1.0f;
+                                                   
+                            mesh.vData[dInd+12] = x+1.0f;
+                            mesh.vData[dInd+13] = y;
+                            mesh.vData[dInd+14] = z+1.0f;
+                                                   
+                            mesh.vData[dInd+15] = x+1.0f;
+                            mesh.vData[dInd+16] = y+1.0f;
+                            mesh.vData[dInd+17] = z+1.0f;
 
                             dInd += 18;
                         }
                         
                         // -x
-                        if(cells[i][j][k].sides[3]){
+                        if(cCell.sides[3]){
                             
-                            vData[dInd]    = i; // triangle 1
-                            vData[dInd+1]  = j;
-                            vData[dInd+2]  = k;
-                                              
-                            vData[dInd+3]  = i;
-                            vData[dInd+4]  = j+1.0f;
-                            vData[dInd+5]  = k;
-                                              
-                            vData[dInd+6]  = i;
-                            vData[dInd+7]  = j+1.0f;
-                            vData[dInd+8]  = k+1.0f;
-                                              
-                            vData[dInd+9]  = i; // triangle 2
-                            vData[dInd+10] = j;
-                            vData[dInd+11] = k;
-                                              
-                            vData[dInd+12] = i;
-                            vData[dInd+13] = j+1.0f;
-                            vData[dInd+14] = k+1.0f;
-                                              
-                            vData[dInd+15] = i;
-                            vData[dInd+16] = j;
-                            vData[dInd+17] = k+1.0f;
+                            mesh.vData[dInd]    = x; // triangle 1
+                            mesh.vData[dInd+1]  = y;
+                            mesh.vData[dInd+2]  = z;
+                                                   
+                            mesh.vData[dInd+3]  = x;
+                            mesh.vData[dInd+4]  = y+1.0f;
+                            mesh.vData[dInd+5]  = z;
+                                                   
+                            mesh.vData[dInd+6]  = x;
+                            mesh.vData[dInd+7]  = y+1.0f;
+                            mesh.vData[dInd+8]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+9]  = x; // triangle 2
+                            mesh.vData[dInd+10] = y;
+                            mesh.vData[dInd+11] = z;
+                                                   
+                            mesh.vData[dInd+12] = x;
+                            mesh.vData[dInd+13] = y+1.0f;
+                            mesh.vData[dInd+14] = z+1.0f;
+                                                   
+                            mesh.vData[dInd+15] = x;
+                            mesh.vData[dInd+16] = y;
+                            mesh.vData[dInd+17] = z+1.0f;
 
                             dInd += 18;
                         }
 
                         // -y
-                        if(cells[i][j][k].sides[4]){
+                        if(cCell.sides[4]){
                             
-                            vData[dInd]    = i+1.0f; // triangle 1
-                            vData[dInd+1]  = j;
-                            vData[dInd+2]  = k+1.0f;
-                                              
-                            vData[dInd+3]  = i+1.0f;
-                            vData[dInd+4]  = j;
-                            vData[dInd+5]  = k;
-                                              
-                            vData[dInd+6]  = i;
-                            vData[dInd+7]  = j;
-                            vData[dInd+8]  = k;
-                                              
-                            vData[dInd+9]  = i+1.0f; // triangle 2
-                            vData[dInd+10] = j;
-                            vData[dInd+11] = k+1.0f;
-                                              
-                            vData[dInd+12] = i;
-                            vData[dInd+13] = j;
-                            vData[dInd+14] = k;
-                                              
-                            vData[dInd+15] = i;
-                            vData[dInd+16] = j;
-                            vData[dInd+17] = k+1.0f;
+                            mesh.vData[dInd]    = x+1.0f; // triangle 1
+                            mesh.vData[dInd+1]  = y;
+                            mesh.vData[dInd+2]  = z+1.0f;
+                                                   
+                            mesh.vData[dInd+3]  = x+1.0f;
+                            mesh.vData[dInd+4]  = y;
+                            mesh.vData[dInd+5]  = z;
+                                                   
+                            mesh.vData[dInd+6]  = x;
+                            mesh.vData[dInd+7]  = y;
+                            mesh.vData[dInd+8]  = z;
+                                                   
+                            mesh.vData[dInd+9]  = x+1.0f; // triangle 2
+                            mesh.vData[dInd+10] = y;
+                            mesh.vData[dInd+11] = z+1.0f;
+                                                   
+                            mesh.vData[dInd+12] = x;
+                            mesh.vData[dInd+13] = y;
+                            mesh.vData[dInd+14] = z;
+                                                   
+                            mesh.vData[dInd+15] = x;
+                            mesh.vData[dInd+16] = y;
+                            mesh.vData[dInd+17] = z+1.0f;
 
                             dInd += 18;
                         }
                         
                         // -z
-                        if(cells[i][j][k].sides[5]){
+                        if(cCell.sides[5]){
                             
-                            vData[dInd]    = i+1.0f; // triangle 1
-                            vData[dInd+1]  = j;
-                            vData[dInd+2]  = k;
-                                              
-                            vData[dInd+3]  = i+1.0f;
-                            vData[dInd+4]  = j+1.0f;
-                            vData[dInd+5]  = k;
-                                              
-                            vData[dInd+6]  = i;
-                            vData[dInd+7]  = j+1.0f;
-                            vData[dInd+8]  = k;
-                                              
-                            vData[dInd+9]  = i+1.0f; // triangle 2
-                            vData[dInd+10] = j;
-                            vData[dInd+11] = k;
-                                              
-                            vData[dInd+12] = i;
-                            vData[dInd+13] = j+1.0f;
-                            vData[dInd+14] = k;
-                                              
-                            vData[dInd+15] = i;
-                            vData[dInd+16] = j;
-                            vData[dInd+17] = k;
+                            mesh.vData[dInd]    = x+1.0f; // triangle 1
+                            mesh.vData[dInd+1]  = y;
+                            mesh.vData[dInd+2]  = z;
+                                                   
+                            mesh.vData[dInd+3]  = x+1.0f;
+                            mesh.vData[dInd+4]  = y+1.0f;
+                            mesh.vData[dInd+5]  = z;
+                                                   
+                            mesh.vData[dInd+6]  = x;
+                            mesh.vData[dInd+7]  = y+1.0f;
+                            mesh.vData[dInd+8]  = z;
+                                                   
+                            mesh.vData[dInd+9]  = x+1.0f; // triangle 2
+                            mesh.vData[dInd+10] = y;
+                            mesh.vData[dInd+11] = z;
+                                                   
+                            mesh.vData[dInd+12] = x;
+                            mesh.vData[dInd+13] = y+1.0f;
+                            mesh.vData[dInd+14] = z;
+                                                   
+                            mesh.vData[dInd+15] = x;
+                            mesh.vData[dInd+16] = y;
+                            mesh.vData[dInd+17] = z;
                             
                             dInd += 18;
                         }
@@ -362,14 +374,22 @@ public:
             }
         }
 
-        for (int i = 0; i < dCount; i++){
-            cData[i] = vData[i] / size - (1/3) + (rand() / double(RAND_MAX));
+        for (int i = 0; i < mesh.vData.size(); i++){
+
+            mesh.cData[i] = mesh.vData[i] / size - (1/3) + (rand() / double(RAND_MAX));
         }
         
-        meshData mesh = {vData, cData, tCount};
         return(mesh);
     }
+
+
+    meshData generateMeshData() {
+        meshData mesh;
+        int ind = 0;
+        return(generateMeshData(planet, mesh, ind));
+    }
 };
+
    
 int main(){
     
@@ -433,8 +453,9 @@ int main(){
     // # model generation #
     // ####################
     
-    Gaia world(16, 16, 4);
-    
+    Gaia world(4, 2, 2);
+
+    std::cout << "done generating world";
     meshData worldMesh = world.generateMeshData();
     
 
@@ -526,7 +547,7 @@ int main(){
 		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
         
         // actually draw things :)
-        glDrawArrays(GL_TRIANGLES, 0, worldMesh.tris * 3);
+        glDrawArrays(GL_TRIANGLES, 0, worldMesh.verts);
         
         //glDrawElements(
         //    GL_TRIANGLES,      // mode
