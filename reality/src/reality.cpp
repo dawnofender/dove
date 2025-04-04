@@ -48,7 +48,9 @@ struct cell {
     bool transparent;
     bool sides[6];  // x, y, z, -x, -y, -z
     int octave;
+    int lod;
     std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
+            //  c.lod = octaves;
 };
 
 
@@ -101,6 +103,7 @@ public:
             for (int x = 0; x < resolution; x++) {
                 for (int y = 0; y < resolution; y++) {
                     for (int z = 0; z < resolution; z++) {
+                        c.cells[x][y][z].lod = x + y + z;
                         generateCell(c.cells[x][y][z], cOctave+1, cSize*x+cx, cSize*y+cy, cSize*z+cz);
                     }
                 }
@@ -132,6 +135,7 @@ public:
             if (cOctave == 0) {
                 // planet cell values
                 std::fill(c.sides, c.sides + 6, true);
+                c.lod = 0;
             }
         }
     }
@@ -142,17 +146,17 @@ public:
         cy *= cSize;
         cz *= cSize;
         // float lod = size / cx;
-        float lod = 1;
         
-        if (c.octave / octaves < lod && c.octave < octaves) {
+        if (c.lod < 2 && c.octave < octaves) {
             for (int x = 0; x < resolution; x++) {
                 for (int y = 0; y < resolution; y++) {
                     for (int z = 0; z < resolution; z++) {
-                        generateMeshData(c.cells[x][y][x], mesh, dInd, x+cx, y+cy, z+cz);
+
+                        generateMeshData(c.cells[x][y][x], mesh, dInd, x+cx*resolution, y+cy*resolution, z+cz*resolution);
                     }
                 }
             }
-        } else {
+        } if (true) {//else {
 
 
             static int sCount = 0;
@@ -454,7 +458,7 @@ int main(){
     // # model generation #
     // ####################
     
-    Gaia world(128, 2, 4);
+    Gaia world(4, 2, 5);
 
     meshData worldMesh = world.generateMeshData();
     
