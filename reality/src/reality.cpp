@@ -1,5 +1,7 @@
 #include <cmath>
 #include <vector>
+#include <memory>
+#include <array>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -36,6 +38,25 @@ using namespace glm;
 //        return organelles[i];
 //    }
 //};
+struct Vec3 {
+    float x, y, z;
+};
+
+inline float distance3D(const Vec3& a, const Vec3& b) {
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    float dz = a.z - b.z;
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+
+inline double distance3D(int x1, int y1, int z1, int x2, int y2, int z2) {
+    int dx = x1 - x2;
+    int dy = y1 - y2;
+    int dz = z1 - z2;
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 
 struct matter {
     //std::map<char*, float> composition; 
@@ -44,15 +65,70 @@ struct matter {
     //std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
 };
 
-struct cell {
-    bool transparent;
-    bool sides[6];  // x, y, z, -x, -y, -z
-    int octave;
-    int lod;
-    std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
-            //  c.lod = octaves;
+enum Direction { POS_X = 0, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z };
+
+
+struct Cell {
+    bool visible;
+    bool transparent;    
+
+    Cell* parent = nullptr;        
+    int indexInParent = 0;  // 0..7 as per (x<<2)|(y<<1)|z
+
+    std::array<std::unique_ptr<Cell>, 8> children = {nullptr};
+    std::array<Cell*, 6> neighbors = {nullptr}; // ±X, ±Y, ±Z
 };
 
+
+// given a node index (0–7) and a direction, can we move within the same parent?
+bool hasSiblingInDir(int idx, Direction d) {
+    int x = (idx>>2)&1, y = (idx>>1)&1, z = idx&1;
+    switch(d) {
+      case POS_X: return x==0;
+      case NEG_X: return x==1;
+      case POS_Y: return y==0;
+      case NEG_Y: return y==1;
+      case POS_Z: return z==0;
+      case NEG_Z: return z==1;
+    }
+    return false;
+}
+// flip the appropriate bit to get the sibling’s child‑index
+int siblingIndex(int idx, Direction d) {
+    switch(d) {
+      case POS_X: return idx | 4;
+      case NEG_X: return idx & ~4;
+      case POS_Y: return idx | 2;
+      case NEG_Y: return idx & ~2;
+      case POS_Z: return idx | 1;
+      case NEG_Z: return idx & ~1;
+    }
+    return idx;
+}
+
+Cell* findNeighbor(Cell* node, Direction dir) {
+    if (!node->parent) return nullptr;              // hit the root, no neighbor
+    int idx = node->indexInParent;
+    // 1) If the neighbor is just a sibling in the same parent, return it.
+    if (hasSiblingInDir(idx, dir)) {
+      return node->parent->children[siblingIndex(idx,dir)].get();
+    }
+    // 2) Otherwise, recurse to find the parent’s neighbor in that dir
+    Cell* parentNbr = findNeighbor(node->parent, dir);
+    if (!parentNbr) return nullptr;
+    // 3) If that neighbor isn’t subdivided, it *is* our neighbor
+    if (!parentNbr->children[0])  // assume “no children” means leaf
+      return parentNbr;
+    // 4) Otherwise, descend into the appropriate child of that subtree
+    //    which “mirrors” our index in this axis:
+    return parentNbr->children[siblingIndex(idx,dir)].get();
+}
+
+void cellOffset(int index, int& x, int& y, int& z) {
+    x = (index >> 2) & 1;
+    y = (index >> 1) & 1;
+    z = index & 1;
+}
 
 struct meshData {
     std::vector<GLfloat> vData;
@@ -61,338 +137,319 @@ struct meshData {
 };
 
 
+
 class Gaia{
 private: 
-    int size;
-    int resolution;
-    cell planet;
-    int octaves;
+    Cell planet;
+    int depth;
+
+    float lod = 5.0;
+    Vec3 lodPos = {16, 47, 16};
+    meshData mesh;
 
 public: 
-    Gaia(int s, int r, int o) {
-        size = s;
-        resolution = r;
-        octaves = o;
-        generateCell(planet, 0, 0, 0, 0);
-    }
+    Gaia(int d) {
+        depth = d;
+        float planetSize = pow(2, depth);
+        Vec3 worldPos = {
+            -1000,
+            0,
+            -1000
 
-    void generateCell(cell &c, int cOctave, float cx, float cy, float cz) {
-        float cSize = size / resolution ^ cOctave;
+        };
         
-        //generate noisy hills terrain
-        //const float nScale = 64.0f;
-        //const float nLacunarity = 2.0f;
-        //const float nPersistance = 1.0f;
-        //const int nOctaves = 5;
-        //const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
-        //const float noise = simplex.fractal(nOctaves, cx, cy, cz);
-        //
-        //const float solid = cy - (32 * noise) < 32;
-        //c.transparent = !solid;
-        c.transparent = false;
-        c.octave = cOctave;
-        
+        double time0 = glfwGetTime();
+        generateMatter(&planet, depth, planetSize, worldPos);
+        double time1 = glfwGetTime();
+        std::cout << "Matter generated in " << 1000*(time1-time0) << "ms\n";
 
-        if (cOctave < octaves){
-            // recursively generate from smallest to largest
-            c.cells = std::vector<std::vector<std::vector<cell>>> (
-                resolution, std::vector<std::vector<cell>> (
-                    resolution, std::vector<cell>(resolution, cell())
-                )
-            );
-            for (int x = 0; x < resolution; x++) {
-                for (int y = 0; y < resolution; y++) {
-                    for (int z = 0; z < resolution; z++) {
-                        c.cells[x][y][z].lod = x + y + z;
-                        generateCell(c.cells[x][y][z], cOctave+1, cSize*x+cx, cSize*y+cy, cSize*z+cz);
-                    }
-                }
-            }
+        time0 = glfwGetTime();
+        setNeighbors(&planet);
+        time1 = glfwGetTime();
+        std::cout << "Neighbor data generated in " << 1000*(time1-time0) << "ms\n";
         
-            // which sides should be rendered?
-            for (int x = 0; x < resolution; x++) {
-                for (int y = 0; y < resolution; y++) {
-                    for (int z = 0; z < resolution; z++) {
-                        cell &cCell = c.cells[x][y][z];
-                        if(cCell.transparent){
-                            std::fill(cCell.sides, cCell.sides + 6, false);
-                            continue;
-                        } else {
-                            // check if adjascent blocks are transparent
-                            // chunk are assumed to be transparent for now
-                            //                 chunk edges     ||  adjascent blocks
-                            cCell.sides[0] = (x == resolution - 1)  ||  c.cells[x + 1][y][z].transparent;
-                            cCell.sides[1] = (y == resolution - 1)  ||  c.cells[x][y + 1][z].transparent;
-                            cCell.sides[2] = (z == resolution - 1)  ||  c.cells[x][y][z + 1].transparent;                               
-                            cCell.sides[3] = (x == 0)               ||  c.cells[x - 1][y][z].transparent;     
-                            cCell.sides[4] = (y == 0)               ||  c.cells[x][y - 1][z].transparent;
-                            cCell.sides[5] = (z == 0)               ||  c.cells[x][y][z - 1].transparent;    
-                        } 
-                    }
-                }
-            }
-            
-            if (cOctave == 0) {
-                // planet cell values
-                std::fill(c.sides, c.sides + 6, true);
-                c.lod = 0;
-            }
-        }
+        time0 = glfwGetTime();
+        buildMeshData(&planet, depth, planetSize, worldPos);
+        time1 = glfwGetTime();
+        
+        std::cout << "Mesh Data generated in " << 1000*(time1-time0) << "ms\n";
     }
     
-    meshData generateMeshData(cell &c, meshData &mesh, int &dInd, float cx, float cy, float cz) {
-        float cSize = size * resolution ^ (-1 * c.octave);
-        cx *= cSize;
-        cy *= cSize;
-        cz *= cSize;
-        // float lod = size / cx;
+    meshData getMesh() {
+        return mesh;
+    }
+
+    void setNeighbors(Cell* cell) {
+        if (!cell) return;
+
+        // assign neighbor pointers for this cell
+        for (int d = 0; d < 6; ++d) {
+            cell->neighbors[d] = findNeighbor(cell, static_cast<Direction>(d));
+        }
+
+        // recurse into children
+        for (auto& child : cell->children) {
+            if (child) setNeighbors(child.get());
+        }
+    }
+
+    void generateMatter(Cell* cell, int cDepth, float cSize, Vec3 pos) {
+        //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) {
+        float childSize = cSize/2;
         
-        if (c.lod < 2 && c.octave < octaves) {
-            for (int x = 0; x < resolution; x++) {
-                for (int y = 0; y < resolution; y++) {
-                    for (int z = 0; z < resolution; z++) {
+        Vec3 blockPos = {
+            pos.x + childSize,
+            pos.y + childSize,
+            pos.z + childSize
 
-                        generateMeshData(c.cells[x][y][x], mesh, dInd, x+cx*resolution, y+cy*resolution, z+cz*resolution);
-                    }
-                }
+        };
+
+        if(cDepth > 0 && distance3D(blockPos, lodPos)/cSize < lod*2) {
+            cell->visible = false;
+            for (int i = 0; i < 8; ++i) {
+
+                float dx = (i >> 2) & 1;
+                float dy = (i >> 1) & 1;
+                float dz = i & 1;
+                Vec3 childPos = {
+                    pos.x + dx * childSize,
+                    pos.y + dy * childSize,
+                    pos.z + dz * childSize
+                };
+                float childSize = cSize/2;
+                cell->children[i] = std::make_unique<Cell>();
+                cell->children[i]->parent = cell;
+                cell->children[i]->indexInParent = i;
+                generateMatter(cell->children[i].get(), cDepth-1, childSize, childPos);
             }
-        } if (true) {//else {
+        } else cell->visible = true;
 
+        // actual terrain generation
+        const float nScale = 64.0f;
+        const float nLacunarity = 2.0f;
+        const float nPersistance = 1.0f;
+        const int ndepth = 5;
+        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        const float noise = simplex.fractal(ndepth, blockPos.x, blockPos.y, blockPos.z);
+        const float solid = blockPos.y - (128 * noise) < 32;
+        cell->transparent = !solid;
+    }
+    
+    void buildMeshData(Cell* cell, int cDepth, float cSize, Vec3 pos) {
+        if(!cell) return;
+        // float lod = size / pos.x);
+        //
+        //
+        if(!cell->visible && cDepth > 0) {
+            float childSize = cSize/2;
+            for (int i = 0; i < 8; ++i){
+                float dx = (i >> 2) & 1;
+                float dy = (i >> 1) & 1;
+                float dz = i & 1;
 
-            static int sCount = 0;
-            for (bool b : c.sides) {
-                sCount += b;
-            }
-
-            mesh.verts += sCount*6; // 1 side = 2 tris = 6 verts
-            mesh.vData.resize(dInd + sCount*18); // 1 side = 6 verts = 18 floats
-            
-            // +x
-            if(c.sides[0]){
-
-                mesh.vData[dInd]    = cx+cSize; // triangle 1
-                mesh.vData[dInd+1]  = cy+cSize;
-                mesh.vData[dInd+2]  = cz+cSize;
-                
-                mesh.vData[dInd+3]  = cx+cSize;
-                mesh.vData[dInd+4]  = cy;     
-                mesh.vData[dInd+5]  = cz+cSize;
-
-                mesh.vData[dInd+6]  = cx+cSize;
-                mesh.vData[dInd+7]  = cy;     
-                mesh.vData[dInd+8]  = cz;     
-
-                mesh.vData[dInd+9]  = cx+cSize; // triangle 2
-                mesh.vData[dInd+10] = cy+cSize;
-                mesh.vData[dInd+11] = cz+cSize;
-                                      
-                mesh.vData[dInd+12] = cx+cSize;
-                mesh.vData[dInd+13] = cy;     
-                mesh.vData[dInd+14] = cz;     
-                                      
-                mesh.vData[dInd+15] = cx+cSize;
-                mesh.vData[dInd+16] = cy+cSize;
-                mesh.vData[dInd+17] = cz;     
-
-                for(int i = 0; i < 18; i++) {
-                    mesh.cData.push_back(c.octave / octaves);
-                }
-
-                dInd += 18;
-            }
-
-            // +y
-            if(c.sides[1]){
-                
-                mesh.vData[dInd]    = cx; // triangle 1
-                mesh.vData[dInd+1]  = cy+cSize;
-                mesh.vData[dInd+2]  = cz;
-                                      
-                mesh.vData[dInd+3]  = cx;
-                mesh.vData[dInd+4]  = cy+cSize;
-                mesh.vData[dInd+5]  = cz+cSize;
-                                      
-                mesh.vData[dInd+6]  = cx+cSize;
-                mesh.vData[dInd+7]  = cy+cSize;
-                mesh.vData[dInd+8]  = cz+cSize;
-                                      
-                mesh.vData[dInd+9]  = cx; // triangle 2
-                mesh.vData[dInd+10] = cy+cSize;
-                mesh.vData[dInd+11] = cz;
-                                      
-                mesh.vData[dInd+12] = cx+cSize;
-                mesh.vData[dInd+13] = cy+cSize;
-                mesh.vData[dInd+14] = cz+cSize;
-                                      
-                mesh.vData[dInd+15] = cx+cSize;
-                mesh.vData[dInd+16] = cy+cSize;
-                mesh.vData[dInd+17] = cz;
-
-                for(int i = 0; i < 18; i++) {
-                    mesh.cData.push_back(c.octave / octaves);
-                }
-
-                dInd += 18;
-            }
-            
-            // +z
-            if(c.sides[2]){
-                
-                mesh.vData[dInd]    = cx; // triangle 1
-                mesh.vData[dInd+1]  = cy+cSize;
-                mesh.vData[dInd+2]  = cz+cSize;
-                                      
-                mesh.vData[dInd+3]  = cx;
-                mesh.vData[dInd+4]  = cy;
-                mesh.vData[dInd+5]  = cz+cSize;
-                                      
-                mesh.vData[dInd+6]  = cx+cSize;
-                mesh.vData[dInd+7]  = cy;
-                mesh.vData[dInd+8]  = cz+cSize;
-                                      
-                mesh.vData[dInd+9]  = cx; // triangle 2
-                mesh.vData[dInd+10] = cy+cSize;
-                mesh.vData[dInd+11] = cz+cSize;
-                                      
-                mesh.vData[dInd+12] = cx+cSize;
-                mesh.vData[dInd+13] = cy;
-                mesh.vData[dInd+14] = cz+cSize;
-                                      
-                mesh.vData[dInd+15] = cx+cSize;
-                mesh.vData[dInd+16] = cy+cSize;
-                mesh.vData[dInd+17] = cz+cSize;
-
-                for(int i = 0; i < 18; i++) {
-                    mesh.cData.push_back(c.octave / octaves);
-                }
-
-                dInd += 18;
-            }
-            
-            // -x
-            if(c.sides[3]){
-                
-                mesh.vData[dInd]    = cx; // triangle 1
-                mesh.vData[dInd+1]  = cy;
-                mesh.vData[dInd+2]  = cz;
-                                      
-                mesh.vData[dInd+3]  = cx;
-                mesh.vData[dInd+4]  = cy+cSize;
-                mesh.vData[dInd+5]  = cz;
-                                      
-                mesh.vData[dInd+6]  = cx;
-                mesh.vData[dInd+7]  = cy+cSize;
-                mesh.vData[dInd+8]  = cz+cSize;
-                                      
-                mesh.vData[dInd+9]  = cx; // triangle 2
-                mesh.vData[dInd+10] = cy;
-                mesh.vData[dInd+11] = cz;
-                                      
-                mesh.vData[dInd+12] = cx;
-                mesh.vData[dInd+13] = cy+cSize;
-                mesh.vData[dInd+14] = cz+cSize;
-                                      
-                mesh.vData[dInd+15] = cx;
-                mesh.vData[dInd+16] = cy;
-                mesh.vData[dInd+17] = cz+cSize;
-
-                for(int i = 0; i < 18; i++) {
-                    mesh.cData.push_back(c.octave / octaves);
-                }
-
-                dInd += 18;
-            }
-
-            // -y
-            if(c.sides[4]){
-                
-                mesh.vData[dInd]    = cx+cSize; // triangle 1
-                mesh.vData[dInd+1]  = cy;
-                mesh.vData[dInd+2]  = cz+cSize;
-                                      
-                mesh.vData[dInd+3]  = cx+cSize;
-                mesh.vData[dInd+4]  = cy;
-                mesh.vData[dInd+5]  = cz;
-                                      
-                mesh.vData[dInd+6]  = cx;
-                mesh.vData[dInd+7]  = cy;
-                mesh.vData[dInd+8]  = cz;
-                                      
-                mesh.vData[dInd+9]  = cx+cSize; // triangle 2
-                mesh.vData[dInd+10] = cy;
-                mesh.vData[dInd+11] = cz+cSize;
-                                      
-                mesh.vData[dInd+12] = cx;
-                mesh.vData[dInd+13] = cy;
-                mesh.vData[dInd+14] = cz;
-                                      
-                mesh.vData[dInd+15] = cx;
-                mesh.vData[dInd+16] = cy;
-                mesh.vData[dInd+17] = cz+cSize;
-
-                for(int i = 0; i < 18; i++) {
-                    mesh.cData.push_back(c.octave / octaves);
-                }
-
-                dInd += 18;
-            }
-            
-            // -z
-            if(c.sides[5]){
-                
-                mesh.vData[dInd]    = cx+cSize; // triangle 1
-                mesh.vData[dInd+1]  = cy;
-                mesh.vData[dInd+2]  = cz;
-                                      
-                mesh.vData[dInd+3]  = cx+cSize;
-                mesh.vData[dInd+4]  = cy+cSize;
-                mesh.vData[dInd+5]  = cz;
-                                      
-                mesh.vData[dInd+6]  = cx;
-                mesh.vData[dInd+7]  = cy+cSize;
-                mesh.vData[dInd+8]  = cz;
-                                      
-                mesh.vData[dInd+9]  = cx+cSize; // triangle 2
-                mesh.vData[dInd+10] = cy;
-                mesh.vData[dInd+11] = cz;
-                                      
-                mesh.vData[dInd+12] = cx;
-                mesh.vData[dInd+13] = cy+cSize;
-                mesh.vData[dInd+14] = cz;
-                                      
-                mesh.vData[dInd+15] = cx;
-                mesh.vData[dInd+16] = cy;
-                mesh.vData[dInd+17] = cz;
-                
-                for(int i = 0; i < 18; i++) {
-                    mesh.cData.push_back(c.octave / octaves);
-                }
-
-                dInd += 18;
+                Vec3 childPos = {
+                    pos.x + dx * childSize,
+                    pos.y + dy * childSize,
+                    pos.z + dz * childSize
+                };
+                buildMeshData(cell->children[i].get(), cDepth-1, childSize, childPos);
             }
         }
-        
 
-        //for (GLfloat d : mesh.vData){
-        //    mesh.cData[i] = mesh.vData[i] / size - (1/3) + (rand() / double(RAND_MAX));
-        //}
-        if (c.octave == 0) {
-            // mesh.cData.resize(mesh.vData.size());
-            for (int i=0; i < mesh.cData.size(); i++) {
+        if(cell->visible && !cell->transparent) {
+            // +x
+            if(cell->neighbors[0] && cell->neighbors[0]->transparent) {
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+                
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+            }
+
+            // -x         
+            if(cell->neighbors[1] && cell->neighbors[1]->transparent) {
+                          
+                mesh.vData.push_back(pos.x); // triangle 1
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x); // triangle 2
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+            }             
+            // +y
+            if(cell->neighbors[2] && cell->neighbors[2]->transparent) {
+                
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+            }
+            
+            // -y         
+            if(cell->neighbors[3] && cell->neighbors[3]->transparent) {
+                          
+                mesh.vData.push_back(pos.x+cSize); // triangle 1
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x+cSize); // triangle 2
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+            }             
+                          
+            // +z
+            if(cell->neighbors[4] && cell->neighbors[4]->transparent) {
+                
+                mesh.vData.push_back(pos.x); // triangle 1
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x); // triangle 2
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z+cSize);
+                   
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z+cSize);
+            }
+
+                          
+            // -z         
+            if(cell->neighbors[5] && cell->neighbors[5]->transparent){
+                          
+                mesh.vData.push_back(pos.x+cSize); // triangle 1
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x+cSize);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x+cSize); // triangle 2
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y);
+                mesh.vData.push_back(pos.z);
+                   
+                mesh.vData.push_back(pos.x);
+                mesh.vData.push_back(pos.y+cSize);
+                mesh.vData.push_back(pos.z);
+            }
+        }
+
+
+        if (cDepth == depth) {
+
+            const float nScale = 64.0f;
+            const float nLacunarity = 2.0f;
+            const float nPersistance = 1.0f;
+            const int ndepth = 5;
+            const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+            
+            mesh.cData.resize(mesh.vData.size());
+            for (int i=0; i < mesh.vData.size(); i+=3) {
                 //mesh.cData[i] = mesh.vData[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
-                mesh.cData[i] += mesh.vData[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
+                mesh.cData[i] = mesh.vData[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
+                //mesh.cData.push_back(rand() / double(RAND_MAX));
+                const float noiseR = simplex.fractal(ndepth, mesh.vData[i]+1000, mesh.vData[i+1], mesh.vData[i+2]);
+                const float noiseG = simplex.fractal(ndepth, mesh.vData[i]+2000, mesh.vData[i+1], mesh.vData[i+2]);
+                const float noiseB = simplex.fractal(ndepth, mesh.vData[i]+3000, mesh.vData[i+1], mesh.vData[i+2]);
+                mesh.cData[i] = noiseR + 0.5;
+                mesh.cData[i+1] = noiseG + 0.5;
+                mesh.cData[i+2] = noiseB + 0.5;
                 //mesh.cData[i] = rand() / double(RAND_MAX);
             }
         }
-
-        return(mesh);
     }
 
-    meshData generateMeshData() {
-        meshData mesh;
-        int ind = 0;
-        return(generateMeshData(planet, mesh, ind, 0, 0, 0));
-    }
 };
 
    
@@ -415,7 +472,7 @@ int main(){
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // We don't want the old OpenGL 
     
-    window = glfwCreateWindow( 1024, 768, "bird dream", NULL, NULL);
+    window = glfwCreateWindow( 1024, 768, "page 7.6", NULL, NULL);
     if (window == NULL){
         fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
         glfwTerminate();
@@ -435,7 +492,7 @@ int main(){
 	glClearColor(0.6f, 0.7f, 0.9f, 0.0f);
     glEnable(GL_DEPTH_TEST);    // Enable depth test
     glDepthFunc(GL_LESS);       // Accept fragment if it closer to the camera than the former one
-    //glEnable(GL_CULL_FACE);     // backface culling
+    glEnable(GL_CULL_FACE);     // backface culling
 
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
@@ -458,10 +515,9 @@ int main(){
     // # model generation #
     // ####################
     
-    Gaia world(4, 2, 5);
-
-    meshData worldMesh = world.generateMeshData();
-    
+    //Gaia world(4, 2, 23);
+    Gaia world(21);
+    meshData worldMesh = world.getMesh();
 
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);

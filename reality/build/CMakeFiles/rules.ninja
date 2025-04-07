@@ -594,7 +594,7 @@ rule C_EXECUTABLE_LINKER__windows_
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /usr/bin/cmake --regenerate-during-build -S/home/dawn/repos/dove/reality -B/home/dawn/repos/dove/reality/build
+  command = /usr/bin/cmake --regenerate-during-build -S/home/dawn-admin/repos/dove/reality -B/home/dawn-admin/repos/dove/reality/build
   description = Re-running CMake...
   generator = 1
 
@@ -603,7 +603,7 @@ rule RERUN_CMAKE
 # Rule for cleaning all built files.
 
 rule CLEAN
-  command = /usr/bin/ninja $FILE_ARG -t clean $TARGETS
+  command = /usr/bin/ninja-build $FILE_ARG -t clean $TARGETS
   description = Cleaning all built files...
 
 
@@ -611,6 +611,6 @@ rule CLEAN
 # Rule for printing all primary targets available.
 
 rule HELP
-  command = /usr/bin/ninja -t targets
+  command = /usr/bin/ninja-build -t targets
   description = All primary targets available:
 
