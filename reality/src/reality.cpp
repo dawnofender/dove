@@ -143,8 +143,8 @@ private:
     Cell planet;
     int depth;
 
-    float lod = 5.0;
-    Vec3 lodPos = {16, 47, 16};
+    float lod = 8.0;
+    Vec3 lodPos = {00, 1000, 00};
     meshData mesh;
 
 public: 
@@ -152,10 +152,9 @@ public:
         depth = d;
         float planetSize = pow(2, depth);
         Vec3 worldPos = {
-            -1000,
-            0,
-            -1000
-
+            -1 * planetSize / 2,
+            -1 * planetSize / 2,
+            -1 * planetSize / 2,
         };
         
         double time0 = glfwGetTime();
@@ -206,6 +205,8 @@ public:
 
         if(cDepth > 0 && distance3D(blockPos, lodPos)/cSize < lod*2) {
             cell->visible = false;
+            cell->transparent = false;
+
             for (int i = 0; i < 8; ++i) {
 
                 float dx = (i >> 2) & 1;
@@ -222,22 +223,31 @@ public:
                 cell->children[i]->indexInParent = i;
                 generateMatter(cell->children[i].get(), cDepth-1, childSize, childPos);
             }
-        } else cell->visible = true;
+        } else {
+            cell->visible = true;
+        
+            // actual terrain generation
+            const float nScale = 512.0f;
+            const float nLacunarity = 2.0f;
+            const float nPersistance = 1.0f;
+            const int ndepth = 5;
+            const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+            const float noise = simplex.fractal(ndepth, blockPos.x, blockPos.y, blockPos.z);
+            
+            // spawn mountain
+            const float mountainHeight = 1000;
+            const float mountain = mountainHeight * (pow(2, 0 - (abs(blockPos.x) + abs(blockPos.z))));
+            bool solid = blockPos.y - (1024 * noise) + mountain < 32;
+            // monolith
+            if(-2 < blockPos.x && blockPos.x < 2 && -2 < blockPos.z && blockPos.z < 2) solid = false;
+            if(-1 < blockPos.x && blockPos.x < 1 && -1 < blockPos.z && blockPos.z < 1) solid = true;
 
-        // actual terrain generation
-        const float nScale = 64.0f;
-        const float nLacunarity = 2.0f;
-        const float nPersistance = 1.0f;
-        const int ndepth = 5;
-        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
-        const float noise = simplex.fractal(ndepth, blockPos.x, blockPos.y, blockPos.z);
-        const float solid = blockPos.y - (128 * noise) < 32;
-        cell->transparent = !solid;
+            cell->transparent = !solid;
+        }
     }
     
     void buildMeshData(Cell* cell, int cDepth, float cSize, Vec3 pos) {
         if(!cell) return;
-        // float lod = size / pos.x);
         //
         //
         if(!cell->visible && cDepth > 0) {
@@ -516,8 +526,9 @@ int main(){
     // ####################
     
     //Gaia world(4, 2, 23);
-    Gaia world(21);
+    Gaia world(24);
     meshData worldMesh = world.getMesh();
+    std::cout << worldMesh.vData.size()/9 << " tris\n";
 
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
@@ -528,6 +539,11 @@ int main(){
     glGenBuffers(1, &colorbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * worldMesh.cData.size(), &worldMesh.cData[0], GL_STATIC_DRAW);
+               
+    GLuint normalbuffer;
+    glGenBuffers(1, &normalbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
     
     //GLuint uvbuffer;
     //glGenBuffers(1, &uvbuffer);
@@ -603,6 +619,18 @@ int main(){
             0,                                // stride
             (void*)0                          // array buffer offset
         );
+
+         // 3rd attribute buffer : normals
+         glEnableVertexAttribArray(2);
+         glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+         glVertexAttribPointer(
+             2,                                // attribute
+             3,                                // size
+             GL_FLOAT,                         // type
+             GL_FALSE,                         // normalized?
+             0,                                // stride
+             (void*)0                          // array buffer offset
+         );
        
 		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
         
