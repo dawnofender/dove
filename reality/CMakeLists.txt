@@ -48,8 +48,6 @@ add_executable(reality
 	common/controls.hpp
 	common/texture.cpp
 	common/texture.hpp
-	common/SimplexNoise.cpp
-	common/SimplexNoise.h
 )
 
 target_link_libraries(reality ${ALL_LIBS})

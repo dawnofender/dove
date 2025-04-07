@@ -72,13 +72,6 @@ build CMakeFiles/reality.dir/common/texture.cpp.o: CXX_COMPILER__reality_unscann
   OBJECT_DIR = CMakeFiles/reality.dir
   OBJECT_FILE_DIR = CMakeFiles/reality.dir/common
 
-build CMakeFiles/reality.dir/common/SimplexNoise.cpp.o: CXX_COMPILER__reality_unscanned_ /home/dawn/repos/dove/reality/common/SimplexNoise.cpp || cmake_object_order_depends_target_reality
-  DEFINES = -DGLEW_STATIC -DTW_NO_DIRECT3D -DTW_NO_LIB_PRAGMA -DTW_STATIC -D_CRT_SECURE_NO_WARNINGS
-  DEP_FILE = CMakeFiles/reality.dir/common/SimplexNoise.cpp.o.d
-  INCLUDES = -I/home/dawn/repos/dove/reality/external/AntTweakBar-1.16/include -I/home/dawn/repos/dove/reality/external/glfw-3.1.2/include -I/home/dawn/repos/dove/reality/external/glm-0.9.7.1 -I/home/dawn/repos/dove/reality/external/glew-1.13.0/include -I/home/dawn/repos/dove/reality/external/assimp-3.0.1270/include -I/home/dawn/repos/dove/reality/external/bullet-2.81-rev2613/src -I/home/dawn/repos/dove/reality/external/SimplexNoise/src -I/home/dawn/repos/dove/reality/.
-  OBJECT_DIR = CMakeFiles/reality.dir
-  OBJECT_FILE_DIR = CMakeFiles/reality.dir/common
-
 
 # =============================================================================
 # Link build statements for EXECUTABLE target reality
@@ -87,7 +80,7 @@ build CMakeFiles/reality.dir/common/SimplexNoise.cpp.o: CXX_COMPILER__reality_un
 #############################################
 # Link the executable reality
 
-build reality: CXX_EXECUTABLE_LINKER__reality_ CMakeFiles/reality.dir/src/reality.cpp.o CMakeFiles/reality.dir/common/shader.cpp.o CMakeFiles/reality.dir/common/controls.cpp.o CMakeFiles/reality.dir/common/texture.cpp.o CMakeFiles/reality.dir/common/SimplexNoise.cpp.o | /usr/lib/libGL.so /usr/lib/libGLU.so external/glfw-3.1.2/src/libglfw3.a external/libGLEW_1130.a /usr/lib/librt.a /usr/lib/libm.so /usr/lib/libX11.so /usr/lib/libXrandr.so /usr/lib/libXinerama.so /usr/lib/libXi.so /usr/lib/libXxf86vm.so /usr/lib/libXcursor.so /usr/lib/librt.a /usr/lib/libm.so /usr/lib/libX11.so /usr/lib/libXrandr.so /usr/lib/libXinerama.so /usr/lib/libXi.so /usr/lib/libXxf86vm.so /usr/lib/libXcursor.so /usr/lib/libGL.so /usr/lib/libGLU.so || external/glfw-3.1.2/src/libglfw3.a external/libGLEW_1130.a
+build reality: CXX_EXECUTABLE_LINKER__reality_ CMakeFiles/reality.dir/src/reality.cpp.o CMakeFiles/reality.dir/common/shader.cpp.o CMakeFiles/reality.dir/common/controls.cpp.o CMakeFiles/reality.dir/common/texture.cpp.o | /usr/lib/libGL.so /usr/lib/libGLU.so external/glfw-3.1.2/src/libglfw3.a external/libGLEW_1130.a /usr/lib/librt.a /usr/lib/libm.so /usr/lib/libX11.so /usr/lib/libXrandr.so /usr/lib/libXinerama.so /usr/lib/libXi.so /usr/lib/libXxf86vm.so /usr/lib/libXcursor.so /usr/lib/librt.a /usr/lib/libm.so /usr/lib/libX11.so /usr/lib/libXrandr.so /usr/lib/libXinerama.so /usr/lib/libXi.so /usr/lib/libXxf86vm.so /usr/lib/libXcursor.so /usr/lib/libGL.so /usr/lib/libGLU.so || external/glfw-3.1.2/src/libglfw3.a external/libGLEW_1130.a
   DEP_FILE = CMakeFiles/reality.dir/link.d
   LINK_FLAGS = -rdynamic  -Wl,--dependency-file=CMakeFiles/reality.dir/link.d
   LINK_LIBRARIES = -lGL  -lGLU  external/glfw-3.1.2/src/libglfw3.a  external/libGLEW_1130.a  -lGL  -lGLU  -lXrandr  -lXext  -lX11  -lrt  -ldl  -Wl,-Bstatic  -lrt  -Wl,-Bdynamic  -lm  -lX11  -lXrandr  -lXinerama  -lXi  -lXxf86vm  -lXcursor  -ldl  -Wl,-Bstatic  -lrt  -Wl,-Bdynamic  -lm  -lX11  -lXrandr  -lXinerama  -lXi  -lXxf86vm  -lXcursor  -lGL  -lGLU
