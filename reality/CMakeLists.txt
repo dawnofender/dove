@@ -42,14 +42,14 @@ add_executable(reality
     src/reality.cpp
     src/TransformVertexShader.vertexshader
     src/TextureFragmentShader.fragmentshader
-    common/shader.cpp
-    common/shader.hpp
-    common/SimplexNoise.cpp
-    common/SimplexNoise.h
-	common/controls.cpp
-	common/controls.hpp
-	common/texture.cpp
-	common/texture.hpp
+    lib/shader.cpp
+    lib/shader.hpp
+    lib/SimplexNoise.cpp
+    lib/SimplexNoise.h
+	  lib/controls.cpp
+	  lib/controls.hpp
+	  lib/texture.cpp
+    lib/texture.hpp
 )
 
 target_link_libraries(reality ${ALL_LIBS})

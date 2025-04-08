@@ -1,0 +1,4 @@
+- generate smooth mesh based on density of cell
+- optimize by having duplicate cells trees point to the same tree
+distant future
+- imposters for large cells, generate depth and normals straight from cell data

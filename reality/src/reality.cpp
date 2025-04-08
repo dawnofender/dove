@@ -13,55 +13,28 @@ GLFWwindow* window;
 #include <glm/gtx/transform.hpp> // after <glm/glm.hpp>
 using namespace glm;
 
-#include <common/shader.hpp>
-#include <common/texture.hpp>
-#include <common/controls.hpp>
-#include <common/vboindexer.hpp>
+#include <lib/shader.hpp>
+#include <lib/texture.hpp>
+#include <lib/controls.hpp>
+#include <lib/vboindexer.hpp>
 
-#include <common/SimplexNoise.h>
-
-// better cell class - implement later 
-//class Cell {
-//protected: 
-//    std::vector<std::shared_ptr<Organelle>> organelles;
-//public: 
-//    Cell() = default;
-//    Cell(std::array<Organelle> o) {
-//        organelles = o;
-//    }
-//    
-//    void AddComponent(std::shared_ptr<Component> component) {
-//
-//    }
-//
-//    Organelle getOrganelle(int i) {
-//        return organelles[i];
-//    }
-//};
-
-struct matter {
-    //std::map<char*, float> composition; 
-    bool transparent;
-    bool sides[6];  // x, y, z, -x, -y, -z
-    //std::vector<std::vector<std::vector<cell>>> cells;  // 3D array
-};
+#include <lib/SimplexNoise.h>
 
 enum Direction { POS_X = 0, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z };
 
-bool is_near(float v1, float v2){
-	return fabs( v1-v2 ) < 0.01f;
-}
-
 struct Cell {
-    bool visible;
+    bool leaf;
     bool transparent;    
-    std::map<char*, char> composition; 
+    char density;
+    //std::map<char*, char> properties; 
+    char type;
 
     Cell* parent = nullptr;        
     int indexInParent = 0;  // 0..7 as per (x<<2)|(y<<1)|z
     glm::vec3 position;
+    float size;
 
-    std::array<std::unique_ptr<Cell>, 8> children = {nullptr};
+    std::array<std::shared_ptr<Cell>, 8> children = {nullptr};
     std::array<Cell*, 6> neighbors = {nullptr}; // ±X, ±Y, ±Z
 };
 
@@ -92,7 +65,7 @@ int siblingIndex(int idx, Direction d) {
     return idx;
 }
 
-Cell* findNeighbor(Cell* node, Direction dir) {
+Cell* findNeighbor(Cell* node, Direction dir) { //maybe keep track of distance too so we can walk all the way back down?
     if (!node->parent) return nullptr;              // hit the root, no neighbor
     int idx = node->indexInParent;
     // 1) If the neighbor is just a sibling in the same parent, return it.
@@ -109,6 +82,9 @@ Cell* findNeighbor(Cell* node, Direction dir) {
     //    which “mirrors” our index in this axis:
     return parentNbr->children[siblingIndex(idx,dir)].get();
 }
+
+
+
 
 void cellOffset(int index, int& x, int& y, int& z) {
     x = (index >> 2) & 1;
@@ -128,11 +104,10 @@ struct meshData {
 class Gaia{
 private: 
     Cell planet;
+    std::vector<std::shared_ptr<Cell>> leaves;
     int depth;
-    float planetSize;
-    vec3 origin;
 
-    float lod = 12.0;
+    float lod = 16.f;
     vec3 camPos;
     meshData mesh;
     meshData cube;
@@ -141,12 +116,16 @@ public:
     Gaia(vec3 p, int d) {
         depth = d;
         camPos = p;
-        planetSize = pow(2.f, depth);
-        origin = vec3(
-            -1.f * planetSize / 2.f,
-            -1.f * planetSize / 2.f,
-            -1.f * planetSize / 2.f
+        planet.size = pow(2.f, depth);
+        planet.position = vec3(
+            //0,
+            //0,
+            //0
+            planet.size / -2.f,
+            planet.size / -2.f,
+            planet.size / -2.f
         );
+        planet.leaf = false;
 
         cube.vertices = {
             // +x    
@@ -191,20 +170,68 @@ public:
         };
         
         double time0 = glfwGetTime();
-        generateMatter(&planet, depth, planetSize);
+        generateMatter(&planet, depth);
         double time1 = glfwGetTime();
-        std::cout << "Matter generated in " << 1000*(time1-time0) << "ms\n";
+        std::cout << "                    Matter generated | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
         setNeighbors(&planet);
         time1 = glfwGetTime();
-        std::cout << "Neighbor data generated in " << 1000*(time1-time0) << "ms\n";
+        std::cout << "             Neighbor data generated | " << 1000*(time1-time0) << "ms\n";
+
+        double time0 = glfwGetTime();
+        decorateMatter(&planet, depth);
+        double time1 = glfwGetTime();
+        std::cout << "                    Matter decorated | " << 1000*(time1-time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        simplifyHomogeneous(&planet);
+        time1 = glfwGetTime();
+        std::cout << "   Simplified homogeneous cell trees | " << 1000*(time1-time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        indexLeaves(&planet);
+        time1 = glfwGetTime();
+        std::cout << "                      Indexed leaves | " << 1000*(time1-time0) << "ms\n";
+
         
         time0 = glfwGetTime();
-        buildMeshData(&planet, depth, planetSize, origin);
+        buildMeshData();
         time1 = glfwGetTime();
-        
-        std::cout << "Mesh Data generated in " << 1000*(time1-time0) << "ms\n";
+        std::cout << "                 Mesh Data generated | " << 1000*(time1-time0) << "ms\n";
+    }
+
+    void simplifyHomogeneous(Cell* cell) {
+        // recurse into children first,
+        for (auto& child : cell->children) {
+            if(child && !child->leaf) simplifyHomogeneous(child.get());
+        }
+
+        // then simplify as we go back up
+
+        for (int i = 0; i < 7; i++){
+            // if any children are different from each other
+            if ( !cell->children[i]->leaf || !cell->children[i+1]->leaf ||
+                  cell->children[i]->type != cell->children[i+1]->type ||
+                  cell->children[i]->transparent != cell->children[i+1]->type 
+            ) return;
+        }
+
+        cell->transparent = cell->children[0]->transparent;
+        for (int i=0; i<8; i++) {
+           cell->children[i].reset();
+        }
+        cell->leaf = true;
+    }
+
+    void indexLeaves(Cell* cell) {
+        for (auto& child: cell->children) {
+            if(child) {
+                if(child->leaf) {
+                    leaves.push_back(std::shared_ptr<Cell>(child));
+                } else indexLeaves(child.get());
+            }
+        }
     }
     
     meshData getMesh() {
@@ -225,50 +252,57 @@ public:
         }
     }
 
-    void generateDetail(Cell* cell) {
-        if (!cell || cell->transparent || cell->children[0]) return;
+    // void generateDetail(Cell* cell) {
+    //     if (!cell || cell->transparent || cell->children[0]) return;
 
-        for (int d = 0; d < 6; ++d) {
-            if(cell->neighbors[d] && cell->neighbors[d]->transparent) {
-                generateMatter(cell, 0, );
-                for(auto& child : cell->children) {
-                    child->visible = false; 
-                }
-            }       
-        }
+    //     for (int d = 0; d < 6; ++d) {
+    //         if(cell->neighbors[d] && cell->neighbors[d]->transparent) {
+    //             generateMatter(cell, 0, );
+    //             for(auto& child : cell->children) {
+    //                 child->visible = false; 
+    //             }
+    //         }       
+    //     }
 
-        // recurse into children
-        for (auto& child : cell->children) {
-            if (child) setNeighbors(child.get());
-        }
-    }
+    //     // recurse into children
+    //     for (auto& child : cell->children) {
+    //         if (child) setNeighbors(child.get());
+    //     }
+    // }
 
-    void generateMatter(Cell* cell, int cDepth, float cSize) {
+    void generateMatter(Cell* cell, int cDepth) {
         //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) {
 
-        float dx = (cell->indexInParent >> 2) & 1;
-        float dy = (cell->indexInParent >> 1) & 1;
-        float dz = cell->indexInParent & 1;
-        
-        cell->position = vec3(
-            cell->parent->position.x + dx * cSize,
-            cell->parent->position.y + dy * cSize,
-            cell->parent->position.z + dz * cSize
-        );
+        if (cell->parent) {
+            float dx = (cell->indexInParent >> 2) & 1;
+            float dy = (cell->indexInParent >> 1) & 1;
+            float dz = cell->indexInParent & 1;
+            
+            cell->position = vec3(
+                cell->parent->position.x + dx * cell->size,
+                cell->parent->position.y + dy * cell->size,
+                cell->parent->position.z + dz * cell->size
+            );
+        }
+       
+        float childSize = cell->size/2.f;
+        vec3 blockPos = cell->position + vec3(childSize, childSize, childSize);
 
-        if(cDepth > 0 && distance(cell->position, camPos)/cSize < lod*2.f) {
-            float childSize = cSize/2.f;
-            cell->visible = false;
+
+        if(cDepth > 0 && distance(cell->position, camPos)/cell->size < lod) {
+            cell->leaf = false;
             cell->transparent = false;
 
             for (int i = 0; i < 8; ++i) {
-                cell->children[i] = std::make_unique<Cell>();
-                cell->children[i]->parent = cell;
-                cell->children[i]->indexInParent = i;
-                generateMatter(cell->children[i].get(), cDepth-1, childSize);
+                auto& child = cell->children[i];
+                child = std::make_unique<Cell>();
+                child->parent = cell;
+                child->indexInParent = i;
+                child->size = childSize;
+                generateMatter(cell->children[i].get(), cDepth-1);
             }
         } else {
-            cell->visible = true;
+            cell->leaf = true;
         
             // actual terrain generation
             const float nScale = 512.f;
@@ -276,99 +310,101 @@ public:
             const float nPersistance = 1.f;
             const int nDepth = 5;
             const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
-            const float noise = simplex.fractal(nDepth, cell->position.x, cell->position.y, cell->position.z);
+            const float noise = simplex.fractal(nDepth, blockPos.x, blockPos.y, blockPos.z);
             //const float noise = 0; 
             
             // spawn mountain
-            const float mountainHeight = 3000;
-            const float mountain = mountainHeight * (pow(0.9999f, (abs(cell->position.x) + abs(cell->position.z))));
-            bool solid = (0-cell->position.y) + (1024.f * noise) + mountain > 0.f;
+            const float mountainHeight = 0000;
+            const float mountain = mountainHeight * (pow(0.9999f, (abs(blockPos.x) + abs(blockPos.z))));
+            bool solid = (0-blockPos.y) + (1024.f * noise) + mountain > 0.f;
 
-            // monolit
-            if(-2.f < cell->position.x && cell->position.x < 2.f && -2.f < cell->position.z && cell->position.z < 2.f) solid = false;
-            if(-1.f < cell->position.x && cell->position.x < 1.f && -1.f < cell->position.z && cell->position.z < 1.f) solid = true;
+            // monolith
+            if(-1.f < blockPos.x && blockPos.x < 2.f && -1.f < blockPos.z && blockPos.z < 2.f) solid = false;
+            if( 0.f < blockPos.x && blockPos.x < 1.f &&  0.f < blockPos.z && blockPos.z < 1.f) solid = true;
 
             cell->transparent = !solid;
+            cell->type = solid; 
+        }
+        for(auto& child : cell->children) {
+            if(child && child->transparent) cell->transparent = true; 
+        }
+    }
+
+    void decorateMatter(Cell* cell) {
+        for (auto& child : cell->children) {
+            if (child) {
+                decorateMatter(child.get());
+                return;
+            }
+        }
+        // generate grass and dirt
+        if (cell->neighbors[2] && cell->neighbors[2].type == 0 && cell->type == 1) {
+            cell->type = 3;
+            cell->neighbors[-2]->neighbors[-2]->type - 2;
+            cell->neighbors[-2]->neighbors[-2]->neighbors[-2]->type - 2;
+            cell->neighbors[-2]->neighbors[-2]->neighbors[-2]->neighbors[-2]->type - 2;
+
         }
     }
     
-    void buildMeshData(Cell* cell, int cDepth, float cSize, vec3 pos) {
-        if(!cell) return;
-        //
-        //
-        if(!cell->visible && cDepth > 0) {
-            float childSize = cSize/2.f;
-            for (int i = 0; i < 8; ++i){
-                float dx = (i >> 2) & 1;
-                float dy = (i >> 1) & 1;
-                float dz = i & 1;
-
-                vec3 childPos = {
-                    pos.x + dx * childSize,
-                    pos.y + dy * childSize,
-                    pos.z + dz * childSize
-                };
-                buildMeshData(cell->children[i].get(), cDepth-1, childSize, childPos);
-            }
-        }
-
-        if(cell->visible && !cell->transparent) {
-            // +x
-            for(int i = 0; i < 6; i++) {
-                if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
-                    int vertexInd = mesh.vertices.size();
-                    int indexInd = mesh.indices.size();
-                    int cubeInd = i*4; // which part of the cube mesh to take data from
-                    mesh.vertices.resize(vertexInd + 4); // 4 vertices per side
-                    mesh.indices.resize(indexInd + 6); // 6 indices per side
-                    for(int j = 0; j < 4; j++) {
-                        mesh.vertices[vertexInd+j] = pos + cSize * cube.vertices[cubeInd+j];
+    void buildMeshData() {
+        // every visible cell
+        for(auto& cell : leaves) {
+            // currently only rendering solid blocks
+            if(!cell->transparent) {
+                for(int i = 0; i < 6; i++) {
+                    if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
+                        int vertexInd = mesh.vertices.size();
+                        int indexInd = mesh.indices.size();
+                        int cubeInd = i*4; // which part of the cube mesh to take data from
+                        mesh.vertices.resize(vertexInd + 4); // 4 vertices per side
+                        mesh.indices.resize(indexInd + 6); // 6 indices per side
+                        for(int j = 0; j < 4; j++) {
+                            mesh.vertices[vertexInd+j] = cell->position + cell->size * cube.vertices[cubeInd+j];
+                        }
+                        mesh.indices[indexInd]   = vertexInd;
+                        mesh.indices[indexInd+1] = vertexInd+1;
+                        mesh.indices[indexInd+2] = vertexInd+2;
+                        mesh.indices[indexInd+3] = vertexInd;
+                        mesh.indices[indexInd+4] = vertexInd+2;
+                        mesh.indices[indexInd+5] = vertexInd+3;
                     }
-                    mesh.indices[indexInd]   = vertexInd;
-                    mesh.indices[indexInd+1] = vertexInd+1;
-                    mesh.indices[indexInd+2] = vertexInd+2;
-                    mesh.indices[indexInd+3] = vertexInd;
-                    mesh.indices[indexInd+4] = vertexInd+2;
-                    mesh.indices[indexInd+5] = vertexInd+3;
                 }
             }
         }
 
-        if (cDepth == depth) {
+        const float nScale = 64.f;
+        const float nLacunarity = 2.f;
+        const float nPersistance = 1.f;
+        const int nDepth = 5.f;
+        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        
+        mesh.colors.resize(mesh.vertices.size());
+        mesh.normals.resize(mesh.vertices.size());
+        
 
-            const float nScale = 64.f;
-            const float nLacunarity = 2.f;
-            const float nPersistance = 1.f;
-            const int nDepth = 5.f;
-            const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        //calculate normals
+        for (int i = 0; i < mesh.vertices.size(); i+=4) {
+            vec3 edge1 = mesh.vertices[i+1] - mesh.vertices[i];
+            vec3 edge2 = mesh.vertices[i+2] - mesh.vertices[i];
+            vec3 triangleNormal = normalize(cross(edge1, edge2));
             
-            mesh.colors.resize(mesh.vertices.size());
-            mesh.normals.resize(mesh.vertices.size());
-            
+            mesh.normals[i] = triangleNormal;
+            mesh.normals[i+1] = triangleNormal;
+            mesh.normals[i+2] = triangleNormal;
+            mesh.normals[i+3] = triangleNormal;
+        }
 
-            //calculate normals
-            for (int i = 0; i < mesh.vertices.size(); i+=4) {
-                vec3 edge1 = mesh.vertices[i+1] - mesh.vertices[i];
-                vec3 edge2 = mesh.vertices[i+2] - mesh.vertices[i];
-                vec3 triangleNormal = normalize(cross(edge1, edge2));
-                
-                mesh.normals[i] = triangleNormal;
-                mesh.normals[i+1] = triangleNormal;
-                mesh.normals[i+2] = triangleNormal;
-                mesh.normals[i+3] = triangleNormal;
-            }
-
-
-            // color mesh
-            for (int i = 0; i < mesh.vertices.size(); i++) {
-                //mesh.colors[i] = mesh.vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
-                //mesh.colors[i] = mesh.vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
-                const float noiseR = simplex.fractal(nDepth, mesh.vertices[i].x+1000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-                const float noiseG = simplex.fractal(nDepth, mesh.vertices[i].x+2000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-                const float noiseB = simplex.fractal(nDepth, mesh.vertices[i].x+3000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-                mesh.colors[i] = vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5);
-                //mesh.colors[i] = mesh.normals[i];
-            }
+        // color mesh
+        for (int i = 0; i < mesh.vertices.size(); i++) {
+            //mesh.colors[i] = mesh.vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
+            //mesh.colors[i] = mesh.vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
+            const float noiseR = simplex.fractal(nDepth, mesh.vertices[i].x+1000.f, mesh.vertices[i].y, mesh.vertices[i].z);
+            const float noiseG = simplex.fractal(nDepth, mesh.vertices[i].x+2000.f, mesh.vertices[i].y, mesh.vertices[i].z);
+            const float noiseB = simplex.fractal(nDepth, mesh.vertices[i].x+3000.f, mesh.vertices[i].y, mesh.vertices[i].z);
+            mesh.colors[i] = vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + vec3(rand() / double(RAND_MAX))/2.f;
+;
+            //mesh.colors[i] = mesh.normals[i];
         }
     }
 
@@ -378,16 +414,13 @@ public:
     }
     
     void generateMatter() {
-        generateMatter(&planet, depth, planetSize);
+        generateMatter(&planet, depth);
     }
 
     void setNeighbors() {
         setNeighbors(&planet);
     }
 
-    void buildMeshData() {
-        buildMeshData(&planet, depth, planetSize, origin);
-    }    
 };
 
    
@@ -457,13 +490,16 @@ int main(){
     
     //Gaia world(4, 2, 23);
     // Initial position : on +Z
-    glm::vec3 position = glm::vec3( 0, 3000, 0 ); 
-    Gaia world(position, 24);
+    glm::vec3 position = glm::vec3( 0, 0, 0 ); 
+    Gaia world(position, 23);
+    // 23 - a bit bigger than earth
+    // 90 - bigger than the observable universe (math will break and it won't generate)
 
     std::cout << world.getMesh().vertices.size()      << " verts\n";
     std::cout << world.getMesh().vertices.size()/3    << " tris\n";
     std::cout << world.getMesh().colors.size()        << " colors\n";
     std::cout << world.getMesh().normals.size()       << " normals\n";
+    std::cout << world.getMesh().indices.size()       << " indices\n";
 
 	
     glUseProgram(programID);
@@ -505,7 +541,7 @@ int main(){
     float speed = 32.0f; // 3 units / second
     float mouseSpeed = 0.005f;
     float near = 0.01f;
-    float far = 8000.0f;
+    float far = 12000.0f;
 
 
 
