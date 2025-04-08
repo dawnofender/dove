@@ -48,13 +48,18 @@ struct matter {
 
 enum Direction { POS_X = 0, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z };
 
+bool is_near(float v1, float v2){
+	return fabs( v1-v2 ) < 0.01f;
+}
 
 struct Cell {
     bool visible;
     bool transparent;    
+    std::map<char*, char> composition; 
 
     Cell* parent = nullptr;        
     int indexInParent = 0;  // 0..7 as per (x<<2)|(y<<1)|z
+    glm::vec3 position;
 
     std::array<std::unique_ptr<Cell>, 8> children = {nullptr};
     std::array<Cell*, 6> neighbors = {nullptr}; // ±X, ±Y, ±Z
@@ -115,6 +120,7 @@ struct meshData {
     std::vector<vec3> vertices;
     std::vector<vec3> colors;
     std::vector<vec3> normals;
+    std::vector<unsigned int> indices;
 };
 
 
@@ -123,17 +129,20 @@ class Gaia{
 private: 
     Cell planet;
     int depth;
+    float planetSize;
+    vec3 origin;
 
-    float lod = 8.0;
-    vec3 lodPos = vec3(0.f, 1000.f, 0.f);
+    float lod = 12.0;
+    vec3 camPos;
     meshData mesh;
     meshData cube;
 
 public: 
-    Gaia(int d) {
+    Gaia(vec3 p, int d) {
         depth = d;
-        float planetSize = pow(2.f, depth);
-        vec3 worldPos = vec3(
+        camPos = p;
+        planetSize = pow(2.f, depth);
+        origin = vec3(
             -1.f * planetSize / 2.f,
             -1.f * planetSize / 2.f,
             -1.f * planetSize / 2.f
@@ -144,48 +153,45 @@ public:
             vec3(1, 1, 1),
             vec3(1, 0, 1),
             vec3(1, 0, 0),
-            vec3(1, 1, 1),               
-            vec3(1, 0, 0),
             vec3(1, 1, 0),            
             // -x    
-            vec3(0, 0, 0),                
-            vec3(0, 1, 1),                
             vec3(0, 1, 0),                
             vec3(0, 0, 0),                
             vec3(0, 0, 1),                
-            vec3(0, 1, 1),            
+            vec3(0, 1, 1),                
             // +y    
             vec3(0, 1, 0),
             vec3(0, 1, 1),
             vec3(1, 1, 1),
-            vec3(0, 1, 0),
-            vec3(1, 1, 1),
             vec3(1, 1, 0),            
             // -y    
-            vec3(1, 0, 1),                
+            vec3(0, 0, 1),                
             vec3(0, 0, 0),                
             vec3(1, 0, 0),                
             vec3(1, 0, 1),                
-            vec3(0, 0, 1),                
-            vec3(0, 0, 0),                          
             // +z    
             vec3(0, 1, 1),                
             vec3(0, 0, 1),                
             vec3(1, 0, 1),                
-            vec3(0, 1, 1),                
-            vec3(1, 0, 1),                
             vec3(1, 1, 1),                          
             // -z    
-            vec3(1, 0, 0),                
-            vec3(0, 1, 0),                
             vec3(1, 1, 0),                
             vec3(1, 0, 0),                
             vec3(0, 0, 0),                
-            vec3(0, 1, 0)
+            vec3(0, 1, 0),                
+        };
+
+        cube.indices = {
+            0, 1, 2, 0, 2, 3,       //+x
+            4, 5, 6, 4, 6, 7,       //-x
+            8, 9, 10, 8, 10, 11,    //+y
+            12, 13, 14, 12, 14, 15, //-y
+            16, 17, 18, 16, 18, 19, //+z
+            20, 21, 22, 20, 22, 23  //-z
         };
         
         double time0 = glfwGetTime();
-        generateMatter(&planet, depth, planetSize, worldPos);
+        generateMatter(&planet, depth, planetSize);
         double time1 = glfwGetTime();
         std::cout << "Matter generated in " << 1000*(time1-time0) << "ms\n";
 
@@ -195,7 +201,7 @@ public:
         std::cout << "Neighbor data generated in " << 1000*(time1-time0) << "ms\n";
         
         time0 = glfwGetTime();
-        buildMeshData(&planet, depth, planetSize, worldPos);
+        buildMeshData(&planet, depth, planetSize, origin);
         time1 = glfwGetTime();
         
         std::cout << "Mesh Data generated in " << 1000*(time1-time0) << "ms\n";
@@ -211,8 +217,6 @@ public:
         // assign neighbor pointers for this cell
         for (int d = 0; d < 6; ++d) {
             cell->neighbors[d] = findNeighbor(cell, static_cast<Direction>(d));
-            // if it didn't work, get the parent's neighbor
-            if(!cell->neighbors[d] && cell->parent && cell->parent->neighbors[d]) cell->neighbors[d] = cell->parent->neighbors[d];
         }
 
         // recurse into children
@@ -221,35 +225,47 @@ public:
         }
     }
 
-    void generateMatter(Cell* cell, int cDepth, float cSize, vec3 pos) {
+    void generateDetail(Cell* cell) {
+        if (!cell || cell->transparent || cell->children[0]) return;
+
+        for (int d = 0; d < 6; ++d) {
+            if(cell->neighbors[d] && cell->neighbors[d]->transparent) {
+                generateMatter(cell, 0, );
+                for(auto& child : cell->children) {
+                    child->visible = false; 
+                }
+            }       
+        }
+
+        // recurse into children
+        for (auto& child : cell->children) {
+            if (child) setNeighbors(child.get());
+        }
+    }
+
+    void generateMatter(Cell* cell, int cDepth, float cSize) {
         //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) {
-        float childSize = cSize/2.f;
+
+        float dx = (cell->indexInParent >> 2) & 1;
+        float dy = (cell->indexInParent >> 1) & 1;
+        float dz = cell->indexInParent & 1;
         
-        vec3 blockPos = vec3(
-            pos.x + childSize,
-            pos.y + childSize,
-            pos.z + childSize
+        cell->position = vec3(
+            cell->parent->position.x + dx * cSize,
+            cell->parent->position.y + dy * cSize,
+            cell->parent->position.z + dz * cSize
         );
 
-        if(cDepth > 0 && distance(blockPos, lodPos)/cSize < lod*2.f) {
+        if(cDepth > 0 && distance(cell->position, camPos)/cSize < lod*2.f) {
+            float childSize = cSize/2.f;
             cell->visible = false;
             cell->transparent = false;
 
             for (int i = 0; i < 8; ++i) {
-
-                float dx = (i >> 2) & 1;
-                float dy = (i >> 1) & 1;
-                float dz = i & 1;
-                vec3 childPos = {
-                    pos.x + dx * childSize,
-                    pos.y + dy * childSize,
-                    pos.z + dz * childSize
-                };
-                float childSize = cSize/2;
                 cell->children[i] = std::make_unique<Cell>();
                 cell->children[i]->parent = cell;
                 cell->children[i]->indexInParent = i;
-                generateMatter(cell->children[i].get(), cDepth-1, childSize, childPos);
+                generateMatter(cell->children[i].get(), cDepth-1, childSize);
             }
         } else {
             cell->visible = true;
@@ -260,16 +276,17 @@ public:
             const float nPersistance = 1.f;
             const int nDepth = 5;
             const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
-            //const float noise = simplex.fractal(nDepth, blockPos.x, blockPos.y, blockPos.z);
-            const float noise = 0; 
+            const float noise = simplex.fractal(nDepth, cell->position.x, cell->position.y, cell->position.z);
+            //const float noise = 0; 
+            
             // spawn mountain
-            //const float mountainHeight = 1000;
-            //const float mountain = mountainHeight * (pow(2, 0 - (abs(blockPos.x) + abs(blockPos.z))));
-            const float mountain = 0.f;
-            bool solid = blockPos.y - (1024.f * noise) + mountain < 32.f;
+            const float mountainHeight = 3000;
+            const float mountain = mountainHeight * (pow(0.9999f, (abs(cell->position.x) + abs(cell->position.z))));
+            bool solid = (0-cell->position.y) + (1024.f * noise) + mountain > 0.f;
+
             // monolit
-            if(-2.f < blockPos.x && blockPos.x < 2.f && -2.f < blockPos.z && blockPos.z < 2.f) solid = false;
-            if(-1.f < blockPos.x && blockPos.x < 1.f && -1.f < blockPos.z && blockPos.z < 1.f) solid = true;
+            if(-2.f < cell->position.x && cell->position.x < 2.f && -2.f < cell->position.z && cell->position.z < 2.f) solid = false;
+            if(-1.f < cell->position.x && cell->position.x < 1.f && -1.f < cell->position.z && cell->position.z < 1.f) solid = true;
 
             cell->transparent = !solid;
         }
@@ -280,7 +297,7 @@ public:
         //
         //
         if(!cell->visible && cDepth > 0) {
-            float childSize = cSize/2;
+            float childSize = cSize/2.f;
             for (int i = 0; i < 8; ++i){
                 float dx = (i >> 2) & 1;
                 float dy = (i >> 1) & 1;
@@ -300,11 +317,19 @@ public:
             for(int i = 0; i < 6; i++) {
                 if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
                     int vertexInd = mesh.vertices.size();
-                    int cubeInd = i*6; // which part of the cube mesh to take data from
-                    mesh.vertices.resize(vertexInd + 6); // 6 vertices per side
-                    for(int j = 0; j < 6; j++) {
+                    int indexInd = mesh.indices.size();
+                    int cubeInd = i*4; // which part of the cube mesh to take data from
+                    mesh.vertices.resize(vertexInd + 4); // 4 vertices per side
+                    mesh.indices.resize(indexInd + 6); // 6 indices per side
+                    for(int j = 0; j < 4; j++) {
                         mesh.vertices[vertexInd+j] = pos + cSize * cube.vertices[cubeInd+j];
                     }
+                    mesh.indices[indexInd]   = vertexInd;
+                    mesh.indices[indexInd+1] = vertexInd+1;
+                    mesh.indices[indexInd+2] = vertexInd+2;
+                    mesh.indices[indexInd+3] = vertexInd;
+                    mesh.indices[indexInd+4] = vertexInd+2;
+                    mesh.indices[indexInd+5] = vertexInd+3;
                 }
             }
         }
@@ -320,21 +345,9 @@ public:
             mesh.colors.resize(mesh.vertices.size());
             mesh.normals.resize(mesh.vertices.size());
             
-            // color mesh
-            for (int i = 0; i < mesh.vertices.size(); i++) {
-                //mesh.colors[i] = mesh.vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
-                //mesh.colors[i] = mesh.vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
-                //mesh.colors[i] = (rand() / double(RAND_MAX));
-                //const float noiseR = simplex.fractal(nDepth, mesh.vertices[i].x+1000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-                //const float noiseG = simplex.fractal(nDepth, mesh.vertices[i].x+2000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-                //const float noiseB = simplex.fractal(nDepth, mesh.vertices[i].x+3000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-                //mesh.colors[i] = vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5);
-                mesh.colors[i] = vec3(0.f, 0.f, 0.f);
-
-            }
 
             //calculate normals
-            for (int i = 0; i < mesh.vertices.size(); i+=3) {
+            for (int i = 0; i < mesh.vertices.size(); i+=4) {
                 vec3 edge1 = mesh.vertices[i+1] - mesh.vertices[i];
                 vec3 edge2 = mesh.vertices[i+2] - mesh.vertices[i];
                 vec3 triangleNormal = normalize(cross(edge1, edge2));
@@ -342,10 +355,39 @@ public:
                 mesh.normals[i] = triangleNormal;
                 mesh.normals[i+1] = triangleNormal;
                 mesh.normals[i+2] = triangleNormal;
+                mesh.normals[i+3] = triangleNormal;
+            }
+
+
+            // color mesh
+            for (int i = 0; i < mesh.vertices.size(); i++) {
+                //mesh.colors[i] = mesh.vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
+                //mesh.colors[i] = mesh.vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
+                const float noiseR = simplex.fractal(nDepth, mesh.vertices[i].x+1000.f, mesh.vertices[i].y, mesh.vertices[i].z);
+                const float noiseG = simplex.fractal(nDepth, mesh.vertices[i].x+2000.f, mesh.vertices[i].y, mesh.vertices[i].z);
+                const float noiseB = simplex.fractal(nDepth, mesh.vertices[i].x+3000.f, mesh.vertices[i].y, mesh.vertices[i].z);
+                mesh.colors[i] = vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5);
+                //mesh.colors[i] = mesh.normals[i];
             }
         }
     }
 
+    void setCameraPosition(glm::vec3 p) {
+        camPos = p;
+        std::cout << camPos.x << ", " << camPos.y << ", " << camPos.z << "\n";
+    }
+    
+    void generateMatter() {
+        generateMatter(&planet, depth, planetSize);
+    }
+
+    void setNeighbors() {
+        setNeighbors(&planet);
+    }
+
+    void buildMeshData() {
+        buildMeshData(&planet, depth, planetSize, origin);
+    }    
 };
 
    
@@ -414,51 +456,89 @@ int main(){
     // ####################
     
     //Gaia world(4, 2, 23);
-    Gaia world(24);
-    meshData worldMesh = world.getMesh();
-    std::cout << worldMesh.vertices.size()/9 << " tris\n";
+    // Initial position : on +Z
+    glm::vec3 position = glm::vec3( 0, 3000, 0 ); 
+    Gaia world(position, 24);
 
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * worldMesh.vertices.size(), &worldMesh.vertices[0], GL_STATIC_DRAW);
-    
-    GLuint colorbuffer;
-    glGenBuffers(1, &colorbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * worldMesh.colors.size(), &worldMesh.colors[0], GL_STATIC_DRAW);
-               
-    GLuint normalbuffer;
-    glGenBuffers(1, &normalbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) *  worldMesh.normals.size(), &worldMesh.normals[0], GL_STATIC_DRAW);
+    std::cout << world.getMesh().vertices.size()      << " verts\n";
+    std::cout << world.getMesh().vertices.size()/3    << " tris\n";
+    std::cout << world.getMesh().colors.size()        << " colors\n";
+    std::cout << world.getMesh().normals.size()       << " normals\n";
+
 	
     glUseProgram(programID);
 	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 
+    GLuint vertexbuffer;
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, world.getMesh().vertices.size() * sizeof(vec3), &world.getMesh().vertices[0], GL_STATIC_DRAW);
+    
+    GLuint colorbuffer;
+    glGenBuffers(1, &colorbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+	glBufferData(GL_ARRAY_BUFFER, world.getMesh().colors.size() * sizeof(vec3), &world.getMesh().colors[0], GL_STATIC_DRAW);
+               
+    GLuint normalbuffer;
+    glGenBuffers(1, &normalbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+    glBufferData(GL_ARRAY_BUFFER, world.getMesh().normals.size() * sizeof(vec3), &world.getMesh().normals[0], GL_STATIC_DRAW);
     //GLuint uvbuffer;
     //glGenBuffers(1, &uvbuffer);
     //glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-    //glBufferData(GL_ARRAY_BUFFER, indexed_uvs.size() * sizeof(glm::vec3), g_uv_buffer_data, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sindexed_uvs.size() * sizeof(glm::vec3), g_uv_buffer_data, GL_STATIC_DRAW);
 
-    //GLuint elementbuffer;
-    //glGenBuffers(1, &elementbuffer);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+    GLuint elementbuffer;
+    glGenBuffers(1, &elementbuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, world.getMesh().indices.size() * sizeof(unsigned int), &world.getMesh().indices[0], GL_STATIC_DRAW);
     
-    double lastTime = glfwGetTime();
     int nbFrames = 0;
     
+    // Initial horizontal angle : toward -Z
+    float horizontalAngle = 3.14f;
+    // Initial vertical angle : none
+    float verticalAngle = 0.0f;
+    // Initial Field of View
+    float initialFoV = 90.0f;
+    
+    float speed = 32.0f; // 3 units / second
+    float mouseSpeed = 0.005f;
+    float near = 0.01f;
+    float far = 8000.0f;
+
+
+
+    double lastFrameTime = glfwGetTime();
+    double lastGenTime = lastFrameTime;
     do{
         // measure fps
 		double currentTime = glfwGetTime();
 		nbFrames++;
-		if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1sec ago
+		if ( currentTime - lastFrameTime >= 1.0 ){ // If last prinf() was more than 1sec ago
 			// printf and reset
-			printf("%f ms/frame\n", 1000.0/double(nbFrames));
+			printf("%f ms/frame    ", 1000.0/double(nbFrames));
+            std:: cout << position.x << ", " << position.y << ", " << position.z << "\n";
 			nbFrames = 0;
-			lastTime += 1.0;
+			lastFrameTime += 1.0;
 		}
+
+        if ( currentTime - lastGenTime >= 10000005.0 ) {
+            world.setCameraPosition(position);
+            world.generateMatter();
+            world.setNeighbors();
+            world.buildMeshData();
+            lastGenTime += 15.0;
+            
+            
+	        glBufferData(GL_ARRAY_BUFFER, world.getMesh().vertices.size() * sizeof(vec3) , &world.getMesh().vertices[0], GL_STATIC_DRAW);
+	        glBufferData(GL_ARRAY_BUFFER, world.getMesh().colors.size() * sizeof(vec3) , &world.getMesh().colors[0], GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, world.getMesh().normals.size() * sizeof(vec3) , &world.getMesh().normals[0], GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, world.getMesh().indices.size() * sizeof(unsigned int), &world.getMesh().indices[0], GL_STATIC_DRAW);
+        }
+        
+        
+
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
@@ -468,7 +548,17 @@ int main(){
         // # camera #
         // ##########
        
-        computeMatricesFromInputs();
+        computeMatricesFromInputs(
+            position,
+            horizontalAngle,
+            verticalAngle,
+            initialFoV,
+            speed,
+            mouseSpeed,
+            near,
+            far 
+        );
+
         glm::mat4 ProjectionMatrix = getProjectionMatrix();
         glm::mat4 ViewMatrix = getViewMatrix();
         glm::mat4 ModelMatrix = glm::mat4(1.0);
@@ -481,7 +571,7 @@ int main(){
         glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
         glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
 
-        vec3 lightPos = vec3(4,4,4);
+        vec3 lightPos = vec3(0,10000,0);
         glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
         
         // vertices
@@ -522,18 +612,20 @@ int main(){
        
 		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
         
-        // actually draw things :)
-        glDrawArrays(GL_TRIANGLES, 0, worldMesh.vertices.size());
+        // Index buffer
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
         
-        //glDrawElements(
-        //    GL_TRIANGLES,      // mode
-        //    indices.size(),    // count
-        //    GL_UNSIGNED_INT,   // type
-        //    (void*)0           // element array buffer offset
-        //);
+        // actually draw things :)
+        //glDrawArrays(GL_TRIANGLES, 0, world.getMesh().vertices.size());
+        glDrawElements(
+            GL_TRIANGLES,      // mode
+            world.getMesh().indices.size(),    // count
+            GL_UNSIGNED_INT,   // type
+            (void*)0           // element array buffer offset
+        );
 
         glDisableVertexAttribArray(0);
-	      glDisableVertexAttribArray(1);
+	    glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
 
         glfwSwapBuffers(window);
@@ -544,8 +636,8 @@ int main(){
     glDeleteBuffers(1, &vertexbuffer);
     //glDeleteBuffers(1, &uvbuffer);
     glDeleteBuffers(1, &colorbuffer);
-	  glDeleteBuffers(1, &normalbuffer);
-	//glDeleteBuffers(1, &elementbuffer);
+	glDeleteBuffers(1, &normalbuffer);
+	glDeleteBuffers(1, &elementbuffer);
     glDeleteProgram(programID);
     //glDeleteTextures(1, &Texture);
     glDeleteVertexArrays(1, &VertexArrayID);

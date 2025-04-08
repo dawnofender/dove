@@ -44,6 +44,8 @@ add_executable(reality
     src/TextureFragmentShader.fragmentshader
     common/shader.cpp
     common/shader.hpp
+    common/SimplexNoise.cpp
+    common/SimplexNoise.h
 	common/controls.cpp
 	common/controls.hpp
 	common/texture.cpp
