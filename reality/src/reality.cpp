@@ -46,7 +46,7 @@ struct CellData{
 
 struct CellTree {
     std::shared_ptr<Cell> root;
-    std::map<std::shared_ptr<Cell> cell, CellData data> leavesData;
+    std::unordered_map<std::shared_ptr<Cell>, CellData> leafMap;
 };
 
 // given a node index (0–7) and a direction, can we move within the same parent?
@@ -94,6 +94,7 @@ Cell* findNeighbor(Cell* node, Direction dir) { //maybe keep track of distance t
 }
 
 
+
 struct meshData {
     std::vector<vec3> vertices;
     std::vector<vec3> colors;
@@ -105,6 +106,7 @@ struct meshData {
 class Gaia{
 private: 
     Cell planet;
+    CellTree cellTree;
     int8_t maxDepth; 
     vec3 origin;
     float planetSize;
@@ -118,7 +120,7 @@ public:
         maxDepth = d;
         camPos = p;
         planetSize = pow(2.f, maxDepth);
-        float offset = planetSize / -2.g;
+        float offset = planetSize / -2.f;
         origin = vec3(
             //0,
             //0,
@@ -128,6 +130,11 @@ public:
             offset
         );
         planet.leaf = false;
+
+        cellTree.sizes.resize(maxDepth);
+        for(int i = 0; i < maxDepth; i++) {
+            cellTree.sizes[i] = pow(2.f, i);
+        }
 
         cube.vertices = {
             // +x    
@@ -172,8 +179,18 @@ public:
         };
         
         double time0 = glfwGetTime();
-        generateMatter();
+        generateOctree();
         double time1 = glfwGetTime();
+        std::cout << "                    Octree generated | " << 1000*(time1-time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        indexLeaves();
+        time1 = glfwGetTime();
+        std::cout << "                      Indexed leaves | " << 1000*(time1-time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        generateMatter();
+        time1 = glfwGetTime();
         std::cout << "                    Matter generated | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
@@ -181,15 +198,10 @@ public:
         time1 = glfwGetTime();
         std::cout << "             Neighbor data generated | " << 1000*(time1-time0) << "ms\n";
 
-        time0 = glfwGetTime();
-        simplifyHomogeneous();
-        time1 = glfwGetTime();
-        std::cout << "   Simplified homogeneous cell trees | " << 1000*(time1-time0) << "ms\n";
-
-        time0 = glfwGetTime();
-        indexLeaves();
-        time1 = glfwGetTime();
-        std::cout << "                      Indexed leaves | " << 1000*(time1-time0) << "ms\n";
+        //time0 = glfwGetTime();
+        //simplifyHomogeneous(&planet);
+        //time1 = glfwGetTime();
+        //std::cout << "   Simplified homogeneous cell trees | " << 1000*(time1-time0) << "ms\n";
         
         time0 = glfwGetTime();
         buildMeshData();
@@ -197,48 +209,63 @@ public:
         std::cout << "                 Mesh Data generated | " << 1000*(time1-time0) << "ms\n";
     }
 
-    void simplifyHomogeneous(Cell* cell = &planet) {
-        // recurse into children first,
-        for (auto& child : cell->children) {
-            if(child && !child->leaf) simplifyHomogeneous(child.get());
-        }
-
-        // then simplify as we go back up
-
-        for (int i = 0; i < 7; i++){
-            // if any children are different from each other
-            if ( !cell->children[i]->leaf || !cell->children[i+1]->leaf ||
-                  cell->children[i]->type != cell->children[i+1]->type ||
-                  cell->children[i]->transparent != cell->children[i+1]->transparent 
-            ) return;
-        }
-
-        cell->transparent = cell->children[0]->transparent;
-        for (int i=0; i<8; i++) {
-           cell->children[i].reset();
-        }
-        cell->leaf = true;
+    void generateMatter() {
+        return generateMatter(&planet);
+    }
+    void setNeighbors() {
+        return setNeighbors(&planet);
+    }
+    void indexLeaves() {
+        return indexLeaves(&planet, origin, maxDepth);
+    }
+    void generateOctree() {
+        return generateOctree(&planet, maxDepth, origin, planetSize);
     }
 
-    void indexLeaves(Cell* cell = &planet, glm::vec3 cellPos = origin, glm::vec3 cellDepth = maxDepth){
+    //void simplifyHomogeneous(Cell* cell) {
+    //    // recurse into children first,
+    //    for (auto& child : cell->children) {
+    //        if(child && !child->leaf) simplifyHomogeneous(child.get());
+    //    }
+
+    //    // then simplify as we go back up
+
+    //    for (int i = 0; i < 7; i++){
+    //        // if any children are different from each other
+    //        if ( !cell->children[i]->leaf || !cell->children[i+1]->leaf ||
+    //              cell->children[i]->type != cell->children[i+1]->type ||
+    //              cell->children[i]->transparent != cell->children[i+1]->transparent 
+    //        ) return;
+    //    }
+
+    //    cell->transparent = cell->children[0]->transparent;
+    //    for (int i=0; i<8; i++) {
+    //       cell->children[i].reset();
+    //    }
+    //    cell->leaf = true;
+    //}
+
+    void indexLeaves(Cell* cell, glm::vec3 cellPos, int8_t cellDepth){
         for (auto& child: cell->children) {
             if(child) {
                 // calculate position
                 float dx = (child->indexInParent >> 2) & 1;
                 float dy = (child->indexInParent >> 1) & 1;
                 float dz = child->indexInParent & 1;
-                
-                vec3 childOffset = (
+                float childSize = cellTree.sizes[cellDepth - 1];
+
+                vec3 childOffset = vec3(
                     dx * childSize,
                     dy * childSize,
                     dz * childSize
-                )
-                childPos = cellPos + childOffset;
+                );
+                vec3 childPos = cellPos + childOffset;
                 
                 if(child->leaf) {
                     // add to map for easy access 
-                    cellTree.leavesData.insert({std::shared_ptr<Cell>(child), {childPos, depth-1}});
-                } else indexLeaves(child.get(), childPos, cellDepth-1);
+                    cellTree.leaves.push_back(child);
+                    cellTree.data.push_back({childPos, cellDepth - 1});
+                } else indexLeaves(child.get(), childPos, cellDepth - 1);
             }
         }
     }
@@ -247,12 +274,13 @@ public:
         return mesh;
     }
 
-    void setNeighbors(Cell* cell = &planet) {
+    void setNeighbors(Cell* cell) {
         if (!cell) return;
 
         // assign neighbor pointers for this cell
-        for (int d = 0; d < 6; ++d) {
+        for (int d = 0; d < 6; ++d){
             cell->neighbors[d] = findNeighbor(cell, static_cast<Direction>(d));
+            if (cell->neighbors[d]) std::cout << "test\n";
         }
 
         // recurse into children
@@ -279,11 +307,11 @@ public:
     //     }
     // }
 
-    void generateOctree(Cell* cell, int cDepth = maxDepth, vec3 cellPos = origin, float cellSize = planetSize) { //
+    void generateOctree(Cell* cell, int cDepth, vec3 cellPos, float cellSize) {
         float childSize = cellSize/2.f;
         vec3 blockPos = cellPos + vec3(childSize);
 
-        if(cDepth > 0 && distance(cell->position, camPos)/cellSize < lod) {
+        if(cDepth > 0 && distance(cellPos, camPos)/cellSize < lod) {
             cell->leaf = false;
             cell->transparent = false;
 
@@ -297,11 +325,12 @@ public:
                 float dy = (i >> 1) & 1;
                 float dz = i & 1;
                 
-                vec3 childOffset = (
+                vec3 childOffset = vec3(
                     dx * childSize,
                     dy * childSize,
                     dz * childSize
-                )
+                );
+
                 vec3 childPos = cellPos + childOffset;
 
                 generateOctree(cell->children[i].get(), cDepth-1, childPos, childSize);
@@ -309,8 +338,10 @@ public:
         } else cell->leaf = true;
     }
 
-    void generateMatter(Cell* cell, int cDepth = maxDepth, vec3 cellPos = origin, float cellSize = planetSize) { //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) { float childSize = cellSize/2.f; vec3 blockPos = cellPos + vec3(childSize);
-        for (int i = 0; i < cellTree.leavecell->leaf = true;
+    void generateMatter(Cell* cell) { //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) { float childSize = cellSize/2.f; vec3 blockPos = cellPos + vec3(childSize);
+
+        for(const auto& leafData : cellTree.leafMap) {
+            vec3 blockPos = leafData.second.position + vec3(cellTree.sizes[cellTree.data[i].depth]);
         
             // actual terrain generation
             const float nScale = 512.f;
@@ -348,26 +379,21 @@ public:
     }
     
     void buildMeshData() {
-
-        float[] sizes = new float[6]
-
-        for(int i = 0; i < maxDepth1; i++) {
-            sizes[i] = pow(2.f, i);
-        }
-
+        
         // every visible cell
-        for(auto& leafData : cellTree.leavesData) {
+        for(int i = 0; i < cellTree.leaves.size(); i++) {
             // currently only rendering solid blocks
-            if(!leafData->cell->transparent) {
+            if(!cellTree.leaves[i]->transparent) {
                 for(int i = 0; i < 6; i++) {
-                    if(leafData->cell->neighbors[i] && leafData->cell->neighbors[i]->transparent) {
+                    if(cellTree.leaves[i]->neighbors[i] && cellTree.leaves[i]->neighbors[i]->transparent) {
+                        std::cout << "test\n"; // neighbor generation probably isnt working
                         int vertexInd = mesh.vertices.size();
                         int indexInd = mesh.indices.size();
                         int cubeInd = i*4; // which part of the cube mesh to take data from
                         mesh.vertices.resize(vertexInd + 4); // 4 vertices per side
                         mesh.indices.resize(indexInd + 6); // 6 indices per side
                         for(int j = 0; j < 4; j++) {
-                            mesh.vertices[vertexInd+j] = leafData->data->position + sizes[leafData->data->depth] * cube.vertices[cubeInd+j];
+                            mesh.vertices[vertexInd+j] = cellTree.data[i].position + cellTree.sizes[cellTree.data[i].depth] * cube.vertices[cubeInd+j];
                         }
                         mesh.indices[indexInd]   = vertexInd;
                         mesh.indices[indexInd+1] = vertexInd+1;
