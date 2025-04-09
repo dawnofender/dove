@@ -1,0 +1,10 @@
+todo
+- generate smooth mesh based on density of cell
+- optimize by having duplicate cells trees point to the same tree
+    - include orientation? flipped / rotated duplicates
+- breadth-first search for culling
+- hash map of cells & position & depth
+- cells point to matter which store actual composition of the cell (objects must be optimized in a similar way)
+distant future
+- imposters for large cells, generate depth and normals straight from cell data
+
