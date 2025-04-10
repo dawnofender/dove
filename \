@@ -80,7 +80,6 @@ uint8_t siblingIndex(uint8_t idx, Direction d) {
 Cell* findNeighbor(Cell* node, Direction dir) { //maybe keep track of distance too so we can walk all the way back down?
     if (!node->parent) return nullptr;              // hit the root, no neighbor
     uint8_t idx = node->indexInParent;
-    if (node->neighbors[dir]) return node->neighbors[dir];
     // 1) If the neighbor is just a sibling in the same parent, return it.
     if (hasSiblingInDir(idx, dir)) {
       return node->parent->children[siblingIndex(idx,dir)].get();
@@ -191,11 +190,6 @@ public:
         time1 = glfwGetTime();
         std::cout << "             Neighbor data generated | " << 1000*(time1-time0) << "ms\n";
 
-        // time0 = glfwGetTime();
-        // simplifyHomogeneous(&planet);
-        // time1 = glfwGetTime();
-        // std::cout << "              Simplified homogeneous | " << 1000*(time1-time0) << "ms\n";
-
         time0 = glfwGetTime();
         buildMeshData();
         time1 = glfwGetTime();
@@ -211,20 +205,21 @@ public:
     }
 
     void simplifyHomogeneous(Cell* cell) {
-
-        for (auto& child : cell->children) {
-            if (child && !child->leaf) simplifyHomogeneous(child.get());
+        // if cell is missing any children, stop
+        for (int i=0; i<8; i++) {
+            if(!cell->children[i]) return;
         }
 
         for (int i = 0; i < 7; i++){
             // if any children are different from each other, stop
-            if ( !cell->children[i]->leaf || !cell->children[i+1]->leaf ||
-                  cell->children[i]->transparent != cell->children[i+1]->transparent ) return;
+            if ( cell->children[i]->transparent != cell->children[i+1]->transparent ) return;
         }
         
         // remove children and give this their properties
         cell->transparent = cell->children[0]->transparent;
         for (int i=0; i<8; i++) {
+            std::cout << i << " testa\n";
+
             cell->children[i].reset();
         }
         cell->leaf = true;
@@ -235,6 +230,7 @@ public:
     }
 
     void setNeighbors(Cell* cell) {
+        if (!cell) return;
 
         // assign neighbor pointers for this cell
         for (int d = 0; d < 6; ++d){
@@ -245,7 +241,6 @@ public:
         for (auto& child : cell->children) {
             if (child) setNeighbors(child.get());
         }
-
     }
 
     void generateOctree(Cell* cell, int8_t cellDepth, vec3 cellPos, float cellSize) {
@@ -278,6 +273,10 @@ public:
             }
             
             // if all children of this cell are the same, remove them and just use this one
+            std::cout << "test0\n";
+            simplifyHomogeneous(cell);
+            std::cout << "test1\n";
+
         } else {
             cell->leaf = true;
             generateMatter(cell, blockPos);
