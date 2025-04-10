@@ -4,6 +4,7 @@ todo
     - include orientation? flipped / rotated duplicates
 - breadth-first search for culling
 - hash map of cells & position & depth
+    - mostly done but position should be its own map for neighbor finding at least
 - cells point to matter which store actual composition of the cell (objects must be optimized in a similar way)
 distant future
 - imposters for large cells, generate depth and normals straight from cell data
