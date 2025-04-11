@@ -29,6 +29,13 @@ struct Matter {
     std::map<char*, char> properties; 
 };
 
+// class Thing {
+// private: 
+// 
+// 
+// }
+
+           
 class Gaia{
 private: 
     Octree cellTree;
@@ -38,7 +45,8 @@ private:
     glm::vec3 camPos;
     meshData cube;
     meshData worldMesh;
-
+    std::unordered_map<std::shared_ptr<OctreeNode>, meshData> chunks;
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // first: chunk, second: all leaves in that chunk
 
 public: 
     Gaia(glm::vec3 p, Octree ct) : camPos(p), cellTree(ct) {
@@ -100,6 +108,11 @@ public:
         std::cout << "                     World generated | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
+        generateChunk(camPos);
+        time1 = glfwGetTime();
+        std::cout << "                    Chunks generated | " << 1000*(time1-time0) << "ms\n";
+
+        time0 = glfwGetTime();
         simplifyHomogeneous(cellTree.root);
         time1 = glfwGetTime();
         std::cout << "              Simplified homogeneous | " << 1000*(time1-time0) << "ms\n";
@@ -137,6 +150,19 @@ public:
     meshData getMesh() {
         return worldMesh;
     }
+    
+    std::vector<meshData> getChunkMesh() {
+        std::vector<meshData> chunkMeshes;
+        chunkMeshes.resize(chunks.size());
+
+        int i = 0;
+        for( const auto& [chunk, mesh] : chunks ) {
+           chunkMeshes[i] = mesh;
+           i++;
+        }
+
+        return chunkMeshes;
+    }
 
     void simplifyHomogeneous(std::shared_ptr<OctreeNode>(cell)) {
         for (std::shared_ptr<OctreeNode> child : cell->children) {
@@ -168,38 +194,129 @@ public:
         tie(chunk, position) = cellTree.makeCell(targetPos, chunkDepth);
 
         std::cout << position.x << ", " << position.y << ", " << position.z << "\n";
-
-        generateRecursive(chunk, chunkDepth, position);
-        cellTree.positionMap.clear();
-        cellTree.depthMap.clear();
         
-        time0 = glfwGetTime();
-        simplifyHomogeneous(cellTree.root);
-        time1 = glfwGetTime();
-        std::cout << "              Simplified homogeneous | " << 1000*(time1-time0) << "ms\n";
+        generateRecursive(chunk, chunkDepth, position);
+        
+        // time0 = glfwGetTime();
+        // simplifyHomogeneous(chunk);
+        // time1 = glfwGetTime();
+        // std::cout << "              Simplified homogeneous | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
-        indexLeaves();
+        cellTree.indexLeaves(chunk, chunkDepth, position);
         time1 = glfwGetTime();
         std::cout << "                      Indexed Leaves | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
-        setNeighbors();
+        mapChunkLeaves(chunk);
         time1 = glfwGetTime();
-        std::cout << "             Neighbor data generated | " << 1000*(time1-time0) << "ms\n";
+        std::cout << "                 Mapped Chunk Leaves | " << 1000*(time1-time0) << "ms\n";
 
+        meshData mesh;
         time0 = glfwGetTime();
-        worldMesh = buildMeshData();
+        // for (auto& [chunk, cells] : chunkMap) {
+        //     std::cout << chunk << "test\n";
+        //     for (auto& cell : cells) {
+        //         std::cout << chunk << ", " << cell << "\n";
+        //     }
+        // }
+        meshData* meshPtr = &mesh;
+        for (auto& cell : chunkMap.find(chunk)->second) {
+            buildCellMesh(cell, meshPtr);
+        }
+
         time1 = glfwGetTime();
         std::cout << "                 Mesh Data generated | " << 1000*(time1-time0) << "ms\n";
 
-        std::cout << "                     Chunk generated | " << 1000*(time1-time0) << "ms\n";
+        chunks.insert({chunk, mesh});
         
         //cellTree.setNeighbors(chunk);
     }
     
+    void mapChunkLeaves(std::shared_ptr<OctreeNode>(chunk)) {
+        chunkMap.erase(chunk);
+        chunkMap.insert({chunk, std::vector<std::shared_ptr<OctreeNode>>()});
+        // get a shared ptr to the vector we just created
+        auto* chunkCells = &chunkMap.find(chunk)->second;
+        mapChunkLeaves(chunkCells, chunk);
+    }
+
+    void mapChunkLeaves(std::vector<std::shared_ptr<OctreeNode>>* chunkCells, std::shared_ptr<OctreeNode>(cell)) {
+        if(cell->leaf) {
+            chunkCells->push_back(cell);
+        } else {
+            for (int i = 0; i < 8; ++i) {
+                if (cell->children[i]) mapChunkLeaves(chunkCells, cell->children[i]);
+            }
+        }
+    }
+
+    void buildCellMesh(std::shared_ptr<OctreeNode>(cell), meshData* mesh) {
+        int8_t cellDepth = cellTree.depthMap.find(cell)->second;
+        glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
+
+        // currently only rendering solid blocks
+        if(!cell->transparent) {
+            for(int i = 0; i < 6; i++) {
+                if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
+                    int vertexInd = mesh->vertices.size();
+                    int indexInd = mesh->indices.size();
+                    int cubeInd = i*4; // which part of the cube mesh to take data from
+
+                    mesh->vertices.resize(vertexInd + 4); // 4 vertices per side
+                    mesh->indices.resize(indexInd + 6); // 6 indices per side
+                    
+                    GLfloat cellSize = cellTree.getCellSize(cellDepth);
+                    for(int j = 0; j < 4; j++) {
+                        mesh->vertices[vertexInd+j] = cellPos + cube.vertices[cubeInd+j] * cellSize;
+                    }
+
+                    mesh->indices[indexInd]   = vertexInd;
+                    mesh->indices[indexInd+1] = vertexInd+1;
+                    mesh->indices[indexInd+2] = vertexInd+2;
+                    mesh->indices[indexInd+3] = vertexInd;
+                    mesh->indices[indexInd+4] = vertexInd+2;
+                    mesh->indices[indexInd+5] = vertexInd+3;
+                }
+            }
+        }
+        
+
+        const float nScale = 64.f;
+        const float nLacunarity = 2.f;
+        const float nPersistance = 1.f;
+        const int nDepth = 5.f;
+        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        
+        mesh->colors.resize(mesh->vertices.size());
+        mesh->normals.resize(mesh->vertices.size());
+        
+
+        //calculate normals
+        for (int i = 0; i < mesh->vertices.size(); i+=4) {
+            glm::vec3 edge1 = mesh->vertices[i+1] - mesh->vertices[i];
+            glm::vec3 edge2 = mesh->vertices[i+2] - mesh->vertices[i];
+            glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
+            
+            mesh->normals[i] = triangleNormal;
+            mesh->normals[i+1] = triangleNormal;
+            mesh->normals[i+2] = triangleNormal;
+            mesh->normals[i+3] = triangleNormal;
+        }
+
+        // color mesh
+        for (int i = 0; i < mesh->vertices.size(); i++) {
+            //mesh->colors[i] = mesh->vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
+            //mesh->colors[i] = mesh->vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
+            const float noiseR = simplex.fractal(nDepth, mesh->vertices[i].x+1000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            const float noiseG = simplex.fractal(nDepth, mesh->vertices[i].x+2000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            const float noiseB = simplex.fractal(nDepth, mesh->vertices[i].x+3000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
+            //mesh->colors[i] = mesh->normals[i];
+        }
+    }
+    
     void generateRecursive(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos) {
-        std::cout << (int) cellDepth << "\n";
         float childSize = cellTree.getCellSize(cellDepth-1);
         glm::vec3 blockPos = cellPos + glm::vec3(childSize);
 
@@ -225,6 +342,8 @@ public:
             cell->leaf = true;
             generateMatter(cell, blockPos);
 
+            std::cout << blockPos.x << "\n";
+
         }
     }
     
@@ -234,7 +353,7 @@ public:
 
         glm::vec3 blockPos = cellPos + glm::vec3(childSize);
 
-        if(cellDepth > 0 && distance(blockPos, camPos)/cellSize < lod) {
+        if(cellDepth >= chunkDepth && distance(blockPos, camPos)/cellSize < lod) {
             cell->leaf = false;
 
             for (int i = 0; i < 8; ++i) {
@@ -303,9 +422,10 @@ public:
     meshData buildMeshData() {
         meshData mesh;
         for(const auto& [cell, pos] : cellTree.positionMap) {
-            
+            int8_t cellDepth = cellTree.depthMap.find(cell)->second;
+
             // currently only rendering solid blocks
-            if(!cell->transparent) {
+            if(!cell->transparent && cellDepth > chunkDepth) {
                 for(int i = 0; i < 6; i++) {
                     if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
                         int vertexInd = mesh.vertices.size();
@@ -315,7 +435,6 @@ public:
                         mesh.vertices.resize(vertexInd + 4); // 4 vertices per side
                         mesh.indices.resize(indexInd + 6); // 6 indices per side
                         
-                        int8_t cellDepth = cellTree.depthMap.find(cell)->second;
                         GLfloat cellSize = cellTree.getCellSize(cellDepth);
                         for(int j = 0; j < 4; j++) {
                             mesh.vertices[vertexInd+j] = pos + cube.vertices[cubeInd+j] * cellSize;
@@ -422,7 +541,7 @@ int main(){
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID); 
 
-	GLuint programID = LoadShaders( "TransformVertexShader.vertexshader", "ColorFragmentShader.fragmentshader" );
+	  GLuint programID = LoadShaders( "TransformVertexShader.vertexshader", "ColorFragmentShader.fragmentshader" );
 
     GLuint MatrixID = glGetUniformLocation(programID, "MVP");
     GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
@@ -462,7 +581,7 @@ int main(){
 
 	
     glUseProgram(programID);
-	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
+	  GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
@@ -508,47 +627,27 @@ int main(){
     double lastGenTime = lastFrameTime;
     do{
         // measure fps
-		double currentTime = glfwGetTime();
-		nbFrames++;
-		if ( currentTime - lastFrameTime >= 1.0 ){ // If last prinf() was more than 1sec ago
-			// printf and reset
-			printf("%f ms/frame    ", 1000.0/double(nbFrames));
-            std:: cout << position.x << ", " << position.y << ", " << position.z << "\n";
-			nbFrames = 0;
-			lastFrameTime += 1.0;
-		}
-
-        // if ( currentTime - lastGenTime >= 10000005.0 ) {
-        //     world.setCameraPosition(position);
-        //     world.setNeighbors();
-        //     world.buildMeshData();
-        //     lastGenTime += 15.0;
-        //     
-        //     
-	    //     glBufferData(GL_ARRAY_BUFFER, world.getMesh().vertices.size() * sizeof(glm::vec3) , &world.getMesh().vertices[0], GL_STATIC_DRAW);
-	    //     glBufferData(GL_ARRAY_BUFFER, world.getMesh().colors.size() * sizeof(glm::vec3) , &world.getMesh().colors[0], GL_STATIC_DRAW);
-        //     glBufferData(GL_ARRAY_BUFFER, world.getMesh().normals.size() * sizeof(glm::vec3) , &world.getMesh().normals[0], GL_STATIC_DRAW);
-        //     glBufferData(GL_ELEMENT_ARRAY_BUFFER, world.getMesh().indices.size() * sizeof(unsigned int), &world.getMesh().indices[0], GL_STATIC_DRAW);
-        // }
-
-        if ( currentTime - lastGenTime >= 10.0 ) {
-            world.setCameraPosition(position);
-            world.generateChunk(position);
-            lastGenTime += 10.0;
-            
-            
-	        glBufferData(GL_ARRAY_BUFFER, world.getMesh().vertices.size() * sizeof(glm::vec3) , &world.getMesh().vertices[0], GL_STATIC_DRAW);
-	        glBufferData(GL_ARRAY_BUFFER, world.getMesh().colors.size() * sizeof(glm::vec3) , &world.getMesh().colors[0], GL_STATIC_DRAW);
-            glBufferData(GL_ARRAY_BUFFER, world.getMesh().normals.size() * sizeof(glm::vec3) , &world.getMesh().normals[0], GL_STATIC_DRAW);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, world.getMesh().indices.size() * sizeof(unsigned int), &world.getMesh().indices[0], GL_STATIC_DRAW);
+        double currentTime = glfwGetTime();
+        nbFrames++;
+        if ( currentTime - lastFrameTime >= 1.0 ){ // If last prinf() was more than 1sec ago
+           //
+   	        // printf and reset
+   	        printf("%f ms/frame    ", 1000.0/double(nbFrames));
+                 std:: cout << position.x << ", " << position.y << ", " << position.z << "\n";
+  	        nbFrames = 0;
+  	        lastFrameTime += 1.0;
         }
-        
-        
 
-        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glUseProgram(programID);
+
+        // for ( mesh : world.getChunkMesh) {
+        //     meshes.push_back(mesh);
+        // }
+
+            
+        
 
         // ##########
         // # camera #
@@ -567,72 +666,104 @@ int main(){
 
         glm::mat4 ProjectionMatrix = getProjectionMatrix();
         glm::mat4 ViewMatrix = getViewMatrix();
-        glm::mat4 ModelMatrix = glm::mat4(1.0);
-        glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
+        std::vector<meshData> meshes;
+        meshes.push_back(world.getMesh());
 
-        // Send our transformation to the currently bound shader, 
-        // in the "MVP" uniform
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-        glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
-        glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
-
-        glm::vec3 lightPos = glm::vec3(0,10000,0);
-        glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+        if ( currentTime - lastGenTime >= 5.0 ) {
+            world.setCameraPosition(position);
+            world.generateChunk(position);
+            lastGenTime += 5.0;
+            for ( meshData mesh : world.getChunkMesh()) {
+                meshes.push_back(mesh);
+            }
+            std::cout << meshes.size() << "\n";                                                        
+        }
         
-        // vertices
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-        glVertexAttribPointer(
-            0,
-            3,
-            GL_FLOAT,
-            GL_FALSE,
-            0,
-            (void*)0
-        );
+        int i = 0;
+        for ( meshData mesh : meshes ) {
+            glm::mat4 ModelMatrix = glm::mat4(1.0);
+            glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+            i++;
+            std::cout << i << "test\n";
 
-        // colors
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-        glVertexAttribPointer(
-            1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-            3,                                // size
-            GL_FLOAT,                         // type
-            GL_FALSE,                         // normalized?
-            0,                                // stride
-            (void*)0                          // array buffer offset
-        );
+            // GLuint vertexbuffer;
+            // GLuint colorbuffer;
+            // GLuint normalbuffer;
+            // GLuint elementbuffer;
+            glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	          glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3) , &mesh.vertices[0], GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+	          glBufferData(GL_ARRAY_BUFFER, mesh.colors.size() * sizeof(glm::vec3) , &mesh.colors[0], GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+            glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * sizeof(glm::vec3) , &mesh.normals[0], GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, elementbuffer);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
 
-         // 3rd attribute buffer : normals
-         glEnableVertexAttribArray(2);
-         glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-         glVertexAttribPointer(
-             2,                                // attribute
-             3,                                // size
-             GL_FLOAT,                         // type
-             GL_FALSE,                         // normalized?
-             0,                                // stride
-             (void*)0                          // array buffer offset
-         );
+            // Send our transformation to the currently bound shader, 
+            // in the "MVP" uniform
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+            glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
+            glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
+
+            glm::vec3 lightPos = glm::vec3(0,10000,0);
+            glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+            
+            // vertices
+            glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+            glVertexAttribPointer(
+                0,
+                3,
+                GL_FLOAT,
+                GL_FALSE,
+                0,
+                (void*)0
+            );
+
+            // colors
+            glEnableVertexAttribArray(1);
+            glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+            glVertexAttribPointer(
+                1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+                3,                                // size
+                GL_FLOAT,                         // type
+                GL_FALSE,                         // normalized?
+                0,                                // stride
+                (void*)0                          // array buffer offset
+            );
+
+             // 3rd attribute buffer : normals
+             glEnableVertexAttribArray(2);
+             glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+             glVertexAttribPointer(
+                 2,                                // attribute
+                 3,                                // size
+                 GL_FLOAT,                         // type
+                 GL_FALSE,                         // normalized?
+                 0,                                // stride
+                 (void*)0                          // array buffer offset
+             );
        
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-        
-        // Index buffer
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-        
-        // actually draw things :)
-        //glDrawArrays(GL_TRIANGLES, 0, world.getMesh().vertices.size());
-        glDrawElements(
-            GL_TRIANGLES,      // mode
-            world.getMesh().indices.size(),    // count
-            GL_UNSIGNED_INT,   // type
-            (void*)0           // element array buffer offset
-        );
+            //lBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+            
+            // Index buffer
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+            
+            // actually draw things :)
+            //glDrawArrays(GL_TRIANGLES, 0, world.getMesh().vertices.size());
+            glDrawElements(
+                GL_TRIANGLES,      // mode
+                mesh.indices.size(),    // count
+                GL_UNSIGNED_INT,   // type
+                (void*)0           // element array buffer offset
+            );
 
-        glDisableVertexAttribArray(0);
-	    glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(2);
+            glDisableVertexAttribArray(0);
+	          glDisableVertexAttribArray(1);
+            glDisableVertexAttribArray(2);
+
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
