@@ -44,15 +44,20 @@ add_executable(reality
     src/TextureFragmentShader.fragmentshader
     src/dmesh/dmesh.cpp
     src/dmesh/dmesh.hpp
+    src/rendering/dmeshRenderer.hpp
+    src/rendering/dmeshRenderer.cpp
     src/worldgen/doctree.cpp
     src/worldgen/doctree.hpp
     lib/shader.cpp
     lib/shader.hpp
     lib/SimplexNoise.cpp
     lib/SimplexNoise.h
-	  lib/controls.cpp
-	  lib/controls.hpp
-	  lib/texture.cpp
+    lib/FastNoise.cpp
+    lib/FastNoise.h
+    # lib/FastNoiseLite.h
+    lib/controls.cpp
+    lib/controls.hpp
+    lib/texture.cpp
     lib/texture.hpp
 )
 

@@ -29,6 +29,7 @@ constexpr std::array<double, 256> buildSizeTable() {
     return table;
 }
 
+
 // Declare the lookup table as a compile-time constant.
 constexpr auto sizeLookup = buildSizeTable();
 
@@ -47,9 +48,9 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::locateCell(glm::vec3 t
         const float cellSize = getCellSize(cellDepth);
         nodeCenter += glm::vec3(dx, dy, dz) * glm::vec3(cellSize);
 
-        bool dx = targetPos.x > nodeCenter.x;
-        bool dy = targetPos.y > nodeCenter.y;
-        bool dz = targetPos.z > nodeCenter.z;
+        bool dx = targetPos.x >= nodeCenter.x;
+        bool dy = targetPos.y >= nodeCenter.y;
+        bool dz = targetPos.z >= nodeCenter.z;
         
         const int childInd = (dx << 2) | (dy << 1) | dz;
         if(cell->children[childInd]) {
@@ -71,7 +72,6 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::makeCell(glm::vec3 tar
     while (cellDepth > targetDepth) {
         cellDepth--;
         nodeCenter = nodePos + glm::vec3(getCellSize(cellDepth-1));
-        std::cout << "node center: " << nodeCenter.x << ", " << nodeCenter.y << ", " << nodeCenter.z << "\n";
 
         dx = targetPos.x > nodeCenter.x;
         dy = targetPos.y > nodeCenter.y;

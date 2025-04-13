@@ -1,11 +1,15 @@
 todo
+
+high priority:
+- generate world from near to far, using breadth-first search as quick culling to generate less chunks
+
+do sometime:
 - generate smooth mesh based on density of cell
 - optimize by having duplicate cells trees point to the same tree
     - include orientation? flipped / rotated duplicates
-- breadth-first search for culling
-- hash map of cells & position & depth
-    - mostly done but position should be its own map for neighbor finding at least
-- cells point to matter which store actual composition of the cell (objects must be optimized in a similar way)
-distant future
+- map cells to matter which store actual composition of the cell (objects must be optimized in a similar way)
+- implement "thing"s (like gameobjects with components) and make each chunk or maybe each cell a thing (they will store a minimum of like almost no data)
+
+do eventually:
 - imposters for large cells, generate depth and normals straight from cell data
 
