@@ -60,7 +60,7 @@ class Gaia{
 private: 
     Octree cellTree;
     float planetSize;
-    float lod = 128.f;
+    float lod = 32.f;
     int8_t chunkDepth = 5;
     glm::vec3* camPos;
     meshData cube;
