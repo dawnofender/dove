@@ -67,7 +67,6 @@ private:
     meshData worldMesh;
 
     std::unordered_map<std::shared_ptr<OctreeNode>, meshData> chunkMeshes;
-    // std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // first: chunk, second: all leaves in that chunk
 
     std::unordered_map<std::shared_ptr<OctreeNode>, CellSampleData> sampleData;
 
@@ -164,6 +163,12 @@ public:
             time1 = glfwGetTime();
             std::cout << "          Generated world sample " << i+1 << " | " << 1000*(time1-time0) << "ms\n";
         }
+
+        time0 = glfwGetTime();
+        indexChunks(cellTree.root, cellTree.maxDepth, cellTree.origin);
+        time1 = glfwGetTime();
+        std::cout << chunkMeshes.size();
+        std::cout << "                      Indexed chunks | " << 1000*(time1-time0) << "ms\n";
         
 
         time0 = glfwGetTime();
@@ -247,6 +252,28 @@ public:
 
         sampleData = nextSampleData;
         std::cout << sampleData.size();
+    }
+
+
+    void indexChunks(std::shared_ptr<OctreeNode>(cell), uint8_t cellDepth, glm::vec3 cellPos) {
+        float childSize = cellTree.getCellSize(cellDepth-1);
+        glm::vec3 cellCenter = cellPos + glm::vec3(childSize);
+        if((cellDepth+5 > cellTree.maxDepth) || cellDepth > chunkDepth && distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(cellDepth - chunkDepth) < lod) {
+            for (int i = 0; i < 8; ++i) {
+                if(!cell->children[i]) continue;
+                float dx = (i >> 2) & 1;
+                float dy = (i >> 1) & 1;
+                float dz = i & 1;
+                
+                glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
+                glm::vec3 childPos = cellPos + childOffset;
+
+                indexChunks(cell->children[i], cellDepth-1, childPos);
+            }
+        } else {
+            meshData mesh;
+            chunkMeshes.insert({cell, mesh});
+        }
     }
 
 
@@ -375,97 +402,97 @@ public:
     //     
     // }
     
-    // void mapChunkLeaves(std::shared_ptr<OctreeNode>(chunk)) {
-    //     chunkMap.erase(chunk);
-    //     chunkMap.insert({chunk, std::vector<std::shared_ptr<OctreeNode>>()});
-    //     // get a shared ptr to the vector we just created
-    //     auto* chunkCells = &chunkMap.find(chunk)->second;
-    //     mapChunkLeaves(chunkCells, chunk);
-    // }
+    void mapChunkLeaves(std::shared_ptr<OctreeNode>(chunk)) {
+        chunkMap.erase(chunk);
+        chunkMap.insert({chunk, std::vector<std::shared_ptr<OctreeNode>>()});
+        // get a pointer to the vector we just created
+        auto* chunkCells = &chunkMap.find(chunk)->second;
+        mapChunkLeaves(chunkCells, chunk);
+    }
 
-    // void mapChunkLeaves(std::vector<std::shared_ptr<OctreeNode>>* chunkCells, std::shared_ptr<OctreeNode>(cell)) {
-    //     if(cell->leaf) {
-    //         chunkCells->push_back(cell);
-    //     } else {
-    //         for (int i = 0; i < 8; ++i) {
-    //             if (cell->children[i]) mapChunkLeaves(chunkCells, cell->children[i]);
-    //         }
-    //     }
-    // }
+    void mapChunkLeaves(std::vector<std::shared_ptr<OctreeNode>>* chunkCells, std::shared_ptr<OctreeNode>(cell)) {
+        if(cell->leaf) {
+            chunkCells->push_back(cell);
+        } else {
+            for (int i = 0; i < 8; ++i) {
+                if (cell->children[i]) mapChunkLeaves(chunkCells, cell->children[i]);
+            }
+        }
+    }
 
-    // void buildChunkMesh(std::shared_ptr<OctreeNode>(chunk), meshData* mesh) {
+    void buildChunkMesh(std::shared_ptr<OctreeNode>(chunk), meshData* mesh) {
 
-    //     auto cells = chunkMap.find(chunk)->second;
-    //     for (auto& cell : cells) {
-    //         buildCellMesh(cell, mesh);
-    //     }
-    //     
-    //     const float nScale = 64.f;
-    //     const float nLacunarity = 2.f;
-    //     const float nPersistance = 1.f;
-    //     const int nDepth = 5.f;
-    //     const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
-    //     
-    //     mesh->colors.resize(mesh->vertices.size());
-    //     mesh->normals.resize(mesh->vertices.size());
-    //     
+        auto cells = chunkMap.find(chunk)->second;
+        for (auto& cell : cells) {
+            buildCellMesh(cell, mesh);
+        }
+        
+        const float nScale = 64.f;
+        const float nLacunarity = 2.f;
+        const float nPersistance = 1.f;
+        const int nDepth = 5.f;
+        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        
+        mesh->colors.resize(mesh->vertices.size());
+        mesh->normals.resize(mesh->vertices.size());
+        
 
-    //     //calculate normals
-    //     for (int i = 0; i < mesh->vertices.size(); i+=4) {
-    //         glm::vec3 edge1 = mesh->vertices[i+1] - mesh->vertices[i];
-    //         glm::vec3 edge2 = mesh->vertices[i+2] - mesh->vertices[i];
-    //         glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
-    //         
-    //         mesh->normals[i] = triangleNormal;
-    //         mesh->normals[i+1] = triangleNormal;
-    //         mesh->normals[i+2] = triangleNormal;
-    //         mesh->normals[i+3] = triangleNormal;
-    //     }
+        //calculate normals
+        for (int i = 0; i < mesh->vertices.size(); i+=4) {
+            glm::vec3 edge1 = mesh->vertices[i+1] - mesh->vertices[i];
+            glm::vec3 edge2 = mesh->vertices[i+2] - mesh->vertices[i];
+            glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
+            
+            mesh->normals[i] = triangleNormal;
+            mesh->normals[i+1] = triangleNormal;
+            mesh->normals[i+2] = triangleNormal;
+            mesh->normals[i+3] = triangleNormal;
+        }
 
-    //     // color mesh
-    //     for (int i = 0; i < mesh->vertices.size(); i++) {
-    //         //mesh->colors[i] = mesh->vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
-    //         //mesh->colors[i] = mesh->vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
-    //         const float noiseR = simplex.fractal(nDepth, mesh->vertices[i].x+1000.f, mesh->vertices[i].y, mesh->vertices[i].z);
-    //         const float noiseG = simplex.fractal(nDepth, mesh->vertices[i].x+2000.f, mesh->vertices[i].y, mesh->vertices[i].z);
-    //         const float noiseB = simplex.fractal(nDepth, mesh->vertices[i].x+3000.f, mesh->vertices[i].y, mesh->vertices[i].z);
-    //         mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
-    //         //mesh->colors[i] = mesh->normals[i];
-    //     }
-    // }
+        // color mesh
+        for (int i = 0; i < mesh->vertices.size(); i++) {
+            //mesh->colors[i] = mesh->vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
+            //mesh->colors[i] = mesh->vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
+            const float noiseR = simplex.fractal(nDepth, mesh->vertices[i].x+1000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            const float noiseG = simplex.fractal(nDepth, mesh->vertices[i].x+2000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            const float noiseB = simplex.fractal(nDepth, mesh->vertices[i].x+3000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
+            //mesh->colors[i] = mesh->normals[i];
+        }
+    }
 
 
-    // void buildCellMesh(std::shared_ptr<OctreeNode>(cell), meshData* mesh) {
+    void buildCellMesh(std::shared_ptr<OctreeNode>(cell), meshData* mesh) {
 
-    //     int8_t cellDepth = cellTree.depthMap.find(cell)->second;
-    //     glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
+        int8_t cellDepth = cellTree.depthMap.find(cell)->second;
+        glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
 
-    //     // currently only rendering solid blocks
-    //     if(!cell->transparent) {
-    //         for(int i = 0; i < 6; i++) {
-    //             if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
-    //                 int vertexInd = mesh->vertices.size();
-    //                 int indexInd = mesh->indices.size();
-    //                 int cubeInd = i*4; // which part of the cube mesh to take data from
+        // currently only rendering solid blocks
+        if(!cell->transparent) {
+            for(int i = 0; i < 6; i++) {
+                if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
+                    int vertexInd = mesh->vertices.size();
+                    int indexInd = mesh->indices.size();
+                    int cubeInd = i*4; // which part of the cube mesh to take data from
 
-    //                 mesh->vertices.resize(vertexInd + 4); // 4 vertices per side
-    //                 mesh->indices.resize(indexInd + 6); // 6 indices per side
-    //                 
-    //                 GLfloat cellSize = cellTree.getCellSize(cellDepth);
-    //                 for(int j = 0; j < 4; j++) {
-    //                     mesh->vertices[vertexInd+j] = cellPos + cube.vertices[cubeInd+j] * cellSize;
-    //                 }
+                    mesh->vertices.resize(vertexInd + 4); // 4 vertices per side
+                    mesh->indices.resize(indexInd + 6); // 6 indices per side
+                    
+                    GLfloat cellSize = cellTree.getCellSize(cellDepth);
+                    for(int j = 0; j < 4; j++) {
+                        mesh->vertices[vertexInd+j] = cellPos + cube.vertices[cubeInd+j] * cellSize;
+                    }
 
-    //                 mesh->indices[indexInd]   = vertexInd;
-    //                 mesh->indices[indexInd+1] = vertexInd+1;
-    //                 mesh->indices[indexInd+2] = vertexInd+2;
-    //                 mesh->indices[indexInd+3] = vertexInd;
-    //                 mesh->indices[indexInd+4] = vertexInd+2;
-    //                 mesh->indices[indexInd+5] = vertexInd+3;
-    //             }
-    //         }
-    //     }
-    // }
+                    mesh->indices[indexInd]   = vertexInd;
+                    mesh->indices[indexInd+1] = vertexInd+1;
+                    mesh->indices[indexInd+2] = vertexInd+2;
+                    mesh->indices[indexInd+3] = vertexInd;
+                    mesh->indices[indexInd+4] = vertexInd+2;
+                    mesh->indices[indexInd+5] = vertexInd+3;
+                }
+            }
+        }
+    }
     
     // void generateRecursive(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos) {
     //     float childSize = cellTree.getCellSize(cellDepth-1);
