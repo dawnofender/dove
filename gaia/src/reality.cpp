@@ -52,6 +52,7 @@ struct Matter {
 struct CellSampleData {
     glm::vec3 position;
     int8_t depth;
+    bool sample;
 };
 
 
@@ -59,7 +60,7 @@ class Gaia{
 private: 
     Octree cellTree;
     float planetSize;
-    float lod = 64.f;
+    float lod = 128.f;
     int8_t chunkDepth = 5;
     glm::vec3* camPos;
     meshData cube;
@@ -201,20 +202,21 @@ public:
             
             float childSize = cellTree.getCellSize(cellData.depth-1);
             glm::vec3 cellCenter = cellData.position + glm::vec3(childSize);
-
-            // if cell's transparency is different from any of it's neighbors, cell should be sampled for visible children
-            bool isRoot = !cell->parent;
             
-            bool onSurface = cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
-                             cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
-                             cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
-                             cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
-                             cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
-                             cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent;  
-            
-            bool detailedEnough = distance(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(cellData.depth) > lod;
-
-            if ((onSurface && !detailedEnough) || isRoot){
+            // if cell is root, it should be sampled
+            // if cell's transparency is different from any of it's neighbors, and 
+            // if it's within lod distance, it should be sampled
+            if (
+                !cell->parent || (( // is root
+                        cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
+                        cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
+                        cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
+                        cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
+                        cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
+                        cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
+                    ) && distance(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(cellData.depth) < lod
+                )
+            ) {
                 cell->leaf = false;
 
                 // sample children
@@ -242,7 +244,7 @@ public:
                 }
             }
         }
-        
+
         sampleData = nextSampleData;
         std::cout << sampleData.size();
     }
@@ -539,11 +541,11 @@ public:
 
         FastNoise perlinFractal;
         perlinFractal.SetNoiseType(FastNoise::PerlinFractal); 
-        perlinFractal.SetFractalOctaves(5); 
+        perlinFractal.SetFractalOctaves(8); 
         perlinFractal.SetFrequency(1.f / scale);
         
         float noise = perlinFractal.GetValue(blockPos.x, blockPos.z);
-        float mountains = (pow(noise, 3.f) ) * intensity;
+        float mountains = (pow(noise, 1.f) ) * intensity;
        
         // flatten spawn
         mountains *= std::min(distanceFast(blockPos, {0, 0, 0}) / 64.f, 1.f);
