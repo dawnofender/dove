@@ -1,3 +1,4 @@
+#include "rendering/dmeshRenderer.hpp"
 #include <cmath>
 // #include <glm/detail/qualifier.hpp>
 #include <vector>
@@ -5,6 +6,9 @@
 #include <array>
 #include <map>
 #include <unordered_map>
+#include <set>
+#include <thread>
+#include <functional>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -52,7 +56,8 @@ struct Matter {
 struct CellSampleData {
     glm::vec3 position;
     int8_t depth;
-    bool sample;
+    bool sampleMode; // true to upsample, false to downsample
+    CellSampleData(glm::vec3 p, int8_t d, bool m) : position(p), depth(d), sampleMode(m) {}
 };
 
 
@@ -60,13 +65,15 @@ class Gaia{
 private: 
     Octree cellTree;
     float planetSize;
-    float lod = 32.f;
+    float lod = 24.f;
     int8_t chunkDepth = 5;
     glm::vec3* camPos;
     meshData cube;
     meshData worldMesh;
+    
 
     std::unordered_map<std::shared_ptr<OctreeNode>, meshData> chunkMeshes;
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // chunk, leaves of chunk
 
     std::unordered_map<std::shared_ptr<OctreeNode>, CellSampleData> sampleData;
 
@@ -153,23 +160,16 @@ public:
         
         // probably combine both methds, only doing full chunk generation for chunks that are very close
         
-            std::cout << "test0\n";
         generateMatter(cellTree.root, cellTree.origin + glm::vec3(cellTree.getCellSize(cellTree.maxDepth-1)));
-            std::cout << "test1\n";
-        sampleData.insert({cellTree.root, {cellTree.origin, cellTree.maxDepth}});
+        cellTree.root->leaf = true;
+        sampleData.insert({cellTree.root, CellSampleData(cellTree.origin, cellTree.maxDepth, true)});
         for (int i = cellTree.minDepth; i <= cellTree.maxDepth; i++) {
             time0 = glfwGetTime();
-            sampleGenerateWorld();
+            updateSampleData();
+            generateSample();
             time1 = glfwGetTime();
             std::cout << "          Generated world sample " << i+1 << " | " << 1000*(time1-time0) << "ms\n";
         }
-
-        time0 = glfwGetTime();
-        indexChunks(cellTree.root, cellTree.maxDepth, cellTree.origin);
-        time1 = glfwGetTime();
-        std::cout << chunkMeshes.size();
-        std::cout << "                      Indexed chunks | " << 1000*(time1-time0) << "ms\n";
-        
 
         time0 = glfwGetTime();
         simplifyHomogeneous(cellTree.root);
@@ -188,49 +188,116 @@ public:
         std::cout << "             Neighbor data generated | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
-        worldMesh = buildMeshData();
+        indexChunks(cellTree.root);
         time1 = glfwGetTime();
-        std::cout << "                 Mesh Data generated | " << 1000*(time1-time0) << "ms\n";
+        std::cout << chunkMap.size();
+        std::cout << "                      Indexed chunks | " << 1000*(time1-time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        for( auto& [chunk, leaves] : chunkMap ) {
+            mapChunkLeaves(chunk);
+        }
+        time1 = glfwGetTime();
+        std::cout << chunkMeshes.size();
+        std::cout << "                 Mapped chunk leaves | " << 1000*(time1-time0) << "ms\n";
+
+        // time0 = glfwGetTime();
+        // worldMesh = buildMeshData();
+        // time1 = glfwGetTime();
+        // std::cout << "           World mesh Data generated | " << 1000*(time1-time0) << "ms\n";
+
+        
+        time0 = glfwGetTime();
+        buildChunkMeshes();
+        time1 = glfwGetTime();
+        std::cout << chunkMeshes.size();
+        std::cout << "           Chunk mesh data generated | " << 1000*(time1-time0) << "ms\n";
         
         // generateChunk(camPos);
     }
-    
-    void sampleGenerateWorld() {
-        
-        std::unordered_map<std::shared_ptr<OctreeNode>, CellSampleData> nextSampleData;
-        
-        // for( auto [cell, cellData] : sampleData ) {
-        // }
 
-        for( auto [cell, cellData] : sampleData ) {
-            cellTree.setNeighbors(cell);
+    void updateChunks() {
+        updateSampleData();
+        generateSample();
+        indexLeaves();
+        setNeighbors();
+        simplifyHomogeneous();
+        indexChunks();
+        mapChunkLeaves();
+        buildChunkMeshes();
+    }
+
+    void updateSampleData() {
+        for( auto& [cell, position] : cellTree.positionMap ) {
+            int8_t depth = cellTree.depthMap.find(cell)->second;
+            glm::vec3 cellCenter = position + glm::vec3(cellTree.getCellSize(depth-1));
+            float size = cellTree.getCellSize(depth);
             
-            float childSize = cellTree.getCellSize(cellData.depth-1);
-            glm::vec3 cellCenter = cellData.position + glm::vec3(childSize);
-            
-            // if cell is root, it should be sampled
-            // if cell's transparency is different from any of it's neighbors, and 
-            // if it's within lod distance, it should be sampled
-            if (
-                !cell->parent || (( // is root
-                        cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
-                        cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
-                        cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
-                        cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
-                        cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
-                        cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
-                    ) && distance(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(cellData.depth) < lod
-                )
+            if ( !cell->parent || //root
+                (
+                    cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
+                    cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
+                    cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
+                    cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
+                    cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
+                    cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
+                ) && distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/size < lod && depth > 0
             ) {
+                // this cell should me upsampled
+                sampleData.insert({cell, CellSampleData(position, depth, true)});
+
+            } else if (cell->parent) {
+                float dx = (cell->indexInParent >> 2) & 1;
+                float dy = (cell->indexInParent >> 1) & 1;
+                float dz = cell->indexInParent & 1;
+                glm::vec3 parentPos = position - glm::vec3(dx, dy, dz) * size;
+                cellCenter = parentPos + glm::vec3(size);
+
+                if (distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(depth+1) > lod) {
+
+                    // this cell should be downsampled
+                    sampleData.insert({cell->parent, CellSampleData(parentPos, depth+1, false)});
+                }
+            }
+        }
+    }
+    
+    void generateSample() {
+
+
+        std::vector<std::shared_ptr<OctreeNode>> newCells;
+        for( auto [cell, data] : sampleData ) {
+            if (!data.sampleMode) {
+
+                // remove children / simplify cells that are to be downsampled  
+                for ( auto& child : cell->children ) {
+                    if(!child) continue;
+                    cellTree.positionMap.erase(child);
+                    cellTree.depthMap.erase(child);
+                    child.reset();
+                }
+                cell->leaf = true;
+                cellTree.positionMap.insert({cell, data.position});
+                cellTree.depthMap.insert({cell, data.depth});
+
+            } else {
+
+                // generate children for cells to be upsampled
+                cellTree.positionMap.erase(cell);
+                cellTree.depthMap.erase(cell);
                 cell->leaf = false;
 
-                // sample children
+                float childSize = cellTree.getCellSize(data.depth-1);
+                glm::vec3 cellCenter = data.position + glm::vec3(childSize);
+
                 for (int i = 0; i < 8; ++i) {
                     auto& child = cell->children[i];
-                    child = std::make_unique<OctreeNode>();
-                    child->parent = cell;
-                    child->indexInParent = i;
-                    child->leaf = true;
+                    if (!child) {
+                        child = std::make_unique<OctreeNode>();
+                        child->parent = cell;
+                        child->indexInParent = i;
+                        child->leaf = true;
+                    }
                     
                     float dx = (i >> 2) & 1;
                     float dy = (i >> 1) & 1;
@@ -238,41 +305,152 @@ public:
                     
                     glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
 
-                    glm::vec3 childPos = cellData.position + childOffset;
-                    generateMatter(child, childPos + glm::vec3(cellTree.getCellSize(cellData.depth - 2)));
-                    nextSampleData.insert({child, {childPos, cellData.depth - 1}});
+                    glm::vec3 childPos = data.position + childOffset;
+                    generateMatter(child, childPos + glm::vec3(cellTree.getCellSize(data.depth - 2)));
 
-                    // correct cam pos (temporary)
-                    if(distanceFast(childPos, {camPos->x, camPos->y, camPos->z}) < cellTree.getCellSize(cellData.depth - 2)) {
-                        camPos->y = child->transparent ? camPos->y - cellTree.getCellSize(cellData.depth - 1) : camPos->y + cellTree.getCellSize(cellData.depth - 1);
-                    }
+                    newCells.push_back(child);
+                    cellTree.positionMap.insert({child, childPos});
+                    cellTree.depthMap.insert({child, data.depth-1});
+
                 }
             }
-        }
 
-        sampleData = nextSampleData;
-        std::cout << sampleData.size();
+        }
+            // clear for new data can be collected
+            sampleData.clear(); 
+
+        for( auto& cell : newCells ) {
+            cellTree.setNeighbors(cell);
+        }
     }
 
+    // void makeWorldSampleData() {
+    //     
 
-    void indexChunks(std::shared_ptr<OctreeNode>(cell), uint8_t cellDepth, glm::vec3 cellPos) {
-        float childSize = cellTree.getCellSize(cellDepth-1);
-        glm::vec3 cellCenter = cellPos + glm::vec3(childSize);
-        if((cellDepth+5 > cellTree.maxDepth) || cellDepth > chunkDepth && distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(cellDepth - chunkDepth) < lod) {
-            for (int i = 0; i < 8; ++i) {
-                if(!cell->children[i]) continue;
-                float dx = (i >> 2) & 1;
-                float dy = (i >> 1) & 1;
-                float dz = i & 1;
-                
-                glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
-                glm::vec3 childPos = cellPos + childOffset;
+    //     for( auto [cell, data] : sampleData ) {
+    //         cellTree.setNeighbors(cell);
+    //         
+    //         float childSize = cellTree.getCellSize(data.depth-1);
+    //         glm::vec3 cellCenter = data.position + glm::vec3(childSize);
+    //         
+    //         // if cell is root, it should be sampled
+    //         // if cell's transparency is different from any of it's neighbors, and 
+    //         // if it's within lod distance, it should be sampled
+    //         if (
+    //             !cell->parent || (( // is root
+    //                     cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
+    //                     cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
+    //                     cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
+    //                     cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
+    //                     cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
+    //                     cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
+    //                 ) && distance(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(data.depth) < lod
+    //             )
+    //         ) {
+    //             cell->leaf = false;
 
-                indexChunks(cell->children[i], cellDepth-1, childPos);
+    //             // sample children
+    //             for (int i = 0; i < 8; ++i) {
+    //                 auto& child = cell->children[i];
+    //                 child = std::make_unique<OctreeNode>();
+    //                 child->parent = cell;
+    //                 child->indexInParent = i;
+    //                 child->leaf = true;
+    //                 
+    //                 float dx = (i >> 2) & 1;
+    //                 float dy = (i >> 1) & 1;
+    //                 float dz = i & 1;
+    //                 
+    //                 glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
+
+    //                 glm::vec3 childPos = data.position + childOffset;
+    //                 generateMatter(child, childPos + glm::vec3(cellTree.getCellSize(data.depth - 2)));
+
+    //                 // correct cam pos (temporary)
+    //                 if(distanceFast(childPos, {camPos->x, camPos->y, camPos->z}) < cellTree.getCellSize(data.depth - 2)) {
+    //                     camPos->y = child->transparent ? camPos->y - cellTree.getCellSize(data.depth - 1) : camPos->y + cellTree.getCellSize(data.depth - 1);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     
+    //     // second pass for cells with 2 surface neighbors
+    //     // an imperfect but fast (for now) way to catch corners that don't get sampled properly
+    //     for( auto [cell, data] : sampleData ) {
+    //         if (!cell->leaf) break;
+    //         
+    //         int surfaceNeighbors = 0;
+    //         for ( auto& neighbor : cell->neighbors ) {
+    //             if(neighbor && !neighbor->leaf) surfaceNeighbors++;
+    //             if (surfaceNeighbors > 2) {
+    //                 float childSize = cellTree.getCellSize(data.depth-1);
+    //                 glm::vec3 cellCenter = data.position + glm::vec3(childSize);
+
+    //                 cell->leaf = false;
+
+    //                 for (int i = 0; i < 8; ++i) {
+    //                     auto& child = cell->children[i];
+    //                     child = std::make_unique<OctreeNode>();
+    //                     child->parent = cell;
+    //                     child->indexInParent = i;
+    //                     child->leaf = true;
+    //                     
+    //                     float dx = (i >> 2) & 1;
+    //                     float dy = (i >> 1) & 1;
+    //                     float dz = i & 1;
+    //                     
+    //                     glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
+
+    //                     glm::vec3 childPos = data.position + childOffset;
+    //                     generateMatter(child, childPos + glm::vec3(cellTree.getCellSize(data.depth - 2)));
+    //                     nextSampleData.insert({child, {childPos, data.depth - 1}});
+
+    //                     // correct cam pos (temporary)
+    //                     if(distanceFast(childPos, {camPos->x, camPos->y, camPos->z}) < cellTree.getCellSize(data.depth - 2)) {
+    //                         camPos->y = child->transparent ? camPos->y - cellTree.getCellSize(data.depth - 1) : camPos->y + cellTree.getCellSize(data.depth - 1);
+    //                     }
+    //                 }
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+
+    // void generateTangibleCells() {
+    //     for ( auto& [cell, depth] : cellTree.depthMap ) {
+    //         if ( depth <= chunkDepth ) {
+    //             glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
+    //             float cellSize = cellTree.getCellSize(depth);
+    //             generateWorld(cell, depth, cellPos, cellSize);
+    //         }
+    //     }
+    //     for()
+    //     cellTree.makeCell
+    //     
+    // }
+    void indexChunks() {
+        indexChunks(cellTree.root);
+    };
+
+    void indexChunks(std::shared_ptr<OctreeNode>(cell)) {
+        if (!cell->leaf) {
+            // recurse into children
+            for ( auto& child : cell->children ) {
+                if(child) indexChunks(child);
             }
         } else {
-            meshData mesh;
-            chunkMeshes.insert({cell, mesh});
+            // get chunk to index
+            std::shared_ptr<OctreeNode> chunk = cell;
+            for(int i = 0; i < chunkDepth; i++) {
+                if (chunk->parent) {
+                    chunk = chunk->parent; 
+                } else {
+                    return; // currently this never happens but later this should add to a bigger unchunked world mesh for super distant stuff that almost never changes
+                }
+            }
+            // index chunk
+            std::vector<std::shared_ptr<OctreeNode>> leaves;
+            chunkMap.insert({chunk, leaves});
         }
     }
 
@@ -321,18 +499,22 @@ public:
 
 
     
-    // std::vector<meshData> getChunkMesh() {
-    //     std::vector<meshData> meshes;
-    //     meshes.resize(chunkMeshes.size());
+    std::vector<meshData> getChunkMeshData() {
+        std::vector<meshData> meshes;
+        meshes.resize(chunkMeshes.size());
 
-    //     int i = 0;
-    //     for( const auto& [chunk, mesh] : chunkMeshes ) {
-    //        meshes[i] = mesh;
-    //        i++;
-    //     }
+        int i = 0;
+        for( const auto& [chunk, mesh] : chunkMeshes ) {
+           meshes[i] = mesh;
+           i++;
+        }
 
-    //     return meshes;
-    // }
+        return meshes;
+    }
+
+    void simplifyHomogeneous() {
+        simplifyHomogeneous(cellTree.root);
+    }
 
     void simplifyHomogeneous(std::shared_ptr<OctreeNode>(cell)) {
         for (std::shared_ptr<OctreeNode> child : cell->children) {
@@ -402,21 +584,36 @@ public:
     //     
     // }
     
-    void mapChunkLeaves(std::shared_ptr<OctreeNode>(chunk)) {
-        chunkMap.erase(chunk);
-        chunkMap.insert({chunk, std::vector<std::shared_ptr<OctreeNode>>()});
-        // get a pointer to the vector we just created
-        auto* chunkCells = &chunkMap.find(chunk)->second;
-        mapChunkLeaves(chunkCells, chunk);
+    void mapChunkLeaves() {
+        for( auto& [chunk, leaves] : chunkMap ) {
+            mapChunkLeaves(chunk);
+        }
     }
 
-    void mapChunkLeaves(std::vector<std::shared_ptr<OctreeNode>>* chunkCells, std::shared_ptr<OctreeNode>(cell)) {
-        if(cell->leaf) {
+    void mapChunkLeaves(std::shared_ptr<OctreeNode>(chunk)) {
+        // get a pointer to the vector we just created
+        auto* chunkCells = &chunkMap.find(chunk)->second;
+        chunkCells->clear();
+        mapChunkLeaves(chunkCells, chunk, chunkDepth);
+    }
+
+    void mapChunkLeaves(std::vector<std::shared_ptr<OctreeNode>>* chunkCells, std::shared_ptr<OctreeNode>(cell), uint8_t localDepth) {
+        if(cell->leaf && localDepth == 0) { 
             chunkCells->push_back(cell);
         } else {
             for (int i = 0; i < 8; ++i) {
-                if (cell->children[i]) mapChunkLeaves(chunkCells, cell->children[i]);
+                if (cell->children[i]) mapChunkLeaves(chunkCells, cell->children[i], localDepth-1);
             }
+        }
+    }
+
+
+    void buildChunkMeshes() {
+        for( auto& [chunk, leaves] : chunkMap ) {
+            chunkMeshes.erase(chunk);
+            chunkMeshes.insert({chunk, meshData()});
+            auto* chunkMesh = &chunkMeshes.find(chunk)->second;
+            buildChunkMesh(chunk, chunkMesh);
         }
     }
 
@@ -425,6 +622,11 @@ public:
         auto cells = chunkMap.find(chunk)->second;
         for (auto& cell : cells) {
             buildCellMesh(cell, mesh);
+        }
+
+        if (mesh->vertices.size() < 1) {
+            chunkMeshes.erase(chunk);
+            return;
         }
         
         const float nScale = 64.f;
@@ -747,7 +949,7 @@ int main(){
     // # model generation #
     // ####################
     
-    glm::vec3 position = glm::vec3( 0, 0, 0 );
+    glm::vec3 position = glm::vec3( 0, 7300, 0 );
     Gaia world(&position, {0, 23});
     // world.generateChunk(position);
     // 23 - a bit bigger than earth
@@ -767,15 +969,17 @@ int main(){
     }
     
     // world.generateChunk(position);
-    // std::vector<MeshRenderer> meshes;
+    std::set<std::shared_ptr<MeshRenderer>> meshRenderers;
     // std::vector<meshData> chunkMeshes = world.getChunkMesh();
+        
+    // create meshRenderer objects for each mesh
+    // MeshRenderer worldMeshRenderer(world.getMesh());
+    // meshRenderers.push_back(std::make_shared<MeshRenderer>(worldMeshRenderer));
 
-    // meshes.push_back(MeshRenderer(world.getMesh()));
-    MeshRenderer meshRenderer(world.getMesh());
-    // MeshRenderer chunkMeshRenderer = chunkMeshes[0];
-    
-    meshRenderer.setupBufferData();
-    // chunkMeshRenderer.setupBufferData();
+    for( auto chunkMesh : world.getChunkMeshData() ) {
+        MeshRenderer chunkMeshRenderer(chunkMesh);
+        meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
+    }
 
     do{
         // measure fps
@@ -821,17 +1025,24 @@ int main(){
         glm::vec3 lightPos = glm::vec3(0,10000,0);
         glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
-        // if ( currentTime - lastGenTime >= 5.0 ) {
-        //     world.generateChunk(position);
-        //     lastGenTime += 5.0;
-        //     for ( meshData mesh : world.getChunkMesh()) {
-        //     }
-        //     std::cout << meshes.size() << "\n";
-        // }
-        
-        meshRenderer.drawMesh();            
-        // chunkMeshRenderer.drawMesh();            
+        if ( currentTime - lastGenTime >= 30.0 ) {
+            lastGenTime += 15.0;
 
+            std::thread updateChunks(&Gaia::updateChunks, world);
+            updateChunks.detach();
+
+            meshRenderers.clear();
+            for( auto chunkMesh : world.getChunkMeshData() ) {
+                MeshRenderer chunkMeshRenderer(chunkMesh);
+                meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
+            }
+
+        }
+
+        for( auto& meshRenderer : meshRenderers ) {
+            meshRenderer->drawMesh();
+        }
+        
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);                
         glDisableVertexAttribArray(2);        
@@ -842,9 +1053,9 @@ int main(){
     }
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0 );
     
-    // for ( auto meshRenderer : meshes ) {
-        meshRenderer.deleteBuffers();
-    // }
+    for ( auto& meshRenderer : meshRenderers ) {
+        meshRenderer->deleteBuffers();
+    }
 
     glDeleteProgram(programID);
     //glDeleteTextures(1, &Texture);

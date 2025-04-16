@@ -5,6 +5,7 @@ high priority:
 
 do sometime:
 - generate smooth mesh based on density of cell
+- set of unordered maps for each depth level of maps of position to leaf cells (potentially good way to find same-level neighbors across borders?)
 - optimize by having duplicate cells trees point to the same tree
     - include orientation? flipped / rotated duplicates
 - map cells to matter which store actual composition of the cell (objects must be optimized in a similar way)

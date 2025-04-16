@@ -8,6 +8,7 @@ struct meshData {
     std::vector<glm::vec3> colors;
     std::vector<glm::vec3> normals;
     std::vector<unsigned int> indices;
+    meshData(){}
 };
 
 #endif

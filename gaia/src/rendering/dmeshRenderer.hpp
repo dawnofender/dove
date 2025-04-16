@@ -21,8 +21,12 @@ private:
 
 
 public:
-    MeshRenderer(meshData m) : mesh(m) {}
+    MeshRenderer(meshData m) : mesh(m) {
+        setupBufferData();
 
+    }
+    
+    void bindBufferData();
     void setupBufferData();
     void drawMesh();
     void deleteBuffers();
