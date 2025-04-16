@@ -33,7 +33,6 @@ GLFWwindow* window;
 float distanceFast(glm::vec3 a, glm::vec3 b) {
     return (std::abs(a.x-b.x) + std::abs(a.y-b.y) + std::abs(a.z-b.z)) * 0.785;
 }
-
 float distanceSquared(glm::vec3 a, glm::vec3 b) {
     float dx = a.x-b.x;
     float dy = a.y-b.y;
@@ -41,17 +40,15 @@ float distanceSquared(glm::vec3 a, glm::vec3 b) {
     return dx * dx + dy * dy + dz * dz;
 }
 
-struct Matter {
-    bool transparent;    
-    uint8_t density;
-    std::map<char*, char> properties; 
-};
-
-// class Thing {
+// template <class T>
+// class Component {
 // private: 
+//     T type;
 // 
-// 
-// }
+// public: 
+//     Component(T t) : type(t) {}
+// };
+
            //
 struct CellSampleData {
     glm::vec3 position;
@@ -60,17 +57,15 @@ struct CellSampleData {
     CellSampleData(glm::vec3 p, int8_t d, bool m) : position(p), depth(d), sampleMode(m) {}
 };
 
-
 class Gaia{
 private: 
     Octree cellTree;
     float planetSize;
-    float lod = 24.f;
+    float lod = 16.f;
     int8_t chunkDepth = 5;
     glm::vec3* camPos;
     meshData cube;
     meshData worldMesh;
-    
 
     std::unordered_map<std::shared_ptr<OctreeNode>, meshData> chunkMeshes;
     std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // chunk, leaves of chunk
@@ -217,16 +212,26 @@ public:
     }
 
     void updateChunks() {
-        updateSampleData();
-        generateSample();
-        indexLeaves();
-        setNeighbors();
-        simplifyHomogeneous();
-        indexChunks();
-        mapChunkLeaves();
-        buildChunkMeshes();
+        while(true) {
+            updateSampleData();
+            generateSample();
+            indexLeaves();
+            setNeighbors();
+            simplifyHomogeneous();
+            indexChunks();
+            mapChunkLeaves();
+            buildChunkMeshes();
+
+        }
     }
 
+    bool checkLOD(float distance, int8_t depth) {
+        // percieved scale is a function like size/distance, 
+        // so we compare  ( distance / cell size )  to a user-set LOD value
+        // ideal LOD value would make distant cells the size of a pixel
+        return( distance/cellTree.getCellSize(depth) < lod && depth > 0 );
+    }
+    
     void updateSampleData() {
         for( auto& [cell, position] : cellTree.positionMap ) {
             int8_t depth = cellTree.depthMap.find(cell)->second;
@@ -234,17 +239,18 @@ public:
             float size = cellTree.getCellSize(depth);
             
             if ( !cell->parent || //root
-                (
-                    cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
-                    cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
-                    cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
-                    cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
-                    cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
-                    cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
-                ) && distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/size < lod && depth > 0
-            ) {
-                // this cell should me upsampled
-                sampleData.insert({cell, CellSampleData(position, depth, true)});
+                  cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
+                  cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
+                  cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
+                  cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
+                  cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
+                  cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
+            ) { 
+                float distance = distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z));
+                if (checkLOD(distance, depth)) {
+                    // this cell should me upsampled
+                    sampleData.insert({cell, CellSampleData(position, depth, true)});
+                }
 
             } else if (cell->parent) {
                 float dx = (cell->indexInParent >> 2) & 1;
@@ -253,18 +259,16 @@ public:
                 glm::vec3 parentPos = position - glm::vec3(dx, dy, dz) * size;
                 cellCenter = parentPos + glm::vec3(size);
 
-                if (distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z))/cellTree.getCellSize(depth+1) > lod) {
-
-                    // this cell should be downsampled
+                float distance = distanceFast(cellCenter, glm::vec3(camPos->x, camPos->y, camPos->z));
+                if (!checkLOD(distance, depth)) {
+                    // parent cell should be downsampled
                     sampleData.insert({cell->parent, CellSampleData(parentPos, depth+1, false)});
                 }
             }
         }
     }
-    
+
     void generateSample() {
-
-
         std::vector<std::shared_ptr<OctreeNode>> newCells;
         for( auto [cell, data] : sampleData ) {
             if (!data.sampleMode) {
@@ -416,18 +420,18 @@ public:
     //     }
     // }
 
-    // void generateTangibleCells() {
-    //     for ( auto& [cell, depth] : cellTree.depthMap ) {
-    //         if ( depth <= chunkDepth ) {
-    //             glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
-    //             float cellSize = cellTree.getCellSize(depth);
-    //             generateWorld(cell, depth, cellPos, cellSize);
-    //         }
-    //     }
-    //     for()
-    //     cellTree.makeCell
-    //     
-    // }
+    void generateTangibleCells() {
+        for ( auto& [cell, depth] : cellTree.depthMap ) {
+            if ( depth <= chunkDepth ) {
+                glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
+                float cellSize = cellTree.getCellSize(depth);
+                generateWorld(cell, depth, cellPos, cellSize);
+            }
+        }
+        for()
+        cellTree.makeCell
+        
+    }
     void indexChunks() {
         indexChunks(cellTree.root);
     };
@@ -949,7 +953,7 @@ int main(){
     // # model generation #
     // ####################
     
-    glm::vec3 position = glm::vec3( 0, 7300, 0 );
+    glm::vec3 position = glm::vec3( 0, 7210, 0 );
     Gaia world(&position, {0, 23});
     // world.generateChunk(position);
     // 23 - a bit bigger than earth
@@ -977,9 +981,13 @@ int main(){
     // meshRenderers.push_back(std::make_shared<MeshRenderer>(worldMeshRenderer));
 
     for( auto chunkMesh : world.getChunkMeshData() ) {
-        MeshRenderer chunkMeshRenderer(chunkMesh);
+        MeshRenderer chunkMeshRenderer(std::make_shared<meshData>(chunkMesh));
         meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
     }
+
+    
+    // std::jthread updateChunks(&Gaia::updateChunks, world);
+    // updateChunks.detach();
 
     do{
         // measure fps
@@ -1028,14 +1036,15 @@ int main(){
         if ( currentTime - lastGenTime >= 30.0 ) {
             lastGenTime += 15.0;
 
-            std::thread updateChunks(&Gaia::updateChunks, world);
-            updateChunks.detach();
-
-            meshRenderers.clear();
             for( auto chunkMesh : world.getChunkMeshData() ) {
-                MeshRenderer chunkMeshRenderer(chunkMesh);
+                MeshRenderer chunkMeshRenderer(std::make_shared<meshData>(chunkMesh));
                 meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
             }
+
+            for( auto& meshRenderer : meshRenderers ) {
+                meshRenderer->setupBufferData();
+            }
+
 
         }
 

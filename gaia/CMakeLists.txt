@@ -1,6 +1,7 @@
 # CMake entry point
 cmake_minimum_required (VERSION 3.0)
 project (reality)
+set (CMAKE_CXX_STANDARD 20)
 
 find_package(OpenGL REQUIRED)
 
@@ -48,6 +49,8 @@ add_executable(reality
     src/rendering/dmeshRenderer.cpp
     src/worldgen/doctree.cpp
     src/worldgen/doctree.hpp
+    src/dthing/dthing.cpp
+    src/dthing/dthing.hpp
     lib/shader.cpp
     lib/shader.hpp
     lib/SimplexNoise.cpp

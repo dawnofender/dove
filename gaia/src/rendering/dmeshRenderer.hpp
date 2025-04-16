@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 #include <src/dmesh/dmesh.hpp>
 #include <vector>
+#include <memory>
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -12,7 +13,7 @@
 
 class MeshRenderer{
 private:
-    meshData mesh;
+    std::shared_ptr<meshData> mesh;
     GLuint vertexbuffer;
     GLuint colorbuffer;
     GLuint normalbuffer;
@@ -21,7 +22,7 @@ private:
 
 
 public:
-    MeshRenderer(meshData m) : mesh(m) {
+    MeshRenderer(std::shared_ptr<meshData> m) : mesh(m) {
         setupBufferData();
 
     }
@@ -30,7 +31,7 @@ public:
     void setupBufferData();
     void drawMesh();
     void deleteBuffers();
-    meshData getMesh();
+    // meshData getMesh();
     std::vector<unsigned int> getIndices();
 };
 
