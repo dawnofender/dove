@@ -1,6 +1,7 @@
-#ifndef DMESHRENDERER_HPP
-#define DMESHRENDERER_HPP
+#ifndef DMESHRENDERERCOMPONENT_HPP
+#define DMESHRENDERERCOMPONENT_HPP
 
+#include "component.hpp"
 #include <GL/glew.h>
 #include <src/dmesh/dmesh.hpp>
 #include <vector>
@@ -11,7 +12,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp> 
 
-class MeshRenderer{
+class MeshRenderer : public Component {
 private:
     std::shared_ptr<meshData> mesh;
     GLuint vertexbuffer;
@@ -19,19 +20,20 @@ private:
     GLuint normalbuffer;
     // GLuint uvbuffer;
     GLuint elementbuffer;
-
+    std::pair<glm::vec3, glm::vec3> bounds;
+    static std::vector<std::shared_ptr<MeshRenderer>> meshRenderers;
 
 public:
-    MeshRenderer(std::shared_ptr<meshData> m) : mesh(m) {
-        setupBufferData();
-    }
-    
+    void setup() override;
     void bindBufferData();
     void setupBufferData();
     void drawMesh();
     void deleteBuffers();
-    // meshData getMesh();
-    std::vector<unsigned int> getIndices();
+    void setMesh(std::shared_ptr<meshData> m);
+    void setBounds(glm::vec3 a, glm::vec3 b);
+
+    std::shared_ptr<meshData> getMesh();
+    // std::vector<unsigned int> getIndices();
 };
 
 #endif

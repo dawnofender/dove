@@ -1,4 +1,3 @@
-#include "rendering/dmeshRenderer.hpp"
 #include <cmath>
 // #include <glm/detail/qualifier.hpp>
 #include <vector>
@@ -28,11 +27,15 @@ GLFWwindow* window;
 #include <lib/FastNoise.h>
 #include <src/dmesh/dmesh.hpp>
 #include <src/worldgen/doctree.hpp>
-#include <src/rendering/dmeshRenderer.hpp>
+#include <src/dthing/dthing.hpp>
+#include <src/dthing/components/meshRendererComponent.hpp>
+#include <src/dthing/components/transformComponent.hpp>
+
 
 float distanceFast(glm::vec3 a, glm::vec3 b) {
     return (std::abs(a.x-b.x) + std::abs(a.y-b.y) + std::abs(a.z-b.z)) * 0.785;
 }
+
 float distanceSquared(glm::vec3 a, glm::vec3 b) {
     float dx = a.x-b.x;
     float dy = a.y-b.y;
@@ -49,7 +52,7 @@ float distanceSquared(glm::vec3 a, glm::vec3 b) {
 //     Component(T t) : type(t) {}
 // };
 
-           //
+
 struct CellSampleData {
     glm::vec3 position;
     int8_t depth;
@@ -57,7 +60,7 @@ struct CellSampleData {
     CellSampleData(glm::vec3 p, int8_t d, bool m) : position(p), depth(d), sampleMode(m) {}
 };
 
-class Gaia{
+class Gaia : public Component{
 private: 
     Octree cellTree;
     float planetSize;
@@ -67,7 +70,7 @@ private:
     meshData cube;
     meshData worldMesh;
 
-    std::unordered_map<std::shared_ptr<OctreeNode>, meshData> chunkMeshes;
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::shared_ptr<Thing> chunkThings;
     std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // chunk, leaves of chunk
 
     std::unordered_map<std::shared_ptr<OctreeNode>, CellSampleData> sampleData;
@@ -193,7 +196,7 @@ public:
             mapChunkLeaves(chunk);
         }
         time1 = glfwGetTime();
-        std::cout << chunkMeshes.size();
+        std::cout << chunkThings.size();
         std::cout << "                 Mapped chunk leaves | " << 1000*(time1-time0) << "ms\n";
 
         // time0 = glfwGetTime();
@@ -205,7 +208,7 @@ public:
         time0 = glfwGetTime();
         buildChunkMeshes();
         time1 = glfwGetTime();
-        std::cout << chunkMeshes.size();
+        std::cout << chunkThings.size();
         std::cout << "           Chunk mesh data generated | " << 1000*(time1-time0) << "ms\n";
         
         // generateChunk(camPos);
@@ -505,10 +508,10 @@ public:
     
     std::vector<meshData> getChunkMeshData() {
         std::vector<meshData> meshes;
-        meshes.resize(chunkMeshes.size());
+        meshes.resize(chunkThings.size());
 
         int i = 0;
-        for( const auto& [chunk, mesh] : chunkMeshes ) {
+        for( const auto& [chunk, mesh] : chunkThings ) {
            meshes[i] = mesh;
            i++;
         }
@@ -612,16 +615,23 @@ public:
     }
 
 
-    void buildChunkMeshes() {
-        for( auto& [chunk, leaves] : chunkMap ) {
-            chunkMeshes.erase(chunk);
-            chunkMeshes.insert({chunk, meshData()});
-            auto* chunkMesh = &chunkMeshes.find(chunk)->second;
-            buildChunkMesh(chunk, chunkMesh);
+    void buildChunkThings() {
+        for (auto& [chunk, leaves] : chunkMap) {
+            auto* chunkMesh;
+            if (chunkThings.contains(chunk)) {
+                chunkMesh = &chunkThings.find(chunk)->second->getComponent<MeshRenderer>()->getMesh();
+            } else {
+                Thing& chunkThing = thing.createChild();
+                auto renderer = chunkThing.addComponent<MeshRenderer>(thing);
+                meshData& chunkMesh = new meshData;
+                renderer.setMesh(std::make_shared<meshData>(chunkMesh));
+                chunkThings.insert({chunk, chunkThing});
+            }
+            buildChunkMesh(chunk, std::make_shared<meshData>(chunkMesh);
         }
     }
 
-    void buildChunkMesh(std::shared_ptr<OctreeNode>(chunk), meshData* mesh) {
+    void buildChunkMesh(std::shared_ptr<OctreeNode>(chunk), std::shared_ptr<meshData>(mesh)) {
 
         auto cells = chunkMap.find(chunk)->second;
         for (auto& cell : cells) {
@@ -629,7 +639,7 @@ public:
         }
 
         if (mesh->vertices.size() < 1) {
-            chunkMeshes.erase(chunk);
+            chunkThings.erase(chunk);
             return;
         }
         
@@ -947,47 +957,23 @@ int main(){
     
     //GLuint Texture = loadDDS("uvtemplate.DDS");
     //GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
+   
+
+    // ###############
+    // # world setup #
+    // ###############
     
 
-    // ####################
-    // # model generation #
-    // ####################
-    
+    Thing universe = new Thing();
+    Thing gaia = universe.createChild();
     glm::vec3 position = glm::vec3( 0, 7210, 0 );
-    Gaia world(&position, {0, 23});
+    Gaia world = gaia.addComponent<Gaia>(&position, {0, 23});
+
+
     // world.generateChunk(position);
     // 23 - a bit bigger than earth
     // 65 - max before math breaks at edges (currently breaks world entirely, but can be fixed by generating from the center instead of the corner)
     // 90 - bigger than the observable universe 
-
-    std::cout << world.getMesh().vertices.size()      << " verts\n";
-    std::cout << world.getMesh().vertices.size()/3    << " tris\n";
-    std::cout << world.getMesh().colors.size()        << " colors\n";
-    std::cout << world.getMesh().normals.size()       << " normals\n";
-    std::cout << world.getMesh().indices.size()       << " indices\n";
-    
-    int i = 0;
-    for(glm::vec3 vertex : world.getMesh().vertices) {
-        if (i > 10) break;
-        i++;
-    }
-    
-    // world.generateChunk(position);
-    std::set<std::shared_ptr<MeshRenderer>> meshRenderers;
-    // std::vector<meshData> chunkMeshes = world.getChunkMesh();
-        
-    // create meshRenderer objects for each mesh
-    // MeshRenderer worldMeshRenderer(world.getMesh());
-    // meshRenderers.push_back(std::make_shared<MeshRenderer>(worldMeshRenderer));
-
-    for( auto chunkMesh : world.getChunkMeshData() ) {
-        MeshRenderer chunkMeshRenderer(std::make_shared<meshData>(chunkMesh));
-        meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
-    }
-
-    
-    // std::jthread updateChunks(&Gaia::updateChunks, world);
-    // updateChunks.detach();
 
     do{
         // measure fps
@@ -1036,21 +1022,21 @@ int main(){
         if ( currentTime - lastGenTime >= 30.0 ) {
             lastGenTime += 15.0;
 
-            for( auto chunkMesh : world.getChunkMeshData() ) {
-                MeshRenderer chunkMeshRenderer(std::make_shared<meshData>(chunkMesh));
-                meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
-            }
+            // for( auto chunkMesh : world.getChunkMeshData() ) {
+            //     MeshRenderer chunkMeshRenderer(std::make_shared<meshData>(chunkMesh));
+            //     meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
+            // }
 
-            for( auto& meshRenderer : meshRenderers ) {
-                meshRenderer->setupBufferData();
-            }
+            // for( auto& meshRenderer : meshRenderers ) {
+            //     meshRenderer->setupBufferData();
+            // }
 
 
         }
 
-        for( auto& meshRenderer : meshRenderers ) {
-            meshRenderer->drawMesh();
-        }
+        // for( auto& meshRenderer : meshRenderers ) {
+        //     meshRenderer->drawMesh();
+        // }
         
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);                
@@ -1062,9 +1048,9 @@ int main(){
     }
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0 );
     
-    for ( auto& meshRenderer : meshRenderers ) {
-        meshRenderer->deleteBuffers();
-    }
+    // for ( auto& meshRenderer : meshRenderers ) {
+    //     meshRenderer->deleteBuffers();
+    // }
 
     glDeleteProgram(programID);
     //glDeleteTextures(1, &Texture);

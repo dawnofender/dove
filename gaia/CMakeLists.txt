@@ -51,6 +51,10 @@ add_executable(reality
     src/worldgen/doctree.hpp
     src/dthing/dthing.cpp
     src/dthing/dthing.hpp
+    src/dthing/components/meshRendererComponent.cpp
+    src/dthing/components/meshRendererComponent.hpp
+    # src/dthing/components/transformComponent.cpp
+    src/dthing/components/transformComponent.hpp
     lib/shader.cpp
     lib/shader.hpp
     lib/SimplexNoise.cpp

@@ -1,45 +1,33 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
+#include <set>
+#include <unordered_map>
+#include <typeindex>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/gtx/transform.hpp> 
-
-class Thing;
-
-class Component {
-protected: 
-    std::shared_ptr<Thing> host = nullptr;
-
-public: 
-    Component(Thing* h) : host(h) {}
-    virtual ~Component() {}
-
-    Thing* getThing() {return host;}
-
-};
-
+#include "components/component.hpp"
 
 class Thing {
 private: 
-    std::vector<Component> components;
-    std::shared_ptr<Thing> parent;
+    char* name;
+    std::unordered_map<std::type_index, std::shared_ptr<Component>> components;
+    std::weak_ptr<Thing> parent;
+    std::vector<std::shared_ptr<Thing>> children;
 
+public:
+
+    template<typename CompType, typename... Args>
+    CompType& addComponent(Args&&... args);
+
+    template<typename CompType>
+    inline CompType* getComponent();
+
+    Thing& createChild();
+    std::vector<std::shared_ptr<Thing>>& getChildren();
+
+    void setName(char* n);
+    char* getName();
+    
 };
-
-// class Component {
-// public: 
-//     virtual ~Component() = default;
-// };
-
-template <typename CompType>
-inline CompType* getComponent();
-
-
-class TransformComponent : public Component {
-public: 
-    glm::vec3 position;
-}
-
-
 
