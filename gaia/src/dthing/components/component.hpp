@@ -9,16 +9,11 @@ class Thing;
 
 class Component {
 protected: 
-    std::weak_ptr<Thing> thing;
+    std::shared_ptr<Thing> host;
 
 public: 
-    Component(std::weak_ptr<Thing> h) : thing(h) {
-        setup();
-    }
-    
-    virtual ~Component() {}
-    virtual void setup();
-
+    virtual ~Component() = default;
+    virtual void update();
 };
 
 #endif

@@ -52,6 +52,20 @@ float distanceSquared(glm::vec3 a, glm::vec3 b) {
 //     Component(T t) : type(t) {}
 // };
 
+class PlayerController: public Component {
+private: 
+    glm::vec3 position;
+
+public: 
+    void teleport(glm::vec3 pos) {
+        position = pos;
+    }
+
+    glm::vec3 getPosition() {
+        return position;
+    }
+
+}
 
 struct CellSampleData {
     glm::vec3 position;
@@ -60,23 +74,22 @@ struct CellSampleData {
     CellSampleData(glm::vec3 p, int8_t d, bool m) : position(p), depth(d), sampleMode(m) {}
 };
 
-class Gaia : public Component{
+class Gaia: public Component {
 private: 
-    Octree cellTree;
+    Octree cellTree = {23, 0};
     float planetSize;
     float lod = 16.f;
     int8_t chunkDepth = 5;
-    glm::vec3* camPos;
     meshData cube;
     meshData worldMesh;
 
-    std::unordered_map<std::shared_ptr<OctreeNode>, std::shared_ptr<Thing> chunkThings;
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::shared_ptr<Thing>> chunkThings;
     std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // chunk, leaves of chunk
 
     std::unordered_map<std::shared_ptr<OctreeNode>, CellSampleData> sampleData;
 
 public: 
-    Gaia(glm::vec3* p, Octree ct) : camPos(p), cellTree(ct) {
+    Gaia(Thing* p): player(p) {
         planetSize = cellTree.getCellSize(cellTree.maxDepth);
         
         float offset = planetSize / -2.f;
@@ -206,7 +219,7 @@ public:
 
         
         time0 = glfwGetTime();
-        buildChunkMeshes();
+        buildChunkObjects();
         time1 = glfwGetTime();
         std::cout << chunkThings.size();
         std::cout << "           Chunk mesh data generated | " << 1000*(time1-time0) << "ms\n";
@@ -223,7 +236,7 @@ public:
             simplifyHomogeneous();
             indexChunks();
             mapChunkLeaves();
-            buildChunkMeshes();
+            buildChunkObjects();
 
         }
     }
@@ -423,18 +436,18 @@ public:
     //     }
     // }
 
-    void generateTangibleCells() {
-        for ( auto& [cell, depth] : cellTree.depthMap ) {
-            if ( depth <= chunkDepth ) {
-                glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
-                float cellSize = cellTree.getCellSize(depth);
-                generateWorld(cell, depth, cellPos, cellSize);
-            }
-        }
-        for()
-        cellTree.makeCell
-        
-    }
+    // void generateTangibleCells() {
+    //     for ( auto& [cell, depth] : cellTree.depthMap ) {
+    //         if ( depth <= chunkDepth ) {
+    //             glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
+    //             float cellSize = cellTree.getCellSize(depth);
+    //             generateWorld(cell, depth, cellPos, cellSize);
+    //         }
+    //     }
+    //     for()
+    //     cellTree.makeCell
+    //     
+    // }
     void indexChunks() {
         indexChunks(cellTree.root);
     };
@@ -504,20 +517,6 @@ public:
     //         // if all children of this cell are the same, remove them and just use this one
 
 
-
-    
-    std::vector<meshData> getChunkMeshData() {
-        std::vector<meshData> meshes;
-        meshes.resize(chunkThings.size());
-
-        int i = 0;
-        for( const auto& [chunk, mesh] : chunkThings ) {
-           meshes[i] = mesh;
-           i++;
-        }
-
-        return meshes;
-    }
 
     void simplifyHomogeneous() {
         simplifyHomogeneous(cellTree.root);
@@ -615,19 +614,19 @@ public:
     }
 
 
-    void buildChunkThings() {
+    void buildChunkObjects() {
         for (auto& [chunk, leaves] : chunkMap) {
-            auto* chunkMesh;
-            if (chunkThings.contains(chunk)) {
-                chunkMesh = &chunkThings.find(chunk)->second->getComponent<MeshRenderer>()->getMesh();
-            } else {
-                Thing& chunkThing = thing.createChild();
-                auto renderer = chunkThing.addComponent<MeshRenderer>(thing);
-                meshData& chunkMesh = new meshData;
-                renderer.setMesh(std::make_shared<meshData>(chunkMesh));
+            std::shared_ptr<meshData> chunkMesh;
+            if (!chunkThings.contains(chunk)) {
+                // create objects with meshrenderers
+                std::shared_ptr<Thing> chunkThing;
+                chunkThing->addComponent<MeshRenderer>(chunkMesh);
                 chunkThings.insert({chunk, chunkThing});
+            } else {
+                // or, if they already exist, just find the mesh so we can update it
+                chunkMesh = chunkThings.find(chunk)->second->getComponent<MeshRenderer>().getMesh();
             }
-            buildChunkMesh(chunk, std::make_shared<meshData>(chunkMesh);
+            buildChunkMesh(chunk, chunkMesh);
         }
     }
 
@@ -678,7 +677,7 @@ public:
     }
 
 
-    void buildCellMesh(std::shared_ptr<OctreeNode>(cell), meshData* mesh) {
+    void buildCellMesh(std::shared_ptr<OctreeNode>(cell), std::shared_ptr<meshData>(mesh)) {
 
         int8_t cellDepth = cellTree.depthMap.find(cell)->second;
         glm::vec3 cellPos = cellTree.positionMap.find(cell)->second;
@@ -964,16 +963,19 @@ int main(){
     // ###############
     
 
-    Thing universe = new Thing();
-    Thing gaia = universe.createChild();
-    glm::vec3 position = glm::vec3( 0, 7210, 0 );
-    Gaia world = gaia.addComponent<Gaia>(&position, {0, 23});
+    Thing universe;
+    Thing player;
+    player.addComponent<PlayerController>();
+    player.teleport({0, 7210, 0});
 
+    //Thing gaia = universe.createChild();
+    Thing gaia;
 
-    // world.generateChunk(position);
+    gaia.addComponent<Gaia>(player);
     // 23 - a bit bigger than earth
     // 65 - max before math breaks at edges (currently breaks world entirely, but can be fixed by generating from the center instead of the corner)
     // 90 - bigger than the observable universe 
+
 
     do{
         // measure fps

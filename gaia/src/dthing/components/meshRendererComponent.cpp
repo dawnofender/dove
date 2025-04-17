@@ -11,12 +11,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp> 
 
+// std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
 
-std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
+// void MeshRenderer::setup(){
+//     // meshRenderers.push_back(std::make_shared<MeshRenderer>(this));
+// }
 
-void MeshRenderer::setup(){
-    meshRenderers.push_back(std::make_shared<MeshRenderer>(this));
-}
+// void MeshRenderer::update(){
+//     drawMesh();
+// }
 
 void MeshRenderer::setupBufferData() {
     glGenBuffers(1, &vertexbuffer);

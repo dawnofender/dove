@@ -1,12 +1,13 @@
-#include <glm/glm.hpp>
+#ifndef DTHING_HPP
+#define DTHING_HPP
+
 #include <memory>
 #include <vector>
-#include <set>
 #include <unordered_map>
 #include <typeindex>
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include "components/component.hpp"
+
 
 class Thing {
 private: 
@@ -17,17 +18,26 @@ private:
 
 public:
 
-    template<typename CompType, typename... Args>
-    CompType& addComponent(Args&&... args);
+    template< class ComponentType, typename... Args >
+    void addComponent(Args&&... args);
+    //ComponentType& addComponent(Args&&... args);
 
-    template<typename CompType>
-    inline CompType* getComponent();
+    template< class ComponentType >
+    ComponentType& getComponent();
+
+    // template< class ComponentType >
+    // std::vector<ComponentType*> getComponents();
 
     Thing& createChild();
+
     std::vector<std::shared_ptr<Thing>>& getChildren();
+
+    void setParent(std::shared_ptr<Thing>(p));
 
     void setName(char* n);
     char* getName();
     
 };
 
+
+#endif

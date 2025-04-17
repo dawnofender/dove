@@ -45,12 +45,14 @@ add_executable(reality
     src/TextureFragmentShader.fragmentshader
     src/dmesh/dmesh.cpp
     src/dmesh/dmesh.hpp
-    src/rendering/dmeshRenderer.hpp
-    src/rendering/dmeshRenderer.cpp
+    # src/rendering/dmeshRenderer.hpp
+    # src/rendering/dmeshRenderer.cpp
     src/worldgen/doctree.cpp
     src/worldgen/doctree.hpp
     src/dthing/dthing.cpp
     src/dthing/dthing.hpp
+    src/dthing/components/component.cpp
+    src/dthing/components/component.hpp
     src/dthing/components/meshRendererComponent.cpp
     src/dthing/components/meshRendererComponent.hpp
     # src/dthing/components/transformComponent.cpp

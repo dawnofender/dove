@@ -1,23 +1,25 @@
 #include "dthing.hpp"
 #include <vector>
 
-
-template<typename CompType, typename... Args>
-CompType& Thing::addComponent(Args&&... args) {
-    auto component = std::make_shared<CompType>(std::forward<Args>(args)...);
-    return components[typeid(CompType)];
+template< class ComponentType, typename... Args >
+void Thing::addComponent(Args&&... args) {
+    components.insert( std::make_unique<ComponentType>( std::forward<Args>(args)... ) );
+    //auto component = std::make_shared<ComponentType>(std::forward<Args>(args)...);
 }
 
-template<typename CompType>
-CompType* Thing::getComponent() {
-    auto i = components.find(std::type_index(typeid(CompType)));
-    return i == components.end() ? nullptr : static_cast<CompType*>(i->second);
+template<typename ComponentType>
+ComponentType& Thing::getComponent() {
+    auto i = components.find(std::type_index(typeid(ComponentType)));
+    return i == components.end() ? nullptr : static_cast<ComponentType*>(i->second);
 }
 
 Thing& Thing::createChild() {
-    auto child = new Thing;
-    children.push_back(std::make_shared<Thing>(child));
-    return(*child);
+    children.push_back(std::make_shared<Thing>());
+    return(*children.back());
+}
+
+void Thing::setParent(std::shared_ptr<Thing>(p)) {
+    parent = p;
 }
 
 void Thing::setName(char* n) {
