@@ -1,4 +1,3 @@
-
 #include "meshRendererComponent.hpp"
 #include <iostream>
 #include <memory>
@@ -6,11 +5,23 @@
 #include <GL/glew.h>
 #include <vector>
 #include <glm/glm.hpp>
-
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp> 
 
+CLASS_DEFINITION(Component, MeshRenderer)
+
+
+
+// void MeshRendererSystem::unregisterRenderer(MeshRenderer* renderer) {
+//     renderers.erase(std::remove(renderers.begin(), renderers.end(), renderer), renderers.end());
+// }
+
+void MeshRenderer::drawAll() {
+    for (auto* renderer : renderers) {
+        renderer->drawMesh();
+    }
+}
 // std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
 
 // void MeshRenderer::setup(){
@@ -86,4 +97,5 @@ std::shared_ptr<meshData> MeshRenderer::getMesh() {
 // std::vector<unsigned int> MeshRenderer::getIndices() {
 //     return mesh->indices;
 // }
+
 

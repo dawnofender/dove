@@ -1,43 +1,60 @@
-#ifndef DTHING_HPP
-#define DTHING_HPP
+#ifndef DTHINGY_HPP
+#define DTHINGY_HPP
 
+#include "components/component.hpp"
 #include <memory>
 #include <vector>
-#include <unordered_map>
-#include <typeindex>
 #include <GL/glew.h>
-#include "components/component.hpp"
+#include <string>
 
 
-class Thing {
+class Thing : public std::enable_shared_from_this<Thing> {
 private: 
-    char* name;
-    std::unordered_map<std::type_index, std::shared_ptr<Component>> components;
-    std::weak_ptr<Thing> parent;
+    std::string name;
+    std::shared_ptr<Thing> parent;
+
+public: 
+    std::vector<std::unique_ptr<Component>> components;
     std::vector<std::shared_ptr<Thing>> children;
 
 public:
+    Thing(std::string n) : name(n) {}
+    Thing(const Thing&) = delete;
+    Thing& operator=(const Thing&) = delete;
 
-    template< class ComponentType, typename... Args >
+public:
+    template<class ComponentType, typename... Args>
     void addComponent(Args&&... args);
-    //ComponentType& addComponent(Args&&... args);
 
-    template< class ComponentType >
+    template<class ComponentType>
     ComponentType& getComponent();
 
     // template< class ComponentType >
     // std::vector<ComponentType*> getComponents();
 
-    Thing& createChild();
-
-    std::vector<std::shared_ptr<Thing>>& getChildren();
+    Thing& createChild(std::string n);
 
     void setParent(std::shared_ptr<Thing>(p));
 
-    void setName(char* n);
-    char* getName();
+    void setName(std::string n);
+    std::string getName();
     
 };
+
+
+template< class ComponentType, typename... Args >
+void Thing::addComponent(Args&&... args) {
+    components.emplace_back(std::make_unique<ComponentType>(std::forward<Args>(args)...));
+}
+
+template< class ComponentType >
+ComponentType& Thing::getComponent() {
+    for ( auto && component : components ) {
+        if ( component->IsClassType( ComponentType::Type ) )
+            return *static_cast<ComponentType*>(component.get());
+    }
+    return *std::unique_ptr<ComponentType>(nullptr);
+}
 
 
 #endif

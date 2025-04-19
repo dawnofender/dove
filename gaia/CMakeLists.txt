@@ -1,6 +1,6 @@
 # CMake entry point
 cmake_minimum_required (VERSION 3.0)
-project (reality)
+project (dream)
 set (CMAKE_CXX_STANDARD 20)
 
 find_package(OpenGL REQUIRED)
@@ -53,10 +53,14 @@ add_executable(reality
     src/dthing/dthing.hpp
     src/dthing/components/component.cpp
     src/dthing/components/component.hpp
+    src/dthing/components/gaiaComponent.cpp
+    src/dthing/components/gaiaComponent.hpp
     src/dthing/components/meshRendererComponent.cpp
     src/dthing/components/meshRendererComponent.hpp
-    # src/dthing/components/transformComponent.cpp
+    src/dthing/components/transformComponent.cpp
     src/dthing/components/transformComponent.hpp
+    src/dthing/components/playerControllerComponent.cpp
+    src/dthing/components/playerControllerComponent.hpp
     lib/shader.cpp
     lib/shader.hpp
     lib/SimplexNoise.cpp

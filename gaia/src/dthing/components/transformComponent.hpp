@@ -6,6 +6,7 @@
 
 
 class Transform : public Component {
+CLASS_DECLARATION(Transform)
 public: 
     glm::vec3 position;
     // glm::quat rotation;
