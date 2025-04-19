@@ -614,6 +614,9 @@ public:
         std::shared_ptr<meshData> chunkMeshRef = std::make_shared<meshData>(chunkMesh);
         chunkThingy->addComponent<MeshRenderer>("MeshRenderer", chunkMeshRef);
         buildChunkMesh(chunk, chunkMeshRef);
+
+        //if mesh came out to have 0 vertices, delete it
+        if (chunkMeshRef->vertices.size() == 0) host->removeChild(chunkThingy);
     }
 
     void buildChunkMesh(std::shared_ptr<OctreeNode>(chunk), std::shared_ptr<meshData>(mesh)) {

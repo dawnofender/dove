@@ -11,7 +11,7 @@
 class Thingy : public std::enable_shared_from_this<Thingy> {
 private: 
     std::string name;
-    std::shared_ptr<Thingy> parent;
+    std::weak_ptr<Thingy> parent;
 
 public: 
     std::vector<std::unique_ptr<Component>> components;
@@ -19,8 +19,10 @@ public:
 
 public:
     Thingy(std::string n) : name(n) {}
+    virtual ~Thingy();
     Thingy(const Thingy&) = delete;
     Thingy& operator=(const Thingy&) = delete;
+
 
 public:
     template<class ComponentType, typename... Args>
@@ -32,11 +34,14 @@ public:
     // template< class ComponentType >
     // std::vector<ComponentType*> getComponents();
 
-    Thingy& createChild(std::string n);
+    Thingy& createChild(std::string childName);
 
-    void setParent(std::shared_ptr<Thingy>(p));
+    void addChild(std::shared_ptr<Thingy> thingy);
+    void removeChild(std::shared_ptr<Thingy> child);
+    void removeChild(Thingy* child);
+    void setParent(std::shared_ptr<Thingy> thingy);
 
-    void setName(std::string n);
+    void setName(std::string newName);
     std::string getName();
     
 };
@@ -46,6 +51,7 @@ template< class ComponentType, typename... Args >
 void Thingy::addComponent(Args&&... args) {
     components.emplace_back(std::make_unique<ComponentType>(std::forward<Args>(args)...));
 }
+
 
 template< class ComponentType >
 ComponentType& Thingy::getComponent() {
