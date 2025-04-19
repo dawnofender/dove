@@ -49,18 +49,18 @@ add_executable(reality
     # src/rendering/dmeshRenderer.cpp
     src/worldgen/doctree.cpp
     src/worldgen/doctree.hpp
-    src/dthing/dthing.cpp
-    src/dthing/dthing.hpp
-    src/dthing/components/component.cpp
-    src/dthing/components/component.hpp
-    src/dthing/components/gaiaComponent.cpp
-    src/dthing/components/gaiaComponent.hpp
-    src/dthing/components/meshRendererComponent.cpp
-    src/dthing/components/meshRendererComponent.hpp
-    src/dthing/components/transformComponent.cpp
-    src/dthing/components/transformComponent.hpp
-    src/dthing/components/playerControllerComponent.cpp
-    src/dthing/components/playerControllerComponent.hpp
+    src/thingy/thingy.cpp
+    src/thingy/thingy.hpp
+    src/thingy/components/component.cpp
+    src/thingy/components/component.hpp
+    src/thingy/components/gaiaComponent.cpp
+    src/thingy/components/gaiaComponent.hpp
+    src/thingy/components/meshRendererComponent.cpp
+    src/thingy/components/meshRendererComponent.hpp
+    src/thingy/components/transformComponent.cpp
+    src/thingy/components/transformComponent.hpp
+    src/thingy/components/playerControllerComponent.cpp
+    src/thingy/components/playerControllerComponent.hpp
     lib/shader.cpp
     lib/shader.hpp
     lib/SimplexNoise.cpp

@@ -8,19 +8,19 @@
 #include <string>
 
 
-class Thing : public std::enable_shared_from_this<Thing> {
+class Thingy : public std::enable_shared_from_this<Thingy> {
 private: 
     std::string name;
-    std::shared_ptr<Thing> parent;
+    std::shared_ptr<Thingy> parent;
 
 public: 
     std::vector<std::unique_ptr<Component>> components;
-    std::vector<std::shared_ptr<Thing>> children;
+    std::vector<std::shared_ptr<Thingy>> children;
 
 public:
-    Thing(std::string n) : name(n) {}
-    Thing(const Thing&) = delete;
-    Thing& operator=(const Thing&) = delete;
+    Thingy(std::string n) : name(n) {}
+    Thingy(const Thingy&) = delete;
+    Thingy& operator=(const Thingy&) = delete;
 
 public:
     template<class ComponentType, typename... Args>
@@ -32,9 +32,9 @@ public:
     // template< class ComponentType >
     // std::vector<ComponentType*> getComponents();
 
-    Thing& createChild(std::string n);
+    Thingy& createChild(std::string n);
 
-    void setParent(std::shared_ptr<Thing>(p));
+    void setParent(std::shared_ptr<Thingy>(p));
 
     void setName(std::string n);
     std::string getName();
@@ -43,12 +43,12 @@ public:
 
 
 template< class ComponentType, typename... Args >
-void Thing::addComponent(Args&&... args) {
+void Thingy::addComponent(Args&&... args) {
     components.emplace_back(std::make_unique<ComponentType>(std::forward<Args>(args)...));
 }
 
 template< class ComponentType >
-ComponentType& Thing::getComponent() {
+ComponentType& Thingy::getComponent() {
     for ( auto && component : components ) {
         if ( component->IsClassType( ComponentType::Type ) )
             return *static_cast<ComponentType*>(component.get());

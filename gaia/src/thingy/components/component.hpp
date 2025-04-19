@@ -40,7 +40,7 @@ bool childclass::IsClassType( const std::size_t classType ) const {             
 
 
 // Component base class
-class Thing;
+class Thingy;
 class Component {
 public: 
     static const std::size_t Type;

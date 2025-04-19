@@ -1,9 +1,9 @@
-#include "dthing.hpp"
+#include "thingy.hpp"
 #include <vector>
 
 
-Thing& Thing::createChild(std::string n) {
-    auto child = std::make_shared<Thing>(n);
+Thingy& Thingy::createChild(std::string n) {
+    auto child = std::make_shared<Thingy>(n);
     // if our thing doesn't have a shared ptr to it, shared_from_this will fail
     if (!weak_from_this().expired()) {
         child->parent = shared_from_this();
@@ -14,14 +14,14 @@ Thing& Thing::createChild(std::string n) {
     return *child;
 }
 
-void Thing::setParent(std::shared_ptr<Thing> p) {
+void Thingy::setParent(std::shared_ptr<Thingy> p) {
     parent = p;
 }
 
-void Thing::setName(std::string n) {
+void Thingy::setName(std::string n) {
     name = n;
 }
 
-std::string Thing::getName() {
+std::string Thingy::getName() {
     return(name);
 }

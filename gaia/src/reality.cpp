@@ -27,11 +27,11 @@ GLFWwindow* window;
 #include <lib/FastNoise.h>
 
 #include <src/dmesh/dmesh.hpp>
-#include <src/dthing/components/meshRendererComponent.hpp>
-#include <src/dthing/components/transformComponent.hpp>
-#include <src/dthing/components/playerControllerComponent.hpp>
-#include <src/dthing/components/gaiaComponent.hpp>
-#include <src/dthing/dthing.hpp>
+#include <src/thingy/components/meshRendererComponent.hpp>
+#include <src/thingy/components/transformComponent.hpp>
+#include <src/thingy/components/playerControllerComponent.hpp>
+#include <src/thingy/components/gaiaComponent.hpp>
+#include <src/thingy/thingy.hpp>
 
 
 int main(){
@@ -118,15 +118,15 @@ int main(){
     // ###############
     
     
-    Thing universe("universe");
+    Thingy universe("universe");
 
-    Thing* player = &universe.createChild("player");
+    Thingy* player = &universe.createChild("player");
     player->addComponent<PlayerController>("PlayerController");
     
     auto* playerController = &player->getComponent<PlayerController>();
 
 
-    Thing* gaia = &universe.createChild("gaia");
+    Thingy* gaia = &universe.createChild("gaia");
     gaia->addComponent<Gaia>("Gaia", gaia, player);
 
     auto* world = &gaia->getComponent<Gaia>();

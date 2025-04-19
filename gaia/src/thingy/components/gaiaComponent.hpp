@@ -27,10 +27,10 @@
 #include <lib/FastNoise.h>
 #include <src/dmesh/dmesh.hpp>
 #include <src/worldgen/doctree.hpp>
-#include <src/dthing/components/meshRendererComponent.hpp>
-#include <src/dthing/components/transformComponent.hpp>
-#include <src/dthing/components/playerControllerComponent.hpp>
-#include <src/dthing/dthing.hpp>
+#include <src/thingy/components/meshRendererComponent.hpp>
+#include <src/thingy/components/transformComponent.hpp>
+#include <src/thingy/components/playerControllerComponent.hpp>
+#include <src/thingy/thingy.hpp>
 
 
 
@@ -50,8 +50,8 @@ private:
     int8_t chunkDepth = 5;
     meshData cube;
     meshData worldMesh;
-    Thing* player;
-    Thing* host;
+    Thingy* player;
+    Thingy* host;
     PlayerController* playerController;
 
     std::unordered_map<std::shared_ptr<OctreeNode>, std::vector<std::shared_ptr<OctreeNode>>> chunkMap; // chunk, leaves of chunk
@@ -61,7 +61,7 @@ private:
 
 public: 
 
-    Gaia(std::string && initialValue, Thing* h, Thing* p)
+    Gaia(std::string && initialValue, Thingy* h, Thingy* p)
         : Component(std::move(initialValue)), host(h), player(p) {
         
         playerController = &player->getComponent<PlayerController>();
@@ -109,7 +109,7 @@ public:
         };
     }
     
-    void setLocalPlayer(Thing* p) {
+    void setLocalPlayer(Thingy* p) {
         player = p;
         playerController = &player->getComponent<PlayerController>();
     }
@@ -211,7 +211,7 @@ public:
         // generateChunk(player->getPosition());
     }
 
-    void setPlayer(Thing* p) {
+    void setPlayer(Thingy* p) {
         player = p;
     }
 
@@ -610,9 +610,9 @@ public:
         meshes.push_back(chunkMesh);
 
         // create object with meshrenderer
-        Thing* chunkThing = &host->createChild("chunk");
+        Thingy* chunkThingy = &host->createChild("chunk");
         std::shared_ptr<meshData> chunkMeshRef = std::make_shared<meshData>(chunkMesh);
-        chunkThing->addComponent<MeshRenderer>("MeshRenderer", chunkMeshRef);
+        chunkThingy->addComponent<MeshRenderer>("MeshRenderer", chunkMeshRef);
         buildChunkMesh(chunk, chunkMeshRef);
     }
 
