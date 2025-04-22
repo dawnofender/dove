@@ -41,11 +41,14 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::locateCell(glm::vec3 t
     std::shared_ptr<OctreeNode> cell = root;
     int8_t cellDepth = maxDepth;
     glm::vec3 nodeCenter = origin;
+    glm::vec3 lastNodeCenter;
     bool searching, dx, dy, dz = true;
 
     while (cellDepth > targetDepth) {
+        std::cout << "test" << (int) cellDepth << std::endl;
         cellDepth--;
         const float cellSize = getCellSize(cellDepth);
+        lastNodeCenter = nodeCenter;
         nodeCenter += glm::vec3(dx, dy, dz) * glm::vec3(cellSize);
 
         bool dx = targetPos.x >= nodeCenter.x;
@@ -55,7 +58,10 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::locateCell(glm::vec3 t
         const int childInd = (dx << 2) | (dy << 1) | dz;
         if(cell->children[childInd]) {
             cell = cell->children[childInd];
-        } else cell = nullptr;
+        } else {
+            nodeCenter = lastNodeCenter;
+            break;
+        } 
     }
     return(std::make_pair(cell, nodeCenter));
 }

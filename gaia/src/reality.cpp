@@ -105,10 +105,119 @@ int main(){
     int nbFrames = 0;
 
 
-    // ############
-    // # textures #
-    // ############
+    // ##########
+    // # assets #
+    // ##########
     
+    meshData cube;
+
+    cube.vertices = {
+        // +x    
+        glm::vec3(1, 1, 1),
+        glm::vec3(1, 0, 1),
+        glm::vec3(1, 0, 0),
+        glm::vec3(1, 1, 0),            
+        // -x    
+        glm::vec3(0, 1, 0),                
+        glm::vec3(0, 0, 0),                
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 1, 1),                
+        // +y    
+        glm::vec3(0, 1, 0),
+        glm::vec3(0, 1, 1),
+        glm::vec3(1, 1, 1),
+        glm::vec3(1, 1, 0),            
+        // -y    
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 0, 0),                
+        glm::vec3(1, 0, 0),                
+        glm::vec3(1, 0, 1),                
+        // +z    
+        glm::vec3(0, 1, 1),                
+        glm::vec3(0, 0, 1),                
+        glm::vec3(1, 0, 1),                
+        glm::vec3(1, 1, 1),                          
+        // -z    
+        glm::vec3(1, 1, 0),                
+        glm::vec3(1, 0, 0),                
+        glm::vec3(0, 0, 0),                
+        glm::vec3(0, 1, 0),                
+    };
+
+    cube.normals = {
+        // +x    
+        glm::vec3(1, 0, 0),
+        glm::vec3(1, 0, 0),
+        glm::vec3(1, 0, 0),
+        glm::vec3(1, 0, 0),            
+        // -x    
+        glm::vec3(-1, 0, 0),                
+        glm::vec3(-1, 0, 0),                
+        glm::vec3(-1, 0, 0),                
+        glm::vec3(-1, 0, 0),                
+        // +y   
+        glm::vec3(0, 1, 0),
+        glm::vec3(0, 1, 0),
+        glm::vec3(0, 1, 0),
+        glm::vec3(0, 1, 0),            
+        // -y    
+        glm::vec3(0, -1, 0),                
+        glm::vec3(0, -1, 0),                
+        glm::vec3(0, -1, 0),                
+        glm::vec3(0, -1, 0),                
+        // +z    
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 0, 1),                          
+        // -z    
+        glm::vec3(0, 0, -1),                
+        glm::vec3(0, 0, -1),                
+        glm::vec3(0, 0, -1),                
+        glm::vec3(0, 0, -1),                
+    };
+
+    cube.colors = {
+        // +x    
+        glm::vec3(1, 1, 1),
+        glm::vec3(1, 0, 1),
+        glm::vec3(1, 0, 0),
+        glm::vec3(1, 1, 0),            
+        // -x    
+        glm::vec3(0, 1, 0),                
+        glm::vec3(0, 0, 0),                
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 1, 1),                
+        // +y    
+        glm::vec3(0, 1, 0),
+        glm::vec3(0, 1, 1),
+        glm::vec3(1, 1, 1),
+        glm::vec3(1, 1, 0),            
+        // -y    
+        glm::vec3(0, 0, 1),                
+        glm::vec3(0, 0, 0),                
+        glm::vec3(1, 0, 0),                
+        glm::vec3(1, 0, 1),                
+        // +z    
+        glm::vec3(0, 1, 1),                
+        glm::vec3(0, 0, 1),                
+        glm::vec3(1, 0, 1),                
+        glm::vec3(1, 1, 1),                          
+        // -z    
+        glm::vec3(1, 1, 0),                
+        glm::vec3(1, 0, 0),                
+        glm::vec3(0, 0, 0),                
+        glm::vec3(0, 1, 0),                
+    };
+
+    cube.indices = {
+        0, 1, 2, 0, 2, 3,       //+x
+        4, 5, 6, 4, 6, 7,       //-x
+        8, 9, 10, 8, 10, 11,    //+y
+        12, 13, 14, 12, 14, 15, //-y
+        16, 17, 18, 16, 18, 19, //+z
+        20, 21, 22, 20, 22, 23  //-z
+    };
     //GLuint Texture = loadDDS("uvtemplate.DDS");
     //GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
    
@@ -121,7 +230,8 @@ int main(){
     Thingy universe("universe");
 
     Thingy* player = &universe.createChild("player");
-    player->addComponent<PlayerController>("PlayerController");
+    player->addComponent<Transform>("Transform", player);
+    player->addComponent<PlayerController>("PlayerController", player);
     
     auto* playerController = &player->getComponent<PlayerController>();
 
@@ -129,18 +239,23 @@ int main(){
     Thingy* gaia = &universe.createChild("gaia");
     gaia->addComponent<Gaia>("Gaia", gaia, player);
 
+    // put player on serface (temporary)
+    playerController->teleport({0, 4215, 0});
+
     auto* world = &gaia->getComponent<Gaia>();
-
     Octree cellTree(0, 23);
-
     world->createWorld(&cellTree);
     // 23 - a bit bigger than earth
     // 65 - max before math breaks at edges (currently breaks world entirely, but can be fixed by generating from the center instead of the corner)
     // 90 - bigger than the observable universe 
     
-    playerController->teleport({0, 7210, 0});
+    // playerController->teleport({0, 7210, 0});
     
     glm::vec3 position;
+    universe.addComponent<MeshRenderer>("test", std::make_shared<meshData>(cube));
+
+    world->startGeneratingWorld();
+
 
     do{
         // measure fps
@@ -150,7 +265,7 @@ int main(){
            //
    	        // printf and reset
    	        printf("%f ms/frame    ", 1000.0/double(nbFrames));
-                 std:: cout << playerController->getPosition().x << ", " << playerController->getPosition().y << ", " << playerController->getPosition().z << "\n";
+            std:: cout << playerController->getPosition().x << ", " << playerController->getPosition().y << ", " << playerController->getPosition().z << "\n";
   	        nbFrames = 0;
   	        lastFrameTime += 1.0;
         }

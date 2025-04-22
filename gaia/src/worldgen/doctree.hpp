@@ -29,11 +29,13 @@ struct Octree {
     std::unordered_map<std::shared_ptr<OctreeNode>, glm::vec3> positionMap;
     std::unordered_map<std::shared_ptr<OctreeNode>, int8_t> depthMap;
 
+    //std::map< int8_t, std::unordered_map< glm::vec3, std::shared_ptr<OctreeNode> > > leafMap; // (depth, (position, leaf cell))
+
     Octree(int8_t mind, int8_t maxd) 
         : minDepth(mind), maxDepth(maxd){}
     
     void indexLeaves(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos);
-    double getCellSize(uint8_t depth);
+    static double getCellSize(uint8_t depth);
     std::pair<std::shared_ptr<OctreeNode>, glm::vec3> locateCell(glm::vec3 targetPos, int8_t targetDepth);
     std::pair<std::shared_ptr<OctreeNode>, glm::vec3> makeCell(glm::vec3 targetPos, int8_t targetDepth);
     void setNeighbors(std::shared_ptr<OctreeNode> node);

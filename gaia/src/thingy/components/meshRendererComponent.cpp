@@ -18,7 +18,7 @@ CLASS_DEFINITION(Component, MeshRenderer)
 // }
 
 void MeshRenderer::drawAll() {
-    for (auto* renderer : renderers) {
+    for (auto& renderer : renderers) {
         renderer->drawMesh();
     }
 }
@@ -33,6 +33,10 @@ void MeshRenderer::drawAll() {
 // }
 
 void MeshRenderer::setupBufferData() {
+	std::lock_guard<std::mutex> lock(m);
+
+    std::cout << "testa" << std::endl;
+    if (mesh->vertices.size() <= 0) return;
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3), &mesh->vertices[0], GL_STATIC_DRAW);
@@ -48,6 +52,7 @@ void MeshRenderer::setupBufferData() {
     glGenBuffers(1, &elementbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices.size() * sizeof(unsigned int), &mesh->indices[0], GL_STATIC_DRAW);
+    std::cout << "testb" << std::endl;
 }
 
 void MeshRenderer::bindBufferData() {
@@ -68,6 +73,7 @@ void MeshRenderer::bindBufferData() {
 }
 
 void MeshRenderer::drawMesh() {
+	std::lock_guard<std::mutex> lock(m);
     bindBufferData();
     glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }

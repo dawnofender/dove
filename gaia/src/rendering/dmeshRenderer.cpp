@@ -14,19 +14,19 @@
 void MeshRenderer::setupBufferData() {
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3), &mesh->vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, mesh->getVertices().size() * sizeof(glm::vec3), &mesh->getVertices()[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &colorbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-	glBufferData(GL_ARRAY_BUFFER, mesh->colors.size() * sizeof(glm::vec3), &mesh->colors[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, mesh->getColors().size() * sizeof(glm::vec3), &mesh->getColors()[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &normalbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-    glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(glm::vec3), &mesh->normals[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh->getNormals().size() * sizeof(glm::vec3), &mesh->getNormals()[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &elementbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices.size() * sizeof(unsigned int), &mesh->indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndices().size() * sizeof(unsigned int), &mesh->getIndices()[0], GL_STATIC_DRAW);
 }
 
 void MeshRenderer::bindBufferData() {
@@ -61,7 +61,7 @@ void MeshRenderer::drawMesh() {
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
 
-    glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, mesh->getindices().size(), GL_UNSIGNED_INT, nullptr);
 }
 
 void MeshRenderer::deleteBuffers() {
@@ -78,5 +78,5 @@ void MeshRenderer::deleteBuffers() {
 // }
 
 std::vector<unsigned int> MeshRenderer::getIndices() {
-    return mesh->indices;
+    return mesh->getindices;
 }

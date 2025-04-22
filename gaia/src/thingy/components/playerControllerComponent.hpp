@@ -2,25 +2,30 @@
 #define PLAYERCONTROLLERCOMPONENT_HPP
 
 #include "component.hpp"
+#include "transformComponent.hpp"
+#include <src/thingy/thingy.hpp>
 #include <glm/glm.hpp>
-
 
 class PlayerController: public Component {
 CLASS_DECLARATION(PlayerController)
 private: 
-    glm::vec3 position;
+    Thingy* host;
+    Transform* transformComp;
 
 public: 
-    PlayerController(std::string && initialValue)
-        : Component(std::move(initialValue)) {
+    PlayerController(std::string && initialValue, Thingy* h)
+        : Component(std::move(initialValue)), host(h) {
+        
+        // FIX: breaks if transform doesn't exist
+        transformComp = &host->getComponent<Transform>();
     }
 
     void teleport(glm::vec3 pos) {
-        position = pos;
+        transformComp->position = pos;
     }
 
     glm::vec3 getPosition() {
-        return position;
+        return transformComp->position;
     }
 
 };

@@ -11,6 +11,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp> 
+#include <mutex>
+#include <iostream>
 
 
 class MeshRenderer : public Component {
@@ -24,6 +26,8 @@ private:
     GLuint elementbuffer;
     std::pair<glm::vec3, glm::vec3> bounds;
     static inline std::vector<MeshRenderer*> renderers;
+	
+    std::mutex m;
 
 public:
 
