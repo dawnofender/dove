@@ -22,6 +22,7 @@ void MeshRenderer::drawAll() {
         renderer->drawMesh();
     }
 }
+
 // std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
 
 // void MeshRenderer::setup(){
@@ -33,17 +34,19 @@ void MeshRenderer::drawAll() {
 // }
 
 void MeshRenderer::setupBufferData() {
-	std::lock_guard<std::mutex> lock(m);
+	  std::lock_guard<std::mutex> lock(m);
 
-    std::cout << "testa" << std::endl;
-    if (mesh->vertices.size() <= 0) return;
+    if (mesh->vertices.size() <= 0) {
+        return;
+    }
+
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3), &mesh->vertices[0], GL_STATIC_DRAW);
+	  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3), &mesh->vertices[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &colorbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-	glBufferData(GL_ARRAY_BUFFER, mesh->colors.size() * sizeof(glm::vec3), &mesh->colors[0], GL_STATIC_DRAW);
+	  glBufferData(GL_ARRAY_BUFFER, mesh->colors.size() * sizeof(glm::vec3), &mesh->colors[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &normalbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
@@ -52,7 +55,7 @@ void MeshRenderer::setupBufferData() {
     glGenBuffers(1, &elementbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices.size() * sizeof(unsigned int), &mesh->indices[0], GL_STATIC_DRAW);
-    std::cout << "testb" << std::endl;
+    
 }
 
 void MeshRenderer::bindBufferData() {
@@ -73,12 +76,13 @@ void MeshRenderer::bindBufferData() {
 }
 
 void MeshRenderer::drawMesh() {
-	std::lock_guard<std::mutex> lock(m);
+	  std::lock_guard<std::mutex> lock(m);
     bindBufferData();
     glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }
 
 void MeshRenderer::deleteBuffers() {
+	  std::lock_guard<std::mutex> lock(m);
     glDeleteBuffers(1, &vertexbuffer);
     glDeleteBuffers(1, &colorbuffer);
     //glDeleteBuffers(1, &meshRenderer.uvbuffer);
@@ -91,12 +95,12 @@ void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) {
     bounds = {a, b};
 }
 
-void MeshRenderer::setMesh(std::shared_ptr<meshData> m) {
+void MeshRenderer::setMesh(std::shared_ptr<MeshData> m) {
     mesh = m;
     setupBufferData();
 }
 
-std::shared_ptr<meshData> MeshRenderer::getMesh() {
+std::shared_ptr<MeshData> MeshRenderer::getMesh() {
     return(mesh);
 }
 

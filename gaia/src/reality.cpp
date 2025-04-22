@@ -109,7 +109,7 @@ int main(){
     // # assets #
     // ##########
     
-    meshData cube;
+    MeshData cube;
 
     cube.vertices = {
         // +x    
@@ -252,9 +252,9 @@ int main(){
     // playerController->teleport({0, 7210, 0});
     
     glm::vec3 position;
-    universe.addComponent<MeshRenderer>("test", std::make_shared<meshData>(cube));
+    universe.addComponent<MeshRenderer>("test", std::make_shared<MeshData>(cube));
 
-    world->startGeneratingWorld();
+    // world->startGeneratingWorld();
 
 
     do{

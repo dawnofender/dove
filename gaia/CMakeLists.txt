@@ -72,6 +72,7 @@ add_executable(reality
     lib/controls.hpp
     lib/texture.cpp
     lib/texture.hpp
+    lib/threadsafe_vector.hpp
 )
 
 target_link_libraries(reality ${ALL_LIBS})

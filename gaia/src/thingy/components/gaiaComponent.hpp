@@ -65,8 +65,13 @@ struct CellSampleData {
         : cell(c), distance(dist), position(p), depth(d), sampleMode(m) {}
 
     friend bool operator< (CellSampleData const& a, CellSampleData const& b) {
-        return a.distance < b.distance;
+        return a.distance < b.distance && a.cell != b.cell;
     }
+
+    friend bool operator== (CellSampleData const& a, CellSampleData const& b) {
+        return a.cell == b.cell;
+    }
+
 };
 
 
@@ -74,26 +79,40 @@ class threadedSampleQueue {
 public: 
     void push(CellSampleData d) {
 		std::lock_guard<std::mutex> lock(m);
-        sampleQueue.push(d);
+        queueData.insert(d);
     }
 
     void pop() {
 		std::lock_guard<std::mutex> lock(m);
-        if (!sampleQueue.empty()) sampleQueue.pop();
+        if (!queueData.empty()) {
+            queueData.erase(queueData.begin());
+        }
     }
     
     bool empty() {
 		std::lock_guard<std::mutex> lock(m);
-        return sampleQueue.empty();
+        return queueData.empty();
     }
 
     CellSampleData top() {
 		std::lock_guard<std::mutex> lock(m);
-        return sampleQueue.top();
+        if (!queueData.empty()) {
+            return *queueData.begin();
+        }
+    }
+
+    int size() {
+        std::lock_guard<std::mutex> lock(m);
+        return queueData.size();
+    }
+
+    void clear() {
+        std::lock_guard<std::mutex> lock(m);
+        queueData.clear();
     }
 
 private:
-    std::priority_queue<CellSampleData> sampleQueue;
+    std::set<CellSampleData> queueData;
 	std::mutex m;
 };
 
@@ -209,9 +228,8 @@ public:
         
         updateMesh();
         if (mesh->vertices.size() > 0) {
-            std::cout << "test0" << std::endl;
             host->addComponent<MeshRenderer>("MeshRenderer", mesh);
-            std::cout << mesh->vertices.size() << std::endl;
+            std::cout << "chunk mesh generated" << std::endl;
         }
     }
     
@@ -259,18 +277,15 @@ public:
         float childSize = Octree::getCellSize(cellDepth-1);
         if(cellDepth > depth - 5) {
             for (int i = 0; i < 8; ++i) {
-                auto& child = cell->children[i];
-                child = std::make_unique<OctreeNode>();
-                child->parent = cell;
-                child->indexInParent = i;
-                
-                float dx = (i >> 2) & 1;
-                float dy = (i >> 1) & 1;
-                float dz = i & 1;
-                
-                glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
+                if (cell->children[i]) {
+                    float dx = (i >> 2) & 1;
+                    float dy = (i >> 1) & 1;
+                    float dz = i & 1;
+                    
+                    glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
 
-                updateMesh(cell->children[i], cellDepth-1, cellPos + childOffset);
+                    updateMesh(cell->children[i], cellDepth-1, cellPos + childOffset);
+                }
             }
         
         // build mesh data for this cell
@@ -318,7 +333,7 @@ CLASS_DECLARATION(Gaia)
 private: 
     Octree* cellTree;
     float planetSize;
-    float lod = 16.f;
+    float lod = 32.f;
     int8_t chunkDepth = 5;
     MeshData worldMesh;
     Thingy* player;
@@ -402,14 +417,13 @@ public:
         leafMap->insert(cellTree->root, cellTree->maxDepth, cellTree->origin);
         //sampleQueue.push(CellSampleData(cellTree->root, planetSize, cellTree->origin, cellTree->maxDepth, true));
 
-        octreeThreads.resize(maxThreads);
-
-
         std::cout << "gaia: starting sampling" << std::endl;
         // sample enough times to make world around player
-        for (int depth = cellTree->maxDepth; depth >= cellTree->minDepth; depth--) {
+        for (int8_t depth = cellTree->maxDepth; depth >= cellTree->minDepth; depth--) {
             time0 = glfwGetTime();
-            updateSampleData(depth);
+            for (int8_t sampleDepth = cellTree->maxDepth; sampleDepth >= cellTree->minDepth; sampleDepth--) {
+                updateSampleData(depth);
+            }
             generateSamples();
             time1 = glfwGetTime();
             std::cout << leafMap->size();
@@ -433,6 +447,17 @@ public:
         // std::cout << chunkMap.size();
         // std::cout << "           Chunk mesh data generated | " << 1000*(time1-time0) << "ms\n";
         
+        updateSampleData();
+
+        generateSamples();
+        std::cout << "               Generated sample data | " << 1000*(time1-time0) << "ms\n";
+        
+        chunkQueue.clear();
+        for (int8_t i = cellTree->minDepth; i < cellTree->maxDepth - chunkDepth; i++) {
+            queueChunksAtDepth(i);
+        }
+        buildChunkThingies();
+        // std::cout << "              Generated chunk meshes | " << 1000*(time1-time0) << "ms\n";
     }
 
     void setPlayer(Thingy* p) {
@@ -442,10 +467,12 @@ public:
 
     void startGeneratingWorld() {
         generatingWorld = true;
-        std::jthread t1(&Gaia::updateSampleDataLoop, this);
-        std::jthread t2(&Gaia::generateSampleLoop, this);
-        t1.detach();
-        t2.detach();
+        // std::jthread t1(&Gaia::updateSampleDataLoop, this);
+        // std::jthread t2(&Gaia::generateSampleLoop, this);
+        std::jthread t3(&Gaia::buildChunkThingiesLoop, this);
+        // t1.detach();
+        // t2.detach();
+        t3.detach();
     }
 
     void stopGeneratingWorld() {
@@ -474,7 +501,17 @@ public:
         double time1;
         while(generatingWorld) {
             if(!sampleQueue.empty()) generateSample();
+        }
+    }
+
+    void buildChunkThingiesLoop() {
+        double time0;
+        double time1;
+        while(generatingWorld) {
+            time0 = glfwGetTime();
             if(!chunkQueue.empty()) updateChunkFromQueue();
+            time1 = glfwGetTime();
+            std::cout << "                      Made new chunk | " << 1000*(time1-time0) << "ms\n";
         }
     }
 
@@ -491,7 +528,7 @@ public:
         }
     }
 
-    void updateSampleData(int8_t depth) {
+    void updateSampleData(int8_t depth) { 
         for( auto& [position, cell] : leafMap->get(depth) ) {
             glm::vec3 cellCenter = position + glm::vec3(cellTree->getCellSize(depth-1));
             float size = cellTree->getCellSize(depth);
@@ -504,6 +541,7 @@ public:
                   cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  
             ) { 
                 float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
+                cell->surface = true;
                 if (checkLOD(distance, depth)) {
                     // this cell should me upsampled
                     sampleQueue.push(CellSampleData(cell, distance, position, depth, true));
@@ -525,9 +563,16 @@ public:
         }
     }
 
+
     void generateSamples() {
         while(!sampleQueue.empty()) {
             generateSample();
+        }
+    }
+    
+    void buildChunkThingies() {
+        while (!chunkQueue.empty()) {
+            updateChunkFromQueue();
         }
     }
 
@@ -546,12 +591,10 @@ public:
             cell->leaf = true;
             leafMap->insert(cell, data.depth, data.position);
 
+
         } else {
 
             // generate children for cells to be upsampled
-            leafMap->erase(data.depth, data.position);
-            cell->leaf = false;
-
             float childSize = cellTree->getCellSize(data.depth-1);
             glm::vec3 cellCenter = data.position + glm::vec3(childSize);
 
@@ -570,6 +613,7 @@ public:
                 
                 glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
 
+
                 glm::vec3 childPos = data.position + childOffset;
 
                 generateMatter(child, childPos + glm::vec3(cellTree->getCellSize(data.depth - 2)));
@@ -577,6 +621,10 @@ public:
                 leafMap->insert(child, data.depth-1, childPos);
                 queueChunkUpdateFromCell(CellSampleData(child, data.distance, childPos, data.depth-1, true));
             }
+
+            leafMap->erase(data.depth, data.position);
+            cell->leaf = false;
+
         }
 
         sampleQueue.pop();
@@ -593,6 +641,7 @@ public:
             }
         }
 
+
         chunkQueue.push(CellSampleData(chunk, data.distance, data.position, data.depth + chunkDepth, true));
     }
 
@@ -607,12 +656,17 @@ public:
             // no: map chunk's calculated position, 
             //     then create an object for it
             float chunkSize = cellTree->getCellSize(data.depth);
-            data.position = glm::vec3(
+            glm::vec3 chunkPos = glm::vec3(
                 std::floor(data.position.x / chunkSize) * chunkSize,
                 std::floor(data.position.y / chunkSize) * chunkSize,
                 std::floor(data.position.z / chunkSize) * chunkSize
             );
-            buildChunkThingy(data.cell, data.depth, data.position);
+            // glm::vec3 chunkPos = glm::vec3(
+            //     data.position.x,
+            //     data.position.y,
+            //     data.position.z
+            // );
+            buildChunkThingy(data.cell, data.depth, chunkPos);
         }
         chunkQueue.pop();
     }
@@ -661,22 +715,23 @@ public:
     //                 break;
     
     // for updating an entire depth level (lod and world loading)
-    // void indexChunks(int8_t depth) {
-    //     for( auto& [position, cell] : leafMap->get(depth) ) {
-    //         if(!chunkMap.contains(cell)) {
-    //             // trace ancestry to chunk
-    //             std::shared_ptr<OctreeNode> chunk = cell;
-    //             for(int i = 0; i < chunkDepth; i++) {
-    //                 if (chunk->parent) {
-    //                     chunk = chunk->parent; 
-    //                 } else {
-    //                     std::cout << "chunk depth too high"
-    //                     return; // FIX: currently this never happens but later this should add to a bigger unchunked world mesh for super distant stuff that almost never changes
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    void queueChunksAtDepth(int8_t depth) {
+        for( auto& [position, cell] : leafMap->get(depth) ) {
+            std::shared_ptr<OctreeNode> chunk = cell;
+            for(int i = 0; i < chunkDepth; i++) {
+                if (chunk->parent) {
+                    chunk = chunk->parent; 
+                } else {
+                    std::cout << "chunk depth too high";
+                    return; // FIX: currently this never happens but later this should add to a bigger unchunked world mesh for super distant stuff that almost never changes
+                }
+            }
+
+            float distance = glm::distance(playerTransform->position, position);
+
+            chunkQueue.push(CellSampleData(chunk, distance, position, depth, true));
+        }
+    }
 
     // for updating specific chunks
 

@@ -18,7 +18,7 @@
 class MeshRenderer : public Component {
 CLASS_DECLARATION(MeshRenderer)
 private:
-    std::shared_ptr<meshData> mesh;
+    std::shared_ptr<MeshData> mesh;
     GLuint vertexbuffer;
     GLuint colorbuffer;
     GLuint normalbuffer;
@@ -31,7 +31,7 @@ private:
 
 public:
 
-    MeshRenderer(std::string && initialValue, std::shared_ptr<meshData> m)
+    MeshRenderer(std::string && initialValue, std::shared_ptr<MeshData> m)
         : Component(std::move(initialValue)), mesh(m) {
         setupBufferData();
         renderers.push_back(this);
@@ -48,11 +48,12 @@ public:
     void setupBufferData();
     void drawMesh();
     void deleteBuffers();
-    void setMesh(std::shared_ptr<meshData> m);
+    void setMesh(std::shared_ptr<MeshData> m);
     void setBounds(glm::vec3 a, glm::vec3 b);
+    void lock();
     static void drawAll();
 
-    std::shared_ptr<meshData> getMesh();
+    std::shared_ptr<MeshData> getMesh();
     // std::vector<unsigned int> getIndices();
 };
 

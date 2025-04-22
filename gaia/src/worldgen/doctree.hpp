@@ -12,6 +12,7 @@ enum Direction { POS_X = 0, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z };
 
 struct OctreeNode {
     bool transparent;
+    bool surface = false;
     bool leaf; 
     std::shared_ptr<OctreeNode> parent = {nullptr};        
     uint8_t indexInParent = 0;  // 0..7 as per (x<<2)|(y<<1)|z
