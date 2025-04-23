@@ -24,6 +24,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "component.hpp"
 #include <string>
+#include <utility>
 
 #include <lib/SimplexNoise.h>
 #include <lib/FastNoise.h>
@@ -118,51 +119,57 @@ private:
 
 
 class threadedCellMap {
+private: 
+    int8_t offset;
+    Octree* cellTree;
+    std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>> cellMap_a; // (depth, (position, leaf cell))
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::pair<int8_t, glm::vec3>> cellMap_b;
+    std::mutex m;
+
 public:
 
     threadedCellMap(Octree* ot) : cellTree(ot) {
-        cellMaps.resize(cellTree->maxDepth - cellTree->minDepth + 1);
+        cellMap_a.resize(cellTree->maxDepth - cellTree->minDepth + 1);
         offset = 0-cellTree->minDepth;
     }
 
     std::shared_ptr<OctreeNode> find(int8_t depth, glm::vec3 position) {
 		std::lock_guard<std::mutex> lock(m);
-        return cellMaps[depth + offset].find(position)->second;
+        return cellMap_a[depth + offset].find(position)->second;
     }    
     
     void insert(std::shared_ptr<OctreeNode> cell, int8_t depth, glm::vec3 position) {
 		std::lock_guard<std::mutex> lock(m);
-        cellMaps[depth + offset].insert({position, cell});
+        cellMap_a[depth + offset].insert({position, cell});
+        cellMap_b.insert({cell, {depth, position}});
     }
 
     std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>& get(int8_t depth) {
 		std::lock_guard<std::mutex> lock(m);
-        return cellMaps[depth + offset];
+        return cellMap_a[depth + offset];
+    }
+
+    std::pair<int8_t, glm::vec3> get(std::shared_ptr<OctreeNode> cell) {
+		std::lock_guard<std::mutex> lock(m);
+        return cellMap_b.find(cell)->second;
     }
 
     std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>>& get() {
 	 	std::lock_guard<std::mutex> lock(m);
-        return cellMaps;
+        return cellMap_a;
     }
 
-    void erase(int8_t depth, glm::vec3 position) {
+    void erase(std::shared_ptr<OctreeNode> cell, int8_t depth, glm::vec3 position) {
 		std::lock_guard<std::mutex> lock(m);
-        cellMaps[depth + offset].erase(position);
+        cellMap_a[depth + offset].erase(position);
+        cellMap_b.erase(cell);
     }
 
     int size() {
-        int count = 0;
-        for (auto& map : cellMaps) {
-            count += map.size();
-        }
-        return count;
+		std::lock_guard<std::mutex> lock(m);
+        return cellMap_b.size();
     }
 
-private: 
-    int8_t offset;
-    Octree* cellTree;
-    std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>> cellMaps; // (depth, (position, leaf cell))
-    std::mutex m;
 };
 
 
@@ -237,38 +244,38 @@ public:
         mesh->clear();
         updateMesh(chunk, depth, position);
 
-        const float nScale = 64.f;
-        const float nLacunarity = 2.f;
-        const float nPersistance = 1.f;
-        const int nDepth = 5.f;
-        const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
+        // const float nScale = 64.f;
+        // const float nLacunarity = 2.f;
+        // const float nPersistance = 1.f;
+        // const int nDepth = 5.f;
+        // const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
         
         mesh->colors.resize(mesh->vertices.size());
         mesh->normals.resize(mesh->vertices.size());
         
 
         //calculate normals
-        for (int i = 0; i < mesh->vertices.size(); i+=4) {
-            glm::vec3 edge1 = mesh->vertices[i+1] - mesh->vertices[i];
-            glm::vec3 edge2 = mesh->vertices[i+2] - mesh->vertices[i];
-            glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
-            
-            mesh->normals[i] = triangleNormal;
-            mesh->normals[i+1] = triangleNormal;
-            mesh->normals[i+2] = triangleNormal;
-            mesh->normals[i+3] = triangleNormal;
-        }
+        // for (int i = 0; i < mesh->vertices.size(); i+=4) {
+        //     glm::vec3 edge1 = mesh->vertices[i+1] - mesh->vertices[i];
+        //     glm::vec3 edge2 = mesh->vertices[i+2] - mesh->vertices[i];
+        //     glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
+        //     
+        //     mesh->normals[i] = triangleNormal;
+        //     mesh->normals[i+1] = triangleNormal;
+        //     mesh->normals[i+2] = triangleNormal;
+        //     mesh->normals[i+3] = triangleNormal;
+        // }
 
-        // color mesh
-        for (int i = 0; i < mesh->vertices.size(); i++) {
-            //mesh->colors[i] = mesh->vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
-            //mesh->colors[i] = mesh->vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
-            const float noiseR = simplex.fractal(nDepth, mesh->vertices[i].x+1000.f, mesh->vertices[i].y, mesh->vertices[i].z);
-            const float noiseG = simplex.fractal(nDepth, mesh->vertices[i].x+2000.f, mesh->vertices[i].y, mesh->vertices[i].z);
-            const float noiseB = simplex.fractal(nDepth, mesh->vertices[i].x+3000.f, mesh->vertices[i].y, mesh->vertices[i].z);
-            mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
-            // mesh->colors[i] = mesh->normals[i];
-        }
+        // // color mesh
+        // for (int i = 0; i < mesh->vertices.size(); i++) {
+        //     //mesh->colors[i] = mesh->vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
+        //     //mesh->colors[i] = mesh->vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
+        //     const float noiseR = simplex.fractal(nDepth, mesh->vertices[i].x+1000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+        //     const float noiseG = simplex.fractal(nDepth, mesh->vertices[i].x+2000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+        //     const float noiseB = simplex.fractal(nDepth, mesh->vertices[i].x+3000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+        //     mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
+        //     // mesh->colors[i] = mesh->normals[i];
+        // }
     }
     
     void updateMesh(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos) {
@@ -277,7 +284,7 @@ public:
         float childSize = Octree::getCellSize(cellDepth-1);
         if(cellDepth > depth - 5) {
             for (int i = 0; i < 8; ++i) {
-                if (cell->children[i]) {
+                if (cell->children[i] && cell->children[i]->surface) {
                     float dx = (i >> 2) & 1;
                     float dy = (i >> 1) & 1;
                     float dz = i & 1;
@@ -585,7 +592,7 @@ public:
             // remove children / simplify cells that are to be downsampled  
             for ( auto& child : cell->children ) {
                 if(!child) continue;
-                leafMap->erase(data.depth, data.position);
+                leafMap->erase(child, data.depth, data.position);
                 child.reset();
             }
             cell->leaf = true;
@@ -622,7 +629,7 @@ public:
                 queueChunkUpdateFromCell(CellSampleData(child, data.distance, childPos, data.depth-1, true));
             }
 
-            leafMap->erase(data.depth, data.position);
+            leafMap->erase(data.cell, data.depth, data.position);
             cell->leaf = false;
 
         }
