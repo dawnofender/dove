@@ -151,9 +151,28 @@ public:
         return cellMap_a[depth + offset];
     }
 
+    std::shared_ptr<OctreeNode> get(int8_t depth, glm::vec3 pos) {
+		std::lock_guard<std::mutex> lock(m_a);
+        if (cellMap_a[depth + offset].contains(pos)) {
+            return cellMap_a[depth + offset].find(pos)->second;
+        } else {
+            return nullptr;
+        }
+    }
+
+    std::pair<int8_t, glm::vec3>& get(std::shared_ptr<OctreeNode>(cell)) {
+		std::lock_guard<std::mutex> lock(m_b);
+        return cellMap_b.find(cell)->second;
+    }
+
     glm::vec3 getPos(std::shared_ptr<OctreeNode> cell) {
 		std::lock_guard<std::mutex> lock(m_b);
         return cellMap_b.find(cell)->second.second;
+    }
+
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::pair<int8_t, glm::vec3>>& getCellMap() {
+		std::lock_guard<std::mutex> lock(m_b);
+        return cellMap_b;
     }
 
     int8_t getDepth(std::shared_ptr<OctreeNode> cell) {
@@ -321,7 +340,7 @@ public:
         if(!cell->transparent) {
             for(int i = 0; i < 6; i++) {
 
-                if(cell->neighbors[i] && cell->neighbors[i]->transparent) {
+                if(!cell->neighbors[i] || cell->neighbors[i]->transparent) {
                     glm::vec3 cellPos = leafMap->getPos(cell);
                     
                     int vertexInd = mesh->vertices.size();
@@ -355,7 +374,7 @@ CLASS_DECLARATION(Gaia)
 private: 
     Octree* cellTree;
     float planetSize;
-    float lod = 32.f;
+    float lod = 16.f;
     int8_t chunkDepth = 5;
     MeshData worldMesh;
     Thingy* player;
@@ -443,10 +462,11 @@ public:
         // sample enough times to make world around player
         for (int8_t depth = cellTree->maxDepth; depth >= cellTree->minDepth; depth--) {
             time0 = glfwGetTime();
-            for (int8_t sampleDepth = cellTree->maxDepth; sampleDepth > cellTree->minDepth; sampleDepth--) {
-                updateSampleData(sampleDepth);
-            }
+            updateSampleData();
             generateSamples();
+            for (auto& [cell, data] : leafMap->getCellMap()) {
+                setSurfaces(cell);
+            }
             time1 = glfwGetTime();
             std::cout << leafMap->size();
             std::cout << "          Generated world sample " << cellTree->maxDepth - depth + 1 << " | " << 1000*(time1-time0) << "ms\n";
@@ -458,7 +478,7 @@ public:
         std::cout << "              Simplified homogeneous | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
-        simplifyDoppelgangers(cellTree->root);
+        // simplifyDoppelgangers(cellTree->root);
         time1 = glfwGetTime();
         std::cout << "            Simplified doppelgangers | " << 1000*(time1-time0) << "ms\n";
 
@@ -541,11 +561,11 @@ public:
         // percieved scale is a function like size/distance, 
         // so we compare  ( distance / cell size )  to a user-set LOD value
         // ideal LOD value would make distant cells the size of a pixel
-        return( distance/cellTree->getCellSize(depth) < lod && depth > 0 );
+        return(distance/cellTree->getCellSize(depth) < lod);
     }
     
     void updateSampleData() {
-        for(uint8_t i = cellTree->minDepth; i <= cellTree->maxDepth; i++) {
+        for(uint8_t i = cellTree->maxDepth; i > cellTree->minDepth; i--) {
             updateSampleData(i);
         }
     }
@@ -555,22 +575,11 @@ public:
             glm::vec3 cellCenter = position + glm::vec3(cellTree->getCellSize(depth-1));
             float size = cellTree->getCellSize(depth);
 
-            cellTree->setNeighbors(cell);
-
-            // check if cell is on surface
-            if ( depth > cellTree->minDepth &&
-                 cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
-                 cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
-                 cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
-                 cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
-                 cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
-                 cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  ||
-                 !cell->parent //root node - won't have neighbors but should still be subdivided
-            ) { 
+            setNeighbors(cell);
+            
+            if (cell->surface) {
                 float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
-                // std::cout << "0, ";
                 
-                cell->surface = true;
                 if (checkLOD(distance, depth)) {
                     // this cell should me upsampled
                     sampleQueue.push(CellSampleData(cell, distance, position, depth, true));
@@ -584,14 +593,55 @@ public:
                 cellCenter = parentPos + glm::vec3(size);
 
                 float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
-                if (!checkLOD(distance, depth-1)) {
-                    // std::cout << "1, ";
+                if (!checkLOD(distance, depth)) {
+
                     // parent cell should be downsampled
                     sampleQueue.push(CellSampleData(cell->parent, distance, parentPos, depth+1, false));
                 }
             }
         }
         // std::cout << std::endl;
+
+    }
+
+    
+    void setSurfaces() {
+        setSurfaces (cellTree->root);
+    }
+
+    void setSurfaces (std::shared_ptr<OctreeNode> cell ) {
+
+        for (auto& child : cell->children) {
+            if (child) setSurfaces(child);
+        }
+
+        cell->surface = (
+            // cell is a surface if 
+            //    1: any neighbor doesn't exist
+            //    2: transparency differs between cell and any neighbor
+            //    3: is root node
+            !cell->neighbors[0] || cell->transparent != cell->neighbors[0]->transparent  ||
+            !cell->neighbors[1] || cell->transparent != cell->neighbors[1]->transparent  ||
+            !cell->neighbors[2] || cell->transparent != cell->neighbors[2]->transparent  ||
+            !cell->neighbors[3] || cell->transparent != cell->neighbors[3]->transparent  ||
+            !cell->neighbors[4] || cell->transparent != cell->neighbors[4]->transparent  ||
+            !cell->neighbors[5] || cell->transparent != cell->neighbors[5]->transparent  ||
+            !cell->parent //root node - won't have neighbors but should still be subdivided
+        );
+
+        //  4: any two neighbors are surfaces, accounting for corner neighbors
+        //         (this is far from the best way to do this, but it will work for now)
+        if (!cell->surface) {
+            int surfaceNeighbors = 0;
+            for (auto& neighbor : cell->neighbors) {
+                surfaceNeighbors += neighbor && neighbor->surface;
+
+                if (surfaceNeighbors >= 2) {
+                    cell->surface = true;
+                    break;
+                }
+            }
+        }
 
     }
 
@@ -625,7 +675,7 @@ public:
             // remove children / simplify cells that are to be downsampled  
             for ( auto& child : cell->children ) {
                 if(!child) continue;
-                if (child->leaf) leafMap->erase(child);
+                leafMap->erase(child);
                 child.reset();
             }
             cell->leaf = true;
@@ -643,12 +693,11 @@ public:
 
             for (int i = 0; i < 8; ++i) {
                 auto& child = cell->children[i];
-                if (!child) {
-                    child = std::make_unique<OctreeNode>();
-                    child->parent = cell;
-                    child->indexInParent = i;
-                }
 
+                child = std::make_unique<OctreeNode>();
+                child->parent = cell;
+                child->indexInParent = i;
+                child->parent = cell;
                 child->leaf = true;
                 
                 float dx = (i >> 2) & 1;
@@ -782,6 +831,38 @@ public:
 
     void setNeighbors() {
         return cellTree->setNeighbors(cellTree->root);
+    }
+
+    void setNeighbors(std::shared_ptr<OctreeNode>(cell)) {
+        auto [depth, pos] = leafMap->get(cell);
+        float size = cellTree->getCellSize(depth);
+        
+        // +X
+        //
+        for (int i = 0; i < 6; i++) {
+            // use bitwise operators to calculate neighbor's position
+            
+            // first bit is sign, 0: positive, 1: negative
+            int sign = i & 1;
+
+            // second two bits (i shift right 1) are direction, where x=0, y=1, z=2 
+            // "direction xor sign plus sign" makes it negative
+            int dx = ((i >> 1 & 0) ^ -sign) + sign;             
+            int dy = ((i >> 1 & 1) ^ -sign) + sign;
+            int dz = ((i >> 1 & 2) ^ -sign) + sign; 
+             
+            glm::vec3 offset = glm::vec3(dx, dy, dz) * size;
+
+            // find neighbor in position map 
+            if (auto neighbor = leafMap->get(depth, pos + offset)) {
+                cell->neighbors[i] = neighbor;
+            } else {
+
+                // backup - navigate tree to find neighbor
+                cell->neighbors[i] = findNeighbor(cell, static_cast<Direction>(i));
+            }
+
+        }
     }
 
     // void mapNearbyChunks(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos, float cellSize) {
@@ -926,7 +1007,7 @@ public:
         // if( 0.f < blockPos.x && blockPos.x < 1.f &&  0.f < blockPos.z && blockPos.z < 1.f) solid = true;
 
         cell->transparent = !solid;
-        if(cell->parent) cell->parent->transparent = cell->parent->transparent || !solid;
+
     }
 
 };

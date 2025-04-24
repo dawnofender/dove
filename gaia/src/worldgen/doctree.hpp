@@ -42,7 +42,6 @@ struct Octree {
     void setNeighbors(std::shared_ptr<OctreeNode> node);
 };
 
-OctreeNode* findNeighbor(OctreeNode* node, Direction dir); 
-
+std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direction dir); 
 
 #endif

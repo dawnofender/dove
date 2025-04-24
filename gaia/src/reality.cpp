@@ -240,7 +240,7 @@ int main(){
     gaia->addComponent<Gaia>("Gaia", gaia, player);
 
     // put player on serface (temporary)
-    playerController->teleport({0, 4215, 0});
+    playerController->teleport({0, 4210, 0});
 
     auto* world = &gaia->getComponent<Gaia>();
     Octree cellTree(0, 23);
