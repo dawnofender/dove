@@ -1,15 +1,16 @@
 todo
 
 high priority:
-- implement "thing"s (like gameobjects with components) and make each chunk or maybe each cell a thing (they will store a minimum of like almost no data)
 - proper mesh data updating 
- 
+- rework chunks for the 3rd time to just check every 32000 positions they contain instead of taking info from map, see if thats faster
+- rework neighbor finding to take advantage of new maps
+- simplify duplicates 
+- write data to file
+- load data from heightmap
 
 do sometime:
 - generate smooth mesh based on density of cell
-- set of unordered maps for each depth level of maps of position to leaf cells (potentially good way to find same-level neighbors across borders?)
-- optimize by having duplicate cells trees point to the same tree
-    - include orientation? flipped / rotated duplicates
+- improve simplify duplicates by including orientation - flipped / rotated duplicates
 - map cells to matter which store actual composition of the cell (objects must be optimized in a similar way)
 
 do eventually:
