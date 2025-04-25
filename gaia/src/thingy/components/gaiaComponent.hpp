@@ -452,9 +452,6 @@ public:
         // 4) repeat 2-3 until queue is empty
         // 6) sort cells into chunks for rendering
         
-        for (int i = 100; i > -100; i--) {
-            std::cout << cellTree->getCellSize(i) << std::endl;
-        }
         // probably combine both methds, only doing full chunk generation for chunks that are very close
        
         // setup sample for the root node (entire planet)
@@ -582,7 +579,7 @@ public:
 
             
             if (depth > cellTree->minDepth && cell->surface) {
-                float distance = glm::distance(position, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
+                float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
                 
                 if (checkLOD(distance, depth)) {
                     // this cell should me upsampled
@@ -590,18 +587,18 @@ public:
                 }
 
             } else if (cell->parent) {
-                float dx = (cell->indexInParent >> 2) & 1;
-                float dy = (cell->indexInParent >> 1) & 1;
-                float dz = cell->indexInParent & 1;
-                glm::vec3 parentPos = position - (glm::vec3(dx, dy, dz) * size);
-                cellCenter = parentPos + glm::vec3(size);
+                // float dx = (cell->indexInParent >> 2) & 1;
+                // float dy = (cell->indexInParent >> 1) & 1;
+                // float dz = cell->indexInParent & 1;
+                // glm::vec3 parentPos = position - (glm::vec3(dx, dy, dz) * size);
+                // cellCenter = parentPos + glm::vec3(size);
 
-                float distance = glm::distance(position, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
-                if (!checkLOD(distance, depth+1)) {
+                // float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
+                // if (!checkLOD(distance, depth+1)) {
 
-                    // parent cell should be downsampled
-                    sampleQueue.push(CellSampleData(cell->parent, distance, parentPos, depth+1, false));
-                }
+                //     // parent cell should be downsampled
+                //     sampleQueue.push(CellSampleData(cell->parent, distance, parentPos, depth+1, false));
+                // }
             }
         }
         // std::cout << std::endl;
@@ -682,14 +679,6 @@ public:
 
             // remove children / simplify cells that are to be downsampled  
             simplifyCell(cell->parent);
-            // for ( auto& child : cell->children ) {
-            //     if(!child) continue;
-            //     leafMap->erase(child);
-            //     child.reset();
-            // }
-            // cell->leaf = true;
-            // leafMap->insert(cell, data.depth, data.position);
-
 
         } else {
 
@@ -701,7 +690,7 @@ public:
             for (int i = 0; i < 8; ++i) {
                 auto& child = cell->children[i];
                 if (!child) {
-                    child = std::make_unique<OctreeNode>();
+                    child = std::make_shared<OctreeNode>();
                     child->indexInParent = i;
                     child->parent = cell;
                 }
@@ -721,7 +710,7 @@ public:
                 generateMatter(child, childPos + glm::vec3(cellTree->getCellSize(data.depth - 2)));
                 
                 leafMap->insert(child, data.depth-1, childPos);
-                queueChunkUpdateFromCell(CellSampleData(child, data.distance, childPos, data.depth-1, true));
+                // queueChunkUpdateFromCell(CellSampleData(child, data.distance, childPos, data.depth-1, true));
             }
 
 

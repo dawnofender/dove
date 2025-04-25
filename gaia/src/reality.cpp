@@ -254,7 +254,7 @@ int main(){
     glm::vec3 position;
     universe.addComponent<MeshRenderer>("test", std::make_shared<MeshData>(centerCube));
 
-    world->startGeneratingWorld();
+    // world->startGeneratingWorld();
 
 
     do{

@@ -1,6 +1,8 @@
 #include "doctree.hpp"
 #include <iostream>
 #include <cmath>
+#include <stack>
+#include <bitset>
 // Define the range of exponents
 
 // Function to compute 2^n at compile time
@@ -126,23 +128,72 @@ uint8_t siblingIndex(uint8_t idx, Direction d) {
 }
 
 std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direction dir) { //maybe keep track of distance too so we can walk all the way back down?
-    if (!node->parent) return nullptr;              // hit the root, no neighbor
+    // hit the root, no neighbor
+    if (!node->parent) return nullptr;              
     uint8_t idx = node->indexInParent;
-    //if (node->neighbors[dir]) return node->neighbors[dir];
+
     // 1) If the neighbor is just a sibling in the same parent, return it.
     if (hasSiblingInDir(idx, dir)) {
-      return node->parent->children[siblingIndex(idx,dir)];
+        return node->parent->children[siblingIndex(idx,dir)];
     }
-    // 2) Otherwise, recurse to find the parent’s neighbor in that dir
-    std::shared_ptr<OctreeNode> parentNbr = findNeighbor(node->parent, dir);
-    if (!parentNbr) return nullptr;
-    // 3) If that neighbor isn’t subdivided, it *is* our neighbor
-    if (!parentNbr->children[0])  // assume “no children” means leaf
-      return parentNbr;
-    // 4) Otherwise, descend into the appropriate child of that subtree
-    //    which “mirrors” our index in this axis:
-    return parentNbr->children[siblingIndex(idx,dir)];
+
+    // 2) Otherwise, find the neighbor by climbing up and back down the tree,
+    //    using the node's address to navigate.
+    //    this means:
+    //    - record the address in a stack as we go up, 
+    //    - stop once we find a sibling neighbor,
+    //    - then follow the address (but flipped) as we go down. 
+    std::stack<std::uint8_t> address; 
+
+    // we already have the end of the address:
+    address.push(idx);
+    
+
+    do {
+        // move to parent
+        node = node->parent;
+        // extend address
+        address.push(node->indexInParent);
+    } while (node->parent && !hasSiblingInDir(address.top(), dir)); 
+    
+    // if we are looking for a neighbor off the side of the tree, we'll hit the root - no neighbor
+    if (!node->parent) return nullptr;
+
+    // move to sibling
+    
+    std::shared_ptr<OctreeNode> sibling;
+    if (!(sibling = node->parent->children[address.top()])) {
+        return nullptr;
+    }
+    node = sibling;
+    address.pop();
+    
+    // the left two bits of the dir represent the axis - so we'll flip this on the way down
+    uint8_t axis = dir >> 1;
+
+    // descend to neighbor
+    while (!address.empty()) {
+
+        //flip address direction
+        std::cout << (uint) address.top() << ", ";
+        std::cout << (uint) axis << ", ";
+
+        address.top() = address.top() ^ (4 >> axis);
+
+        std::cout << (uint) address.top() << std::endl;
+
+        if (node->children[address.top()]) {
+            node = node->children[address.top()];    
+        } else {
+            return node; // neighbor under different parent does not exist - for now we'll just return the parent
+        }
+        address.pop();
+    }
+
+    std::cout << "this should never happen" << std::endl;
+    return node;
 }
+
 
 void Octree::setNeighbors(std::shared_ptr<OctreeNode> node) {
     // assign neighbor pointers for this cell
