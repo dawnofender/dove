@@ -109,9 +109,9 @@ int main(){
     // # assets #
     // ##########
     
-    MeshData cube;
+    MeshData centerCube;
 
-    cube.vertices = {
+    centerCube.vertices = {
         // +x    
         glm::vec3(1, 1, 1),
         glm::vec3(1, 0, 1),
@@ -144,7 +144,7 @@ int main(){
         glm::vec3(0, 1, 0),                
     };
 
-    cube.normals = {
+    centerCube.normals = {
         // +x    
         glm::vec3(1, 0, 0),
         glm::vec3(1, 0, 0),
@@ -177,7 +177,7 @@ int main(){
         glm::vec3(0, 0, -1),                
     };
 
-    cube.colors = {
+    centerCube.colors = {
         // +x    
         glm::vec3(1, 1, 1),
         glm::vec3(1, 0, 1),
@@ -210,7 +210,7 @@ int main(){
         glm::vec3(0, 1, 0),                
     };
 
-    cube.indices = {
+    centerCube.indices = {
         0, 1, 2, 0, 2, 3,       //+x
         4, 5, 6, 4, 6, 7,       //-x
         8, 9, 10, 8, 10, 11,    //+y
@@ -243,7 +243,7 @@ int main(){
     playerController->teleport({0, 4210, 0});
 
     auto* world = &gaia->getComponent<Gaia>();
-    Octree cellTree(0, 23);
+    Octree cellTree(0, 24);
     world->createWorld(&cellTree);
     // 23 - a bit bigger than earth
     // 65 - max before math breaks at edges (currently breaks world entirely, but can be fixed by generating from the center instead of the corner)
@@ -252,9 +252,9 @@ int main(){
     // playerController->teleport({0, 7210, 0});
     
     glm::vec3 position;
-    universe.addComponent<MeshRenderer>("test", std::make_shared<MeshData>(cube));
+    universe.addComponent<MeshRenderer>("test", std::make_shared<MeshData>(centerCube));
 
-    // world->startGeneratingWorld();
+    world->startGeneratingWorld();
 
 
     do{
@@ -317,6 +317,7 @@ int main(){
 
         }
 
+        MeshRenderer::updateAll();
         MeshRenderer::drawAll();
 
         // for( auto& meshRenderer : meshRenderers ) {

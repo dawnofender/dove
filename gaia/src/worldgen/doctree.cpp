@@ -6,22 +6,22 @@
 // Function to compute 2^n at compile time
 constexpr float pow2(int n) {
     // We can use a loop in a constexpr function in C++14 and later
-    double result = 1.0;
+    float result = 1.0;
     if (n >= 0) {
         for (int i = 0; i < n; ++i) {
             result *= 2.0;
         }
     } else {
-        for (int i = 0; i < -n; ++i) {
-            result /= 2.0;
+        for (int i = 0; i > n; --i) {
+            result *= 0.5;
         }
     }
     return result;
 }
 
 // Build the lookup table as a constexpr array
-constexpr std::array<double, 256> buildSizeTable() {
-    std::array<double, 256> table = {};
+constexpr std::array<float, 256> buildSizeTable() {
+    std::array<float, 256> table = {};
     for (std::size_t i = 0; i < 256; ++i) {
         int exponent = static_cast<int>(i)-128;
         table[i] = pow2(exponent);
@@ -33,7 +33,7 @@ constexpr std::array<double, 256> buildSizeTable() {
 // Declare the lookup table as a compile-time constant.
 constexpr auto sizeLookup = buildSizeTable();
 
-double Octree::getCellSize(uint8_t depth) {
+float Octree::getCellSize(int8_t depth) {
     return sizeLookup[depth + 128];
 }
 

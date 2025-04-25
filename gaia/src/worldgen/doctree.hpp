@@ -36,7 +36,7 @@ struct Octree {
         : minDepth(mind), maxDepth(maxd){}
     
     void indexLeaves(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos);
-    static double getCellSize(uint8_t depth);
+    static float getCellSize(int8_t depth);
     std::pair<std::shared_ptr<OctreeNode>, glm::vec3> locateCell(glm::vec3 targetPos, int8_t targetDepth);
     std::pair<std::shared_ptr<OctreeNode>, glm::vec3> makeCell(glm::vec3 targetPos, int8_t targetDepth);
     void setNeighbors(std::shared_ptr<OctreeNode> node);

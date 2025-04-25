@@ -10,6 +10,8 @@ high priority:
 
 do sometime:
 - generate smooth mesh based on density of cell
+- try storing cell addresses (bitfields representing indexes in parents, directions on how to get to the cell) 
+    - these could be used to calculate position on bit-level?
 - improve simplify duplicates by including orientation - flipped / rotated duplicates
 - map cells to matter which store actual composition of the cell (objects must be optimized in a similar way)
 

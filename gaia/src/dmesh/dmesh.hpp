@@ -12,7 +12,8 @@ struct MeshData {
     threadsafe_vector<glm::vec3> colors;
     threadsafe_vector<glm::vec3> normals;
     threadsafe_vector<unsigned int> indices;
-
+    
+    MeshData() {};
     void clear() {
         vertices.clear();
         colors.clear();

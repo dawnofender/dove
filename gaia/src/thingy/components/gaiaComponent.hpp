@@ -123,7 +123,7 @@ private:
     int8_t offset;
     Octree* cellTree;
     std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>> cellMap_a; // (depth, (position, leaf cell))
-    std::unordered_map<std::shared_ptr<OctreeNode>, std::pair<int8_t, glm::vec3>> cellMap_b;
+    std::unordered_multimap<std::shared_ptr<OctreeNode>, std::pair<int8_t, glm::vec3>> cellMap_b;
     std::mutex m_a;
     std::mutex m_b;
 
@@ -160,7 +160,7 @@ public:
         }
     }
 
-    std::pair<int8_t, glm::vec3>& get(std::shared_ptr<OctreeNode>(cell)) {
+    std::pair<int8_t, glm::vec3>& get(std::shared_ptr<OctreeNode> cell) {
 		std::lock_guard<std::mutex> lock(m_b);
         return cellMap_b.find(cell)->second;
     }
@@ -170,7 +170,7 @@ public:
         return cellMap_b.find(cell)->second.second;
     }
 
-    std::unordered_map<std::shared_ptr<OctreeNode>, std::pair<int8_t, glm::vec3>>& getCellMap() {
+    std::unordered_multimap<std::shared_ptr<OctreeNode>, std::pair<int8_t, glm::vec3>>& getCellMap() {
 		std::lock_guard<std::mutex> lock(m_b);
         return cellMap_b;
     }
@@ -195,11 +195,12 @@ public:
     // erase if we only know the cell
     void erase(std::shared_ptr<OctreeNode> cell) {
 		std::lock_guard<std::mutex> lock_b(m_b);
-        auto [depth, position] = cellMap_b.find(cell)->second;
-        cellMap_b.erase(cell);
-
-		std::lock_guard<std::mutex> lock_a(m_a);
-        cellMap_a[depth + offset].erase(position);
+        if (cellMap_b.contains(cell)) {
+            auto [depth, position] = cellMap_b.find(cell)->second;
+            cellMap_b.erase(cell);
+		    std::lock_guard<std::mutex> lock_a(m_a);
+            cellMap_a[depth + offset].erase(position);
+        }
     }
 
     int size() {
@@ -315,12 +316,13 @@ public:
             mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
             // mesh->colors[i] = mesh->normals[i];
         }
+
+        // if (meshRenderer) meshRenderer->queueUpdate();
     }
     
-    void updateMesh(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth) {
+    void updateMesh(std::shared_ptr<OctreeNode> cell, int8_t cellDepth) {
 
         // recurse into children until we get to the right depth
-        float childSize = Octree::getCellSize(cellDepth-1);
         if(cellDepth > depth) {
             for (int i = 0; i < 8; ++i) {
                 if (cell->children[i]) {
@@ -334,7 +336,7 @@ public:
 
 
 
-    void buildCellMesh(std::shared_ptr<OctreeNode>(cell)) {
+    void buildCellMesh(std::shared_ptr<OctreeNode> cell) {
 
        // currently only rendering solid surface blocks - may change
         if(!cell->transparent) {
@@ -450,6 +452,9 @@ public:
         // 4) repeat 2-3 until queue is empty
         // 6) sort cells into chunks for rendering
         
+        for (int i = 100; i > -100; i--) {
+            std::cout << cellTree->getCellSize(i) << std::endl;
+        }
         // probably combine both methds, only doing full chunk generation for chunks that are very close
        
         // setup sample for the root node (entire planet)
@@ -460,16 +465,16 @@ public:
 
         std::cout << "gaia: starting sampling" << std::endl;
         // sample enough times to make world around player
-        for (int8_t depth = cellTree->maxDepth; depth >= cellTree->minDepth; depth--) {
+        for (int i = 0; i <= cellTree->maxDepth; i++) {
             time0 = glfwGetTime();
             updateSampleData();
             generateSamples();
-            for (auto& [cell, data] : leafMap->getCellMap()) {
-                setSurfaces(cell);
-            }
+            setNeighbors();
+            setBackwardsInheritedProperties();
+            setSurfaces();
             time1 = glfwGetTime();
             std::cout << leafMap->size();
-            std::cout << "          Generated world sample " << cellTree->maxDepth - depth + 1 << " | " << 1000*(time1-time0) << "ms\n";
+            std::cout << "          Generated world sample " << (int) i << " | " << 1000*(time1-time0) << "ms\n";
         }
 
         time0 = glfwGetTime();
@@ -478,7 +483,7 @@ public:
         std::cout << "              Simplified homogeneous | " << 1000*(time1-time0) << "ms\n";
 
         time0 = glfwGetTime();
-        // simplifyDoppelgangers(cellTree->root);
+        // simplifyDuplicates(cellTree->root);
         time1 = glfwGetTime();
         std::cout << "            Simplified doppelgangers | " << 1000*(time1-time0) << "ms\n";
 
@@ -493,7 +498,7 @@ public:
         // std::cout << "           Chunk mesh data generated | " << 1000*(time1-time0) << "ms\n";
         
         chunkQueue.clear();
-        for (int8_t i = cellTree->minDepth; i < cellTree->maxDepth - chunkDepth; i++) {
+        for (int8_t i = 0; i < cellTree->maxDepth - chunkDepth; i++) {
             queueChunksAtDepth(i);
         }
         // queueChunksAtDepth(0);
@@ -575,10 +580,9 @@ public:
             glm::vec3 cellCenter = position + glm::vec3(cellTree->getCellSize(depth-1));
             float size = cellTree->getCellSize(depth);
 
-            setNeighbors(cell);
             
-            if (cell->surface) {
-                float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
+            if (depth > cellTree->minDepth && cell->surface) {
+                float distance = glm::distance(position, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
                 
                 if (checkLOD(distance, depth)) {
                     // this cell should me upsampled
@@ -589,11 +593,11 @@ public:
                 float dx = (cell->indexInParent >> 2) & 1;
                 float dy = (cell->indexInParent >> 1) & 1;
                 float dz = cell->indexInParent & 1;
-                glm::vec3 parentPos = position - glm::vec3(dx, dy, dz) * size;
+                glm::vec3 parentPos = position - (glm::vec3(dx, dy, dz) * size);
                 cellCenter = parentPos + glm::vec3(size);
 
-                float distance = glm::distance(cellCenter, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
-                if (!checkLOD(distance, depth)) {
+                float distance = glm::distance(position, glm::vec3(playerTransform->position.x, playerTransform->position.y, playerTransform->position.z));
+                if (!checkLOD(distance, depth+1)) {
 
                     // parent cell should be downsampled
                     sampleQueue.push(CellSampleData(cell->parent, distance, parentPos, depth+1, false));
@@ -620,21 +624,24 @@ public:
             //    1: any neighbor doesn't exist
             //    2: transparency differs between cell and any neighbor
             //    3: is root node
-            !cell->neighbors[0] || cell->transparent != cell->neighbors[0]->transparent  ||
-            !cell->neighbors[1] || cell->transparent != cell->neighbors[1]->transparent  ||
-            !cell->neighbors[2] || cell->transparent != cell->neighbors[2]->transparent  ||
-            !cell->neighbors[3] || cell->transparent != cell->neighbors[3]->transparent  ||
-            !cell->neighbors[4] || cell->transparent != cell->neighbors[4]->transparent  ||
-            !cell->neighbors[5] || cell->transparent != cell->neighbors[5]->transparent  ||
-            !cell->parent //root node - won't have neighbors but should still be subdivided
+            cell->neighbors[0] && cell->transparent != cell->neighbors[0]->transparent  ||
+            cell->neighbors[1] && cell->transparent != cell->neighbors[1]->transparent  ||
+            cell->neighbors[2] && cell->transparent != cell->neighbors[2]->transparent  ||
+            cell->neighbors[3] && cell->transparent != cell->neighbors[3]->transparent  ||
+            cell->neighbors[4] && cell->transparent != cell->neighbors[4]->transparent  ||
+            cell->neighbors[5] && cell->transparent != cell->neighbors[5]->transparent  ||
+            !cell->parent || //root node - won't have neighbors but should still be subdivided
+            !cell->parent->parent        
         );
 
-        //  4: any two neighbors are surfaces, accounting for corner neighbors
-        //         (this is far from the best way to do this, but it will work for now)
-        if (!cell->surface) {
+        //  4: accounting for corner neighbors: 
+        //      cell's parent is a surface, 
+        //      and any two neighbors are surfaces
+        //  (this is far from the best way to do this, but it will work for now)
+        if (!cell->surface && cell->parent && cell->parent->surface) {
             int surfaceNeighbors = 0;
             for (auto& neighbor : cell->neighbors) {
-                surfaceNeighbors += neighbor && neighbor->surface;
+                if (neighbor && neighbor->surface) surfaceNeighbors++;
 
                 if (surfaceNeighbors >= 2) {
                     cell->surface = true;
@@ -667,38 +674,39 @@ public:
     }
 
     void generateSample() {
-        
+
         auto data = sampleQueue.top();
         std::shared_ptr<OctreeNode> cell = data.cell;
+
         if (!data.sampleMode) {
 
             // remove children / simplify cells that are to be downsampled  
-            for ( auto& child : cell->children ) {
-                if(!child) continue;
-                leafMap->erase(child);
-                child.reset();
-            }
-            cell->leaf = true;
-            leafMap->insert(cell, data.depth, data.position);
+            simplifyCell(cell->parent);
+            // for ( auto& child : cell->children ) {
+            //     if(!child) continue;
+            //     leafMap->erase(child);
+            //     child.reset();
+            // }
+            // cell->leaf = true;
+            // leafMap->insert(cell, data.depth, data.position);
 
 
         } else {
 
             // generate children for cells to be upsampled
             float childSize = cellTree->getCellSize(data.depth-1);
-            glm::vec3 cellCenter = data.position + glm::vec3(childSize);
-
             leafMap->erase(data.cell, data.depth, data.position);
             cell->leaf = false;
 
             for (int i = 0; i < 8; ++i) {
                 auto& child = cell->children[i];
-
-                child = std::make_unique<OctreeNode>();
-                child->parent = cell;
-                child->indexInParent = i;
-                child->parent = cell;
+                if (!child) {
+                    child = std::make_unique<OctreeNode>();
+                    child->indexInParent = i;
+                    child->parent = cell;
+                }
                 child->leaf = true;
+                
                 
                 float dx = (i >> 2) & 1;
                 float dy = (i >> 1) & 1;
@@ -711,7 +719,7 @@ public:
                 
 
                 generateMatter(child, childPos + glm::vec3(cellTree->getCellSize(data.depth - 2)));
-
+                
                 leafMap->insert(child, data.depth-1, childPos);
                 queueChunkUpdateFromCell(CellSampleData(child, data.distance, childPos, data.depth-1, true));
             }
@@ -742,6 +750,7 @@ public:
 
         // is this chunk loaded? 
         if (chunkThingies.contains(data.cell)) {
+            std::cout << "test" << std::endl;
             // yes: get chunk's object and update the mesh
             // chunkThingies.find(data.cell)->second->getComponent<GaiaChunk>().updateMesh();
         } else {
@@ -809,7 +818,8 @@ public:
     // for updating an entire depth level (lod and world loading)
     void queueChunksAtDepth(int8_t depth) {
         for( auto& [position, cell] : leafMap->get(depth) ) {
-            //if (!cell->surface) continue;
+            if (!cell->surface) continue;
+
             std::shared_ptr<OctreeNode> chunk = cell;
             for(int i = 0; i < chunkDepth; i++) {
                 if (chunk->parent) {
@@ -829,11 +839,28 @@ public:
     // for updating specific chunks
 
 
+    void setBackwardsInheritedProperties() {
+        return setBackwardsInheritedProperties(cellTree->root);
+    }
+    
+    void setBackwardsInheritedProperties(std::shared_ptr<OctreeNode> cell) {
+        for (std::shared_ptr<OctreeNode> child : cell->children) {
+            if (child) {
+                if (!child->leaf) {
+                    setBackwardsInheritedProperties(child);
+                } else {
+                    cell->transparent = child->transparent;
+                    cell->surface = child->surface;
+                }
+            }
+        }
+    }
+
     void setNeighbors() {
         return cellTree->setNeighbors(cellTree->root);
     }
 
-    void setNeighbors(std::shared_ptr<OctreeNode>(cell)) {
+    void setNeighbors(std::shared_ptr<OctreeNode> cell) {
         auto [depth, pos] = leafMap->get(cell);
         float size = cellTree->getCellSize(depth);
         
@@ -859,7 +886,7 @@ public:
             } else {
 
                 // backup - navigate tree to find neighbor
-                cell->neighbors[i] = findNeighbor(cell, static_cast<Direction>(i));
+                // cell->neighbors[i] = findNeighbor(cell, static_cast<Direction>(i));
             }
 
         }
@@ -896,7 +923,7 @@ public:
         simplifyHomogeneous(cellTree->root);
     }
 
-    void simplifyHomogeneous(std::shared_ptr<OctreeNode>(cell)) {
+    void simplifyHomogeneous(std::shared_ptr<OctreeNode> cell) {
         for (std::shared_ptr<OctreeNode> child : cell->children) {
             if (child && !child->leaf) simplifyHomogeneous(child);
         }
@@ -912,19 +939,19 @@ public:
         simplifyCell(cell); 
     }
 
-    void simplifyDoppelgangers(std::shared_ptr<OctreeNode>(cell)) {
+    void simplifyDuplicates(std::shared_ptr<OctreeNode> cell) {
         for (std::shared_ptr<OctreeNode> child : cell->children) {
             if (child) {
-                simplifyDoppelgangers(child); // recurse into children
-                simplifyDoppelgangers(child, cellTree->root); // compare every other cell with this child
+                simplifyDuplicates(child); // recurse into children
+                simplifyDuplicates(child, cellTree->root); // compare every other cell with this child
             }
         }
 
     }
 
-    void simplifyDoppelgangers(std::shared_ptr<OctreeNode>(cell_a), std::shared_ptr<OctreeNode>(cell_b)) {
+    void simplifyDuplicates(std::shared_ptr<OctreeNode> cell_a, std::shared_ptr<OctreeNode> cell_b) {
         for (std::shared_ptr<OctreeNode> child : cell_b->children) {
-            if (child) simplifyDoppelgangers(cell_a, child); // recursively compare children with cell_a 
+            if (child) simplifyDuplicates(cell_a, child); // recursively compare children with cell_a 
         }
         if (cell_a == cell_b) {
             // replace cell_b with cell_a 
@@ -939,28 +966,43 @@ public:
         }
     }
 
-    void simplifyCell(std::shared_ptr<OctreeNode>(cell)) {
-        // first, look at child 0
-        auto& child = cell->children[0];
+    void simplifyCell(std::shared_ptr<OctreeNode> cell) {
 
-        // take its properties
-        cell->transparent = child->transparent;
+        // find first existing child
+        int i; 
+        for(auto&& child : cell->children) {
+            if (child) {
+                if (!child->leaf) simplifyCell(child);
+                // take its properties
+                cell->transparent = child->transparent;
 
-        // then, use its leafmap info (depth, pos) to calculate the parent's leafmap info
-        int8_t depth = leafMap->getDepth(child);
-        glm::vec3 childPos = leafMap->getPos(child);
-        glm::vec3 pos = childPos + glm::vec3(cellTree->getCellSize(depth));
-        leafMap->erase(child, depth, childPos);
-        child.reset();
+                // then, use its leafmap info (depth, pos) to calculate the parent's leafmap info
+                i = child->indexInParent;
+                int8_t depth = leafMap->getDepth(child);
+                glm::vec3 childPos = leafMap->getPos(child);
+                glm::vec3 pos = childPos + glm::vec3(cellTree->getCellSize(depth));
+                leafMap->erase(child, depth, childPos);
+                child.reset();
 
-        depth++;
-        leafMap->insert(cell, depth, pos);
-        cell->leaf = true;
+                depth++;
+                leafMap->insert(cell, depth, pos);
+                cell->leaf = true;
+
+                break;
+            }
+        }
+
         
-        // now we can erase the children
-        for (int i=1; i<8; i++) {
-            leafMap->erase(cell->children[i]);
-            cell->children[i].reset();
+
+        
+        // now we can erase the rest of the children
+        while (i < 8) {
+            if (cell->children[i]) {
+                if (!cell->children[i]->leaf) simplifyCell(cell->children[i]);
+                leafMap->erase(cell->children[i]);
+                cell->children[i].reset();
+            }
+            ++i;
         }
 
     }
@@ -978,29 +1020,29 @@ public:
 
     
 
-    void generateMatter(std::shared_ptr<OctreeNode>(cell), glm::vec3 blockPos) { //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) { float childSize = cellSize/2.f; glm::vec3 blockPos = cellPos + glm::vec3(childSize);
+    void generateMatter(std::shared_ptr<OctreeNode> cell, glm::vec3 blockPos) { //if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2) { float childSize = cellSize/2.f; glm::vec3 blockPos = cellPos + glm::vec3(childSize);
 
-        // actual terrain generation
-        const float intensity = 8192.f;
-        const float scale = 8192.f;
+       // actual terrain generation
+       const float intensity = 8192.f;
+       const float scale = 8192.f;
 
-        FastNoise perlinFractal;
-        perlinFractal.SetNoiseType(FastNoise::PerlinFractal); 
-        perlinFractal.SetFractalOctaves(8); 
-        perlinFractal.SetFrequency(1.f / scale);
-        
-        float noise = perlinFractal.GetValue(blockPos.x, blockPos.z);
-        float mountains = (pow(noise, 1.f) ) * intensity;
+       FastNoise perlinFractal;
+       perlinFractal.SetNoiseType(FastNoise::PerlinFractal); 
+       perlinFractal.SetFractalOctaves(8); 
+       perlinFractal.SetFrequency(1.f / scale);
        
-        // flatten spawn
-        mountains *= std::min(glm::distance(blockPos, {0, 0, 0}) / 64.f, 1.f);
+       float noise = perlinFractal.GetValue(blockPos.x, blockPos.z);
+       float mountains = (pow(noise, 1.f) ) * intensity;
+       
+       // flatten spawn
+       mountains *= std::min(glm::distance(blockPos, {0, 0, 0}) / 64.f, 1.f);
 
-        // spawn mountain
-        const float mountainHeight = 0000;
-        const float mountain = mountainHeight * (pow(0.9999f, (abs(blockPos.x) + abs(blockPos.z))));
-           
-        // bool solid = (0-blockPos.y) + (1024.f * noise) + mountain > 0.f;
-        bool solid = mountains + mountain > blockPos.y;
+       // spawn mountain
+       const float mountainHeight = 0000;
+       const float mountain = mountainHeight * (pow(0.9999f, (abs(blockPos.x) + abs(blockPos.z))));
+       
+       bool solid = mountains + mountain > blockPos.y;
+        // bool solid = blockPos.y - (1/3) < playerTransform->position.y;
 
         // monolith
         // if(-1.f < blockPos.x && blockPos.x < 2.f && -1.f < blockPos.z && blockPos.z < 2.f) solid = false;

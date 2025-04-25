@@ -23,6 +23,18 @@ void MeshRenderer::drawAll() {
     }
 }
 
+void MeshRenderer::updateAll() {
+    for (auto& renderer : renderers) {
+        if (renderer->update) {
+            renderer->update = false;
+            renderer->updateMesh();
+        }
+    }
+}
+
+void MeshRenderer::queueUpdate() {
+    update = true;
+}
 // std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
 
 // void MeshRenderer::setup(){
@@ -96,12 +108,17 @@ void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) {
 }
 
 void MeshRenderer::setMesh(std::shared_ptr<MeshData> m) {
-    mesh = m;
+    meshRef = m;
+    update = true;
+}
+
+void MeshRenderer::updateMesh() {
+    mesh = std::make_shared<MeshData>(*meshRef);
     setupBufferData();
 }
 
 std::shared_ptr<MeshData> MeshRenderer::getMesh() {
-    return(mesh);
+    return(meshRef);
 }
 
 // std::vector<unsigned int> MeshRenderer::getIndices() {
