@@ -18,23 +18,35 @@ CLASS_DEFINITION(Component, MeshRenderer)
 // }
 
 void MeshRenderer::drawAll() {
+    std::cout << "drawing meshes.. " << std::endl;
+	std::lock_guard<std::mutex> lock(m_renderers);
     for (auto& renderer : renderers) {
         renderer->drawMesh();
     }
+    std::cout << "done drawing meshes" << std::endl;
 }
 
 void MeshRenderer::updateAll() {
+    std::cout << "updating meshes.. " << std::endl;
+	std::lock_guard<std::mutex> lock(m_renderers);
     for (auto& renderer : renderers) {
-        if (renderer->update) {
-            renderer->update = false;
-            renderer->updateMesh();
+        switch(renderer->state) {
+            case 0: 
+                renderer->updateMesh();
+                renderers.push_back(renderer);
+                renderer->state = 1;
+                break;
+            case 2:
+                renderer->updateMesh();
+                renderer->state = 1;
         }
     }
+    std::cout << "done updating meshes" << std::endl;
 }
 
-void MeshRenderer::queueUpdate() {
-    update = true;
-}
+// void MeshRenderer::queueUpdate() {
+//     update = true;
+// }
 // std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
 
 // void MeshRenderer::setup(){
@@ -46,27 +58,30 @@ void MeshRenderer::queueUpdate() {
 // }
 
 void MeshRenderer::setupBufferData() {
-	  std::lock_guard<std::mutex> lock(m);
-
-    if (mesh->vertices.size() <= 0) {
-        return;
-    }
+    std::cout << "testa" << std::endl;
+    if (
+        mesh.vertices.size() <= 0 ||
+        mesh.colors.size() <= 0 ||
+        mesh.normals.size() <= 0 ||
+        mesh.indices.size() <= 0
+    ) return;
+    std::cout << "testb" << std::endl;
 
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3), &mesh->vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3), &mesh.vertices[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &colorbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-	  glBufferData(GL_ARRAY_BUFFER, mesh->colors.size() * sizeof(glm::vec3), &mesh->colors[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, mesh.colors.size() * sizeof(glm::vec3), &mesh.colors[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &normalbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-    glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(glm::vec3), &mesh->normals[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * sizeof(glm::vec3), &mesh.normals[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &elementbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices.size() * sizeof(unsigned int), &mesh->indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW);
     
 }
 
@@ -88,13 +103,11 @@ void MeshRenderer::bindBufferData() {
 }
 
 void MeshRenderer::drawMesh() {
-	  std::lock_guard<std::mutex> lock(m);
     bindBufferData();
-    glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
 }
 
 void MeshRenderer::deleteBuffers() {
-	  std::lock_guard<std::mutex> lock(m);
     glDeleteBuffers(1, &vertexbuffer);
     glDeleteBuffers(1, &colorbuffer);
     //glDeleteBuffers(1, &meshRenderer.uvbuffer);
@@ -107,22 +120,24 @@ void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) {
     bounds = {a, b};
 }
 
-void MeshRenderer::setMesh(std::shared_ptr<MeshData> m) {
-    meshRef = m;
-    update = true;
+void MeshRenderer::setMesh(MeshData newMesh) {
+    
+    state = 2;
 }
 
 void MeshRenderer::updateMesh() {
-    mesh = std::make_shared<MeshData>(*meshRef);
+	std::lock_guard<std::mutex> lock(m_mesh);
+    mesh = MeshData(meshUpdate);
     setupBufferData();
+    meshUpdate.clear();
 }
 
-std::shared_ptr<MeshData> MeshRenderer::getMesh() {
-    return(meshRef);
+MeshData MeshRenderer::getMesh() {
+    return(mesh);
 }
 
 // std::vector<unsigned int> MeshRenderer::getIndices() {
-//     return mesh->indices;
+//     return mesh.indices;
 // }
 
 

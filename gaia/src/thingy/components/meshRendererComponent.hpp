@@ -18,27 +18,29 @@
 class MeshRenderer : public Component {
 CLASS_DECLARATION(MeshRenderer)
 private:
-    std::shared_ptr<MeshData> meshRef;
-    std::shared_ptr<MeshData> mesh;
+    MeshData mesh;
+    std::shared_ptr<MeshData> meshUpdate;
+    std::mutex m_mesh;
+
     GLuint vertexbuffer;
     GLuint colorbuffer;
     GLuint normalbuffer;
     // GLuint uvbuffer;
     GLuint elementbuffer;
-    std::pair<glm::vec3, glm::vec3> bounds;
-    static inline std::vector<MeshRenderer*> renderers;
-	
-    std::mutex m;
 
-public: 
-    bool update = false;
+    std::pair<glm::vec3, glm::vec3> bounds;
+    
+
+    static inline std::vector<MeshRenderer*> renderers;
+    static inline std::mutex m_renderers;
+
+protected: 
+    uint8_t state = 0;
 
 public:
 
-    MeshRenderer(std::string && initialValue, std::shared_ptr<MeshData> m)
-        : Component(std::move(initialValue)), meshRef(m) {
-        updateMesh();
-        renderers.push_back(this);
+    MeshRenderer(std::string && initialValue, MeshData m)
+        : Component(std::move(initialValue)), meshUpdate(m) {
     }
 
     ~MeshRenderer() {
@@ -52,7 +54,7 @@ public:
     void setupBufferData();
     void drawMesh();
     void deleteBuffers();
-    void setMesh(std::shared_ptr<MeshData> m);
+    void setMesh(std::shared_ptr<MeshData> newMesh);
     void updateMesh();
     void setBounds(glm::vec3 a, glm::vec3 b);
     void lock();
@@ -60,7 +62,7 @@ public:
     static void drawAll();
     static void updateAll();
 
-    std::shared_ptr<MeshData> getMesh();
+    MeshData getMesh();
     // std::vector<unsigned int> getIndices();
 };
 

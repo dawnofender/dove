@@ -252,9 +252,9 @@ int main(){
     // playerController->teleport({0, 7210, 0});
     
     glm::vec3 position;
-    universe.addComponent<MeshRenderer>("test", std::make_shared<MeshData>(centerCube));
+    universe.addComponent<MeshRenderer>("test", centerCube);
 
-    // world->startGeneratingWorld();
+    world->startGeneratingWorld();
 
 
     do{

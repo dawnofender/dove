@@ -2,6 +2,7 @@ todo
 
 high priority:
 - proper mesh data updating 
+    - gaia chunk mesh must create a new meshdata object, and meshrenderer should only update to use it before a frame
 - rework chunks for the 3rd time to just check every 32000 positions they contain instead of taking info from map, see if thats faster
 - rework neighbor finding to take advantage of new maps
 - simplify duplicates 

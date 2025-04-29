@@ -138,35 +138,26 @@ std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direc
     }
 
     // 2) Otherwise, find the neighbor by climbing up and back down the tree,
-    //    using the node's address to navigate.
+    //    using the node's local address to navigate.
     //    this means:
     //    - record the address in a stack as we go up, 
     //    - stop once we find a sibling neighbor,
     //    - then follow the address (but flipped) as we go down. 
+
     std::stack<std::uint8_t> address; 
-
-    // we already have the end of the address:
-    address.push(idx);
     
-
     do {
-        // move to parent
-        node = node->parent;
-        // extend address
+        // move to parent, extend address
         address.push(node->indexInParent);
-    } while (node->parent && !hasSiblingInDir(address.top(), dir)); 
-    
-    // if we are looking for a neighbor off the side of the tree, we'll hit the root - no neighbor
-    if (!node->parent) return nullptr;
+        node = node->parent;
 
-    // move to sibling
+    } while (!hasSiblingInDir(address.top(), dir) && node->parent);
+
     
-    std::shared_ptr<OctreeNode> sibling;
-    if (!(sibling = node->parent->children[address.top()])) {
-        return nullptr;
-    }
-    node = sibling;
-    address.pop();
+
+    // if we are looking for a neighbor off the side of the tree, we'll eventually hit the root - no neighbor
+    if (!node->parent && !hasSiblingInDir(address.top(), dir)) return nullptr;
+
     
     // the left two bits of the dir represent the axis - so we'll flip this on the way down
     uint8_t axis = dir >> 1;
@@ -175,22 +166,17 @@ std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direc
     while (!address.empty()) {
 
         //flip address direction
-        std::cout << (uint) address.top() << ", ";
-        std::cout << (uint) axis << ", ";
 
         address.top() = address.top() ^ (4 >> axis);
 
-        std::cout << (uint) address.top() << std::endl;
-
         if (node->children[address.top()]) {
             node = node->children[address.top()];    
+            address.pop();
         } else {
-            return node; // neighbor under different parent does not exist - for now we'll just return the parent
+            return node; // neighbor under different parent does not exist - for now we'll just return an ancestor
         }
-        address.pop();
     }
 
-    std::cout << "this should never happen" << std::endl;
     return node;
 }
 
