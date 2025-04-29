@@ -220,11 +220,16 @@ private:
     int8_t depth;
     glm::vec3 position;
     MeshRenderer* meshRenderer;
-    MeshData mesh;
-    MeshData renderedMesh;
+    std::shared_ptr<MeshData> mesh;
     MeshData cube;
     threadedCellMap* leafMap; // (depth, (position, leaf cell))
     
+    static inline std::vector<GaiaChunk*> gaiaChunks;
+    static inline std::mutex m_gaiachunks;
+    
+public: 
+    bool shouldUpdate = false;
+
 public: 
     GaiaChunk(std::string && initialValue, Thingy* h, Octree* ot, threadedCellMap* lm, std::shared_ptr<OctreeNode> c, int8_t d) 
         : Component(std::move(initialValue)), host(h), cellTree(ot), leafMap(lm), chunk(c), depth(d) {
@@ -271,26 +276,43 @@ public:
             20, 21, 22, 20, 22, 23  //-z
         };
         
-        std::cout << "test0" << std::endl;
-        if (updateMesh()) {
-            std::cout << "test1" << std::endl;
-            host->addComponent<MeshRenderer>("MeshRenderer", renderedMesh);
-            std::cout << "test2" << std::endl;
-            meshRenderer = &host->getComponent<MeshRenderer>();
-            std::cout << "chunk mesh generated" << std::endl;
-        } else {
-            std::cout << "tried to generate empty chunk, delete me" << std::endl;
+        if ( updateMesh() ) {
+            shouldUpdate = true;
+    	      std::lock_guard<std::mutex> lock(m_gaiachunks);
+            gaiaChunks.push_back(this);
+        }
+    }
+    
+    static void updateAll() {
+    	  std::lock_guard<std::mutex> lock(m_gaiachunks);
+        for (auto& gaiaChunk : gaiaChunks) {
+            if (gaiaChunk->shouldUpdate) gaiaChunk->update();
         }
     }
 
-    void updateMeshRenderer() {
-
+    void update() {
+        std::cout << "test123" << std::endl;
+        if (meshRenderer) {
+            std::cout << "test1235" << std::endl;
+            meshRenderer->setMesh(std::move(mesh));
+            std::cout << "test1236" << std::endl;
+        } else {
+            std::cout << "test1" << std::endl;
+            host->addComponent<MeshRenderer>("MeshRenderer", std::move(mesh));
+            std::cout << "test2" << std::endl;
+            meshRenderer = &host->getComponent<MeshRenderer>();
+            std::cout << "chunk mesh generated" << std::endl;
+        }
+        
+        shouldUpdate = false;
     }
 
     bool updateMesh() {
-        mesh.clear();
+        m_gaiachunks.lock();
+        mesh = std::make_shared<MeshData>();
+        m_gaiachunks.unlock();
         updateMesh(chunk, depth+5);
-        if (mesh.vertices.size() < 1) return false;
+        if (mesh->vertices.size() < 1) return false;
 
         const float nScale = 64.f;
         const float nLacunarity = 2.f;
@@ -298,42 +320,37 @@ public:
         const int nDepth = 5.f;
         const SimplexNoise simplex(0.1f/nScale, 0.5f, nLacunarity, nPersistance);
         
-        mesh.colors.resize(mesh.vertices.size());
-        mesh.normals.resize(mesh.vertices.size());
+        mesh->colors.resize(mesh->vertices.size());
+        mesh->normals.resize(mesh->vertices.size());
         
 
         // calculate normals
-        for (int i = 0; i < mesh.vertices.size(); i+=4) {
-            glm::vec3 edge1 = mesh.vertices[i+1] - mesh.vertices[i];
-            glm::vec3 edge2 = mesh.vertices[i+2] - mesh.vertices[i];
+        for (int i = 0; i < mesh->vertices.size(); i+=4) {
+            glm::vec3 edge1 = mesh->vertices[i+1] - mesh->vertices[i];
+            glm::vec3 edge2 = mesh->vertices[i+2] - mesh->vertices[i];
             glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
             
-            mesh.normals[i] = triangleNormal;
-            mesh.normals[i+1] = triangleNormal;
-            mesh.normals[i+2] = triangleNormal;
-            mesh.normals[i+3] = triangleNormal;
+            mesh->normals[i] = triangleNormal;
+            mesh->normals[i+1] = triangleNormal;
+            mesh->normals[i+2] = triangleNormal;
+            mesh->normals[i+3] = triangleNormal;
         }
 
         // color mesh
-        for (int i = 0; i < mesh.vertices.size(); i++) {
+        for (int i = 0; i < mesh->vertices.size(); i++) {
             //mesh->colors[i] = mesh->vertices[i] / size - (1.0/3) + (rand() / double(RAND_MAX));
             //mesh->colors[i] = mesh->vertices[i] / cSize - (1.0/3) + (rand() / double(RAND_MAX));
-            const float noiseR = simplex.fractal(nDepth, mesh.vertices[i].x+1000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-            const float noiseG = simplex.fractal(nDepth, mesh.vertices[i].x+2000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-            const float noiseB = simplex.fractal(nDepth, mesh.vertices[i].x+3000.f, mesh.vertices[i].y, mesh.vertices[i].z);
-            mesh.colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
+            const float noiseR = simplex.fractal(nDepth, mesh->vertices[i].x+1000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            const float noiseG = simplex.fractal(nDepth, mesh->vertices[i].x+2000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            const float noiseB = simplex.fractal(nDepth, mesh->vertices[i].x+3000.f, mesh->vertices[i].y, mesh->vertices[i].z);
+            mesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) + glm::vec3(rand() / double(RAND_MAX))/2.f;
             // mesh->colors[i] = mesh->normals[i];
         }
         
-        std::cout << "test123" << std::endl;
-        if (meshRenderer) {
-            std::cout << "test1235" << std::endl;
-            meshRenderer->setMesh(std::make_shared<MeshData>(mesh));
-            std::cout << "test1236" << std::endl;
-        }
-        std::cout << "test1234" << std::endl;
+        shouldUpdate = true;
         return true;
     }
+    
     
     void updateMesh(std::shared_ptr<OctreeNode> cell, int8_t cellDepth) {
 
@@ -360,25 +377,25 @@ public:
                 if(!cell->neighbors[i] || cell->neighbors[i]->transparent) {
                     glm::vec3 cellPos = leafMap->getPos(cell);
                     
-                    int vertexInd = mesh.vertices.size();
-                    int indexInd = mesh.indices.size();
+                    int vertexInd = mesh->vertices.size();
+                    int indexInd = mesh->indices.size();
                     int cubeInd = i*4; // which part of the cube mesh to take data from
 
-                    mesh.vertices.resize(vertexInd + 4); // 4 vertices per side
-                    mesh.indices.resize(indexInd + 6); // 6 indices per side
+                    mesh->vertices.resize(vertexInd + 4); // 4 vertices per side
+                    mesh->indices.resize(indexInd + 6); // 6 indices per side
                     
                     GLfloat cellSize = Octree::getCellSize(depth);
                     for(int j = 0; j < 4; j++) {
-                        mesh.vertices[vertexInd+j] = cellPos + cube.vertices[cubeInd+j] * cellSize;
+                        mesh->vertices[vertexInd+j] = cellPos + cube.vertices[cubeInd+j] * cellSize;
                     }
 
 
-                    mesh.indices[indexInd]   = vertexInd;
-                    mesh.indices[indexInd+1] = vertexInd+1;
-                    mesh.indices[indexInd+2] = vertexInd+2;
-                    mesh.indices[indexInd+3] = vertexInd;
-                    mesh.indices[indexInd+4] = vertexInd+2;
-                    mesh.indices[indexInd+5] = vertexInd+3;
+                    mesh->indices[indexInd]   = vertexInd;
+                    mesh->indices[indexInd+1] = vertexInd+1;
+                    mesh->indices[indexInd+2] = vertexInd+2;
+                    mesh->indices[indexInd+3] = vertexInd;
+                    mesh->indices[indexInd+4] = vertexInd+2;
+                    mesh->indices[indexInd+5] = vertexInd+3;
                 }
             }
         }

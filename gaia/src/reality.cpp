@@ -109,9 +109,9 @@ int main(){
     // # assets #
     // ##########
     
-    MeshData centerCube;
+    std::shared_ptr<MeshData> centerCube = std::make_shared<MeshData>();
 
-    centerCube.vertices = {
+    centerCube->vertices = {
         // +x    
         glm::vec3(1, 1, 1),
         glm::vec3(1, 0, 1),
@@ -144,7 +144,7 @@ int main(){
         glm::vec3(0, 1, 0),                
     };
 
-    centerCube.normals = {
+    centerCube->normals = {
         // +x    
         glm::vec3(1, 0, 0),
         glm::vec3(1, 0, 0),
@@ -177,7 +177,7 @@ int main(){
         glm::vec3(0, 0, -1),                
     };
 
-    centerCube.colors = {
+    centerCube->colors = {
         // +x    
         glm::vec3(1, 1, 1),
         glm::vec3(1, 0, 1),
@@ -210,7 +210,7 @@ int main(){
         glm::vec3(0, 1, 0),                
     };
 
-    centerCube.indices = {
+    centerCube->indices = {
         0, 1, 2, 0, 2, 3,       //+x
         4, 5, 6, 4, 6, 7,       //-x
         8, 9, 10, 8, 10, 11,    //+y
@@ -257,7 +257,7 @@ int main(){
     world->startGeneratingWorld();
 
 
-    do{
+    do {
         // measure fps
         double currentTime = glfwGetTime();
         nbFrames++;
@@ -317,7 +317,8 @@ int main(){
 
         }
 
-        MeshRenderer::updateAll();
+        // MeshRenderer::updateAll();
+        GaiaChunk::updateAll();
         MeshRenderer::drawAll();
 
         // for( auto& meshRenderer : meshRenderers ) {

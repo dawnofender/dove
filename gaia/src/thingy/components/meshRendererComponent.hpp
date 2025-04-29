@@ -18,7 +18,7 @@
 class MeshRenderer : public Component {
 CLASS_DECLARATION(MeshRenderer)
 private:
-    MeshData mesh;
+    std::shared_ptr<MeshData> mesh;
     std::shared_ptr<MeshData> meshUpdate;
     std::mutex m_mesh;
 
@@ -35,12 +35,15 @@ private:
     static inline std::mutex m_renderers;
 
 protected: 
-    uint8_t state = 0;
+    uint8_t state = 1;
 
 public:
 
-    MeshRenderer(std::string && initialValue, MeshData m)
-        : Component(std::move(initialValue)), meshUpdate(m) {
+    MeshRenderer(std::string&& initialValue, std::shared_ptr<MeshData> m)
+        : Component(std::move(initialValue)), mesh(std::move(m)) {
+        setupBufferData(mesh);
+	      std::lock_guard<std::mutex> lock(m_renderers);
+        renderers.push_back(this);
     }
 
     ~MeshRenderer() {
@@ -51,18 +54,19 @@ public:
     // void update() override;
     void indexSelf();
     void bindBufferData();
-    void setupBufferData();
+    void setupBufferData(std::shared_ptr<MeshData> newMesh);
+    void updateBufferData(std::shared_ptr<MeshData> newMesh);
     void drawMesh();
     void deleteBuffers();
     void setMesh(std::shared_ptr<MeshData> newMesh);
+    void setMesh(MeshData newMesh);
     void updateMesh();
     void setBounds(glm::vec3 a, glm::vec3 b);
     void lock();
-    void queueUpdate();
+    std::shared_ptr<MeshData> getMesh();
+
     static void drawAll();
     static void updateAll();
-
-    MeshData getMesh();
     // std::vector<unsigned int> getIndices();
 };
 
