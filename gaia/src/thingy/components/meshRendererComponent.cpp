@@ -1,183 +1,141 @@
 #include "meshRendererComponent.hpp"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 #include <iostream>
 #include <memory>
-#include <src/dmesh/dmesh.hpp>
-#include <GL/glew.h>
 #include <vector>
-#include <glm/glm.hpp>
-#include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp> 
+
+#include <lib/controls.hpp>
+#include <src/dmesh/dmesh.hpp>
+#include <src/rendering/shader.hpp>
 
 CLASS_DEFINITION(Component, MeshRenderer)
 
 
-
-// void MeshRendererSystem::unregisterRenderer(MeshRenderer* renderer) {
-//     renderers.erase(std::remove(renderers.begin(), renderers.end(), renderer), renderers.end());
-// }
-
-void MeshRenderer::drawAll() { std::cout << "drawing meshes" << std::endl;
-	  std::lock_guard<std::mutex> lock(m_renderers);
-    for (auto& renderer : renderers) {
-        renderer->drawMesh();
-    }
-    std::cout << "drawing meshes: done" << std::endl;
+// MeshRenderer Component
+void MeshRenderer::drawAll() {
+  for (auto &renderer : renderers) {
+    renderer->drawMesh();
+  }
 }
 
-// void MeshRenderer::updateAll() { std::cout << "updating meshes" << std::endl;
-// 	  std::lock_guard<std::mutex> lock(m_renderers);
-//     for (auto& renderer : renderers) {
-//         switch(renderer->state) {
-//             case 1: 
-//                 renderer->setupBufferData();    
-//                 renderer->state = 0;
-//                 break;
-//             case 2:
-//                 renderer->updateMesh();
-//                 renderer->setupBufferData();    
-//                 renderer->state = 0;
-//                 break;
-//         }
-//     }
-//     std::cout << "updating meshes: done" << std::endl;
-// }
-// void MeshRenderer::queueUpdate() {
-//     update = true;
-// }
-// std::vector<std::shared_ptr<MeshRenderer>> MeshRenderer::meshRenderers;
+void MeshRenderer::setupBufferData() {
 
-// void MeshRenderer::setup(){
-//     // meshRenderers.push_back(std::make_shared<MeshRenderer>(this));
-// }
+  // VAO
+  glGenVertexArrays(1, &VertexArrayID);
+  glBindVertexArray(VertexArrayID);
+  
+  // VBOs
+  glGenBuffers(1, &vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3),
+               &mesh->vertices[0], GL_STATIC_DRAW);
 
-// void MeshRenderer::update(){
-//     drawMesh();
-// }
+  glGenBuffers(1, &colorbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh->colors.size() * sizeof(glm::vec3),
+               &mesh->colors[0], GL_STATIC_DRAW);
 
-void MeshRenderer::setupBufferData(std::shared_ptr<MeshData> newMesh) {
-    std::cout << "setting up buffer data" << std::endl;
+  glGenBuffers(1, &normalbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(glm::vec3),
+               &mesh->normals[0], GL_STATIC_DRAW);
+  
+  // EBO
+  glGenBuffers(1, &elementbuffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               mesh->indices.size() * sizeof(unsigned int), &mesh->indices[0],
+               GL_STATIC_DRAW);
+  
+  // unbind buffers to prevent accidentally modifying them
+  unbindBufferData();
 
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, newMesh->vertices.size() * sizeof(glm::vec3), &newMesh->vertices[0], GL_STATIC_DRAW);
-
-    glGenBuffers(1, &colorbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-	glBufferData(GL_ARRAY_BUFFER, newMesh->colors.size() * sizeof(glm::vec3), &newMesh->colors[0], GL_STATIC_DRAW);
-
-    glGenBuffers(1, &normalbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-    glBufferData(GL_ARRAY_BUFFER, newMesh->normals.size() * sizeof(glm::vec3), &newMesh->normals[0], GL_STATIC_DRAW);
-
-    glGenBuffers(1, &elementbuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indices.size() * sizeof(unsigned int), &newMesh->indices[0], GL_STATIC_DRAW);
-    
-    std::cout << "setting up buffer data: done" << std::endl;
-}
-
-void MeshRenderer::updateBufferData(std::shared_ptr<MeshData> newMesh) {
-    std::cout << "updating buffer data" << std::endl;
-
-    glUnmapBuffer(GL_ARRAY_BUFFER);
-    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	  glBufferData(GL_ARRAY_BUFFER, newMesh->vertices.size() * sizeof(glm::vec3), &newMesh->vertices[0], GL_STATIC_DRAW);
-
-    std::cout << "updating buffer data: 0" << std::endl;
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-	glBufferData(GL_ARRAY_BUFFER, newMesh->colors.size() * sizeof(glm::vec3), &newMesh->colors[0], GL_STATIC_DRAW);
-
-    std::cout << "updating buffer data: 1" << std::endl;
-    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-    glBufferData(GL_ARRAY_BUFFER, newMesh->normals.size() * sizeof(glm::vec3), &newMesh->normals[0], GL_STATIC_DRAW);
-
-    std::cout << "updating buffer data: 2" << std::endl;
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, newMesh->indices.size() * sizeof(unsigned int), &newMesh->indices[0], GL_STATIC_DRAW);
-    
-    std::cout << "updating buffer data: done" << std::endl;
 }
 
 void MeshRenderer::bindBufferData() {
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  glBindVertexArray(VertexArrayID);
 
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+  glEnableVertexAttribArray(0);
 
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+  glEnableVertexAttribArray(1);
 
+  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+  glEnableVertexAttribArray(2);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+}
+
+void MeshRenderer::unbindBufferData() {
+	glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void MeshRenderer::regenerateBuffers() {
+  glGenBuffers(1, &vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3),
+               &mesh->vertices[0], GL_STATIC_DRAW);
+
+  glGenBuffers(1, &colorbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh->colors.size() * sizeof(glm::vec3),
+               &mesh->colors[0], GL_STATIC_DRAW);
+
+  glGenBuffers(1, &normalbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+  glBufferData(GL_ARRAY_BUFFER, mesh->normals.size() * sizeof(glm::vec3),
+               &mesh->normals[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  glGenBuffers(1, &elementbuffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               mesh->indices.size() * sizeof(unsigned int), &mesh->indices[0],
+               GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void MeshRenderer::drawMesh() {
-    bindBufferData();    
-    glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
+  // later, this could instead use a material object to deal with uniforms
+  // so, thingy->meshrenderer->material->shader
+
+  shader->Activate();
+  bindBufferData();
+  
+  glm::mat4 ProjectionMatrix = getProjectionMatrix();
+  glm::mat4 ViewMatrix = getViewMatrix();
+  glm::mat4 ModelMatrix = glm::mat4(1.0);
+  glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
+
+  glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+  glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
+  glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
+
+  glm::vec3 lightPos = glm::vec3(0, 10000, 0);
+  glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+
+
+  glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }
 
 void MeshRenderer::deleteBuffers() {
-    glDeleteBuffers(1, &vertexbuffer);
-    glDeleteBuffers(1, &colorbuffer);
-    //glDeleteBuffers(1, &meshRenderer.uvbuffer);
-    glDeleteBuffers(1, &normalbuffer);
-    glDeleteBuffers(1, &elementbuffer);
-
+  glDeleteBuffers(1, &vertexbuffer);
+  glDeleteBuffers(1, &colorbuffer);
+  // glDeleteBuffers(1, &meshRenderer.uvbuffer);
+  glDeleteBuffers(1, &normalbuffer);
+  glDeleteBuffers(1, &elementbuffer);
+  glDeleteVertexArrays(1, &VertexArrayID);
 }
 
-void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) {
-    bounds = {a, b};
-}
-
-void MeshRenderer::setMesh(std::shared_ptr<MeshData> newMesh) {
-    if (!(newMesh->vertices.size() > 0 && 
-          newMesh->colors.size() > 0 &&
-          newMesh->normals.size() > 0 &&
-          newMesh->indices.size() > 0)) return;
-
-    std::cout << newMesh->vertices.size() << std::endl;
-    std::cout << newMesh->colors.size()   << std::endl;
-    std::cout << newMesh->normals.size()  << std::endl;
-    std::cout << newMesh->indices.size()  << std::endl;
-
-    std::cout << newMesh->vertices[0].x << std::endl;
-    std::cout << newMesh->colors[0]  .x << std::endl;
-    std::cout << newMesh->normals[0] .x << std::endl;
-    std::cout << newMesh->indices[0]    << std::endl;
-
-    std::cout << "setting new mesh: 1" << std::endl;
-    updateBufferData(std::move(newMesh));
-
-    // mesh = std::make_shared<MeshData>(*newMesh);
-    std::cout << "setting new mesh: done" << std::endl;
-    // state = 2;
-}
-
-void MeshRenderer::setMesh(MeshData newMesh) {
-    std::cout << "setting new mesh" << std::endl;
-    mesh = std::make_shared<MeshData>(newMesh);
-    std::cout << "setting new mesh: done" << std::endl;
-    // state = 2;
-}
-// void MeshRenderer:: updateMesh() {
-// 	  std::lock_guard<std::mutex> lock(m_renderers);
-//     mesh = meshUpdate;
-// }
-
-
-// std::shared_ptr<MeshData> MeshRenderer::getMesh() {
-//     return(mesh);
-// }
-
-// std::vector<unsigned int> MeshRenderer::getIndices() {
-//     return mesh->indices;
-// }
-
-
+void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) { bounds = {a, b}; }

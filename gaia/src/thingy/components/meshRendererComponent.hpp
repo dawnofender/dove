@@ -3,73 +3,77 @@
 
 #include "component.hpp"
 #include <GL/glew.h>
-#include <src/dmesh/dmesh.hpp>
-#include <vector>
-#include <algorithm>
-#include <memory>
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp> 
-#include <mutex>
+#include <glm/gtx/transform.hpp>
 #include <iostream>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+#include <src/rendering/shader.hpp>
+#include <src/dmesh/dmesh.hpp>
+#include <lib/controls.hpp>
 
 
 class MeshRenderer : public Component {
-CLASS_DECLARATION(MeshRenderer)
+  CLASS_DECLARATION(MeshRenderer)
 private:
-    std::shared_ptr<MeshData> mesh;
-    std::shared_ptr<MeshData> meshUpdate;
-    std::mutex m_mesh;
+  std::shared_ptr<Shader> shader;
+  std::shared_ptr<MeshData> mesh;
 
-    GLuint vertexbuffer;
-    GLuint colorbuffer;
-    GLuint normalbuffer;
-    // GLuint uvbuffer;
-    GLuint elementbuffer;
+  GLuint VertexArrayID;
 
-    std::pair<glm::vec3, glm::vec3> bounds;
-    
+  GLuint vertexbuffer;
+  GLuint colorbuffer;
+  GLuint normalbuffer;
+  GLuint uvbuffer;
+  GLuint elementbuffer;
 
-    static inline std::vector<MeshRenderer*> renderers;
-    static inline std::mutex m_renderers;
+  GLuint MatrixID;       
+  GLuint ViewMatrixID;   
+  GLuint ModelMatrixID;  
 
-protected: 
-    uint8_t state = 1;
+  GLuint LightID;        
+  std::pair<glm::vec3, glm::vec3> bounds;
+
+  static inline std::vector<MeshRenderer *> renderers;
+  static inline std::mutex m_renderers;
+
+protected:
+  uint8_t state = 1;
 
 public:
+  MeshRenderer(std::string &&initialValue, std::shared_ptr<Shader> s, std::shared_ptr<MeshData> m)
+      : Component(std::move(initialValue)), shader(s), mesh(m) {
+    setupBufferData();
 
-    MeshRenderer(std::string&& initialValue, std::shared_ptr<MeshData> m)
-        : Component(std::move(initialValue)), mesh(std::move(m)) {
-        setupBufferData(mesh);
-	      std::lock_guard<std::mutex> lock(m_renderers);
-        renderers.push_back(this);
-    }
+    MatrixID = glGetUniformLocation(shader->ID, "MVP");                     
+    ViewMatrixID = glGetUniformLocation(shader->ID, "V");                         
+    ModelMatrixID = glGetUniformLocation(shader->ID, "M");                       
+    LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
 
-    ~MeshRenderer() {
-        deleteBuffers();
-        renderers.erase(std::remove(renderers.begin(), renderers.end(), this), renderers.end());
-    }
+    renderers.push_back(this);
 
-    // void update() override;
-    void indexSelf();
-    void bindBufferData();
-    void setupBufferData(std::shared_ptr<MeshData> newMesh);
-    void updateBufferData(std::shared_ptr<MeshData> newMesh);
-    void drawMesh();
-    void deleteBuffers();
-    void setMesh(std::shared_ptr<MeshData> newMesh);
-    void setMesh(MeshData newMesh);
-    void updateMesh();
-    void setBounds(glm::vec3 a, glm::vec3 b);
-    void lock();
-    std::shared_ptr<MeshData> getMesh();
+  }
+  
+  ~MeshRenderer() {
+    deleteBuffers();
+    renderers.erase(std::remove(renderers.begin(), renderers.end(), this), renderers.end());
+  }
 
-    static void drawAll();
-    static void updateAll();
-    // std::vector<unsigned int> getIndices();
+  void setupBufferData();
+  void bindBufferData();
+  void unbindBufferData();
+  void regenerateBuffers();
+  void drawMesh();
+  void deleteBuffers();
+  void setBounds(glm::vec3 a, glm::vec3 b);
+  std::shared_ptr<MeshData> getMesh();
+
+  static void drawAll();
 };
-
-
 
 #endif

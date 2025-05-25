@@ -11,8 +11,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp> 
 
+#include "../rendering/shader.hpp"
+
 class MeshRenderer{
 private:
+    std::shared_ptr<Shader> shader;
     std::shared_ptr<meshData> mesh;
     GLuint vertexbuffer;
     GLuint colorbuffer;
@@ -22,7 +25,7 @@ private:
 
 
 public:
-    MeshRenderer(std::shared_ptr<meshData> m) : mesh(m) {
+    MeshRenderer(std::shared_ptr<Shader> s, std::shared_ptr<meshData> m) : mesh(m), shader(s) {
         setupBufferData();
     }
     

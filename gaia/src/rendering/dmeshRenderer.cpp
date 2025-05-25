@@ -1,6 +1,7 @@
 #include "dmeshRenderer.hpp"
 #include <iostream>
 #include <memory>
+#include <lib/controls.hpp>
 #include <src/dmesh/dmesh.hpp>
 #include <GL/glew.h>
 #include <vector>
@@ -27,6 +28,9 @@ void MeshRenderer::setupBufferData() {
     glGenBuffers(1, &elementbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndices().size() * sizeof(unsigned int), &mesh->getIndices()[0], GL_STATIC_DRAW);
+    
+    // unbind buffer so we dont accidentally modify it
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void MeshRenderer::bindBufferData() {
@@ -47,6 +51,7 @@ void MeshRenderer::bindBufferData() {
 }
 
 void MeshRenderer::drawMesh() {
+    // bind VAO
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
