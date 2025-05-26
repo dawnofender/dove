@@ -43,20 +43,21 @@ add_executable(reality
     src/reality.cpp
     src/TransformVertexShader.vertexshader
     src/TextureFragmentShader.fragmentshader
-    src/dmesh/dmesh.cpp
-    src/dmesh/dmesh.hpp
-    # src/rendering/dmeshRenderer.hpp
-    # src/rendering/dmeshRenderer.cpp
-    src/rendering/shader.hpp
-    src/rendering/shader.cpp
     src/worldgen/doctree.cpp
     src/worldgen/doctree.hpp
+
+    src/dasset/dmesh.cpp
+    src/dasset/dmesh.hpp
+    src/dasset/dtexture.cpp
+    src/dasset/dtexture.hpp
+    src/dasset/shader.hpp
+    src/dasset/shader.cpp
+
+
     src/thingy/thingy.cpp
     src/thingy/thingy.hpp
     src/thingy/components/component.cpp
     src/thingy/components/component.hpp
-    src/thingy/components/dynamicComponent.cpp
-    src/thingy/components/dynamicComponent.hpp
     src/thingy/components/meshRendererComponent.cpp
     src/thingy/components/meshRendererComponent.hpp
     src/thingy/components/spriteRendererComponent.cpp
@@ -67,6 +68,7 @@ add_executable(reality
     src/thingy/components/playerControllerComponent.hpp
     src/thingy/components/gaiaComponent.cpp
     src/thingy/components/gaiaComponent.hpp
+
     lib/shaderLoader.cpp
     lib/shaderLoader.hpp
     lib/SimplexNoise.cpp
@@ -79,6 +81,8 @@ add_executable(reality
     lib/texture.cpp
     lib/texture.hpp
     lib/threadsafe_vector.hpp
+
+    lib/stb_image.h
 )
 
 target_link_libraries(reality ${ALL_LIBS})

@@ -13,8 +13,9 @@
 #include <mutex>
 #include <vector>
 
-#include <src/rendering/shader.hpp>
-#include <src/dmesh/dmesh.hpp>
+#include <src/dasset/shader.hpp>
+#include <src/dasset/dtexture.hpp>
+#include <src/dasset/dmesh.hpp>
 #include <lib/controls.hpp>
 
 
@@ -22,6 +23,7 @@ class MeshRenderer : public Component {
   CLASS_DECLARATION(MeshRenderer)
 private:
   std::shared_ptr<Shader> shader;
+  std::shared_ptr<Texture> texture;
   std::shared_ptr<MeshData> mesh;
 
   GLuint VertexArrayID;
@@ -39,8 +41,8 @@ private:
   GLuint LightID;        
   std::pair<glm::vec3, glm::vec3> bounds;
 
+  
   static inline std::vector<MeshRenderer *> renderers;
-  static inline std::mutex m_renderers;
 
 protected:
   uint8_t state = 1;
@@ -56,7 +58,6 @@ public:
     LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
 
     renderers.push_back(this);
-
   }
   
   ~MeshRenderer() {
@@ -66,14 +67,17 @@ public:
 
   void setupBufferData();
   void bindBufferData();
-  void unbindBufferData();
-  void regenerateBuffers();
-  void drawMesh();
+  static void unbindBufferData();
+  void regenerate();
+  void draw();
   void deleteBuffers();
   void setBounds(glm::vec3 a, glm::vec3 b);
   std::shared_ptr<MeshData> getMesh();
 
   static void drawAll();
+
+  // temporary until we have proper material implementation
+  void setTexture(std::shared_ptr<Texture> t);
 };
 
 #endif

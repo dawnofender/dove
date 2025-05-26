@@ -10,6 +10,7 @@ struct MeshData {
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> colors;
+    std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals;
     std::vector<unsigned int> indices;
     
@@ -18,6 +19,7 @@ struct MeshData {
     MeshData (MeshData& meshData) {
         vertices = std::vector<glm::vec3>(meshData.vertices);
         colors =   std::vector<glm::vec3>(meshData.colors);
+        uvs =      std::vector<glm::vec2>(meshData.uvs);
         normals =  std::vector<glm::vec3>(meshData.normals);
         indices =  std::vector<unsigned int>(meshData.indices);
     }
@@ -25,6 +27,7 @@ struct MeshData {
     void clear() {
         vertices.clear();
         colors.clear();
+        uvs.clear();
         normals.clear();
         indices.clear();
     }

@@ -1,13 +1,30 @@
 todo
 
+########
+# DOVE #
+########
+
+high priority: 
+- some variables may need global access for complicated systems, like the camera
+- store these in a universe object?
+- implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
+
+do sometime: 
+
+eventually: 
+- octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain
+
+########
+# GAIA #
+########
+
 high priority:
-- proper mesh data updating 
-    - gaia chunk mesh must create a new meshdata object, and meshrenderer should only update to use it before a frame
-- rework chunks for the 3rd time to just check every 32000 positions they contain instead of taking info from map, see if thats faster
-- rework neighbor finding to take advantage of new maps
+- try using mesh regeneration for updating chunk thingies
 - simplify duplicates 
 - write data to file
-- load data from heightmap
+- load data from images (heightmap & 'matter maps')? 
+    - would be great for quick testing before worring about complex world generation
+
 
 do sometime:
 - generate smooth mesh based on density of cell

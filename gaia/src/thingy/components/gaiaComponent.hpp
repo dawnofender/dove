@@ -27,11 +27,11 @@
 
 #include <lib/FastNoise.h>
 #include <lib/SimplexNoise.h>
-#include <src/dmesh/dmesh.hpp>
+#include <src/dasset/dmesh.hpp>
+#include <src/dasset/shader.hpp>
 #include <src/thingy/components/meshRendererComponent.hpp>
 #include <src/thingy/components/transformComponent.hpp>
 #include <src/thingy/thingy.hpp>
-#include <src/rendering/shader.hpp>
 #include <src/worldgen/doctree.hpp>
 
 // for hashing vec3 (required by threadedcellmap)

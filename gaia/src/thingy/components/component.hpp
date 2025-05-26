@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 
 // for components i am currently stealing code from:
@@ -43,19 +45,27 @@ bool childclass::IsClassType( const std::size_t classType ) const {             
 class Thingy;
 class Component {
 public: 
+    std::string value = "uninitialized";
     static const std::size_t Type;
-    virtual bool IsClassType( const std::size_t classType ) const { 
-        return classType == Type;
-    }
 
-public: 
     virtual ~Component() = default;
     Component( std::string && initialValue )
         : value( initialValue ) { 
     }
 
-public:
-    std::string value = "uninitialized";
+    virtual bool IsClassType( const std::size_t classType ) const { 
+        return classType == Type;
+    }
+
+private: 
+  static inline std::vector<Component *> dynamicComponents;
+
+public: 
+    static void updateAll(); // calls update() on every dynamic component
+    void update();
+    void registerDynamic();
+    void unregisterDynamic();
+
 };
 
 

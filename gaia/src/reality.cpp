@@ -1,3 +1,5 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <cmath>
 // #include <glm/detail/qualifier.hpp>
 #include <GL/glew.h>
@@ -13,7 +15,6 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
-GLFWwindow *window;
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -25,14 +26,16 @@ GLFWwindow *window;
 #include <lib/FastNoise.h>
 #include <lib/SimplexNoise.h>
 
-#include <src/rendering/shader.hpp>
-#include <src/dmesh/dmesh.hpp>
+#include <src/dasset/shader.hpp>
+#include <src/dasset/dmesh.hpp>
 #include <src/thingy/components/gaiaComponent.hpp>
 #include <src/thingy/components/meshRendererComponent.hpp>
-#include <src/thingy/components/dynamicComponent.hpp>
 #include <src/thingy/components/playerControllerComponent.hpp>
 #include <src/thingy/components/transformComponent.hpp>
 #include <src/thingy/thingy.hpp>
+
+
+GLFWwindow *window;
 
 int main() {
 
@@ -136,6 +139,39 @@ int main() {
       glm::vec3(0, 1, 0),
   };
 
+  centerCube->uvs = {
+      // +x
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+      // -x
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+      // +y
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+      // -y
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+      // +z
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+      // -z
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+  };
+  
   centerCube->normals = {
       // +x
       glm::vec3(1, 0, 0),
@@ -210,9 +246,42 @@ int main() {
       16, 17, 18, 16, 18, 19, //+z
       20, 21, 22, 20, 22, 23  //-z
   };
-  // GLuint Texture = loadDDS("uvtemplate.DDS");
-  // GLuint TextureID = glGetUniformLocation(programID, "myTextureSampler");
+  
+  std::shared_ptr<MeshData> quad = std::make_shared<MeshData>();
 
+  quad->vertices = {
+      glm::vec3(0, 1, 0),
+      glm::vec3(0, 0, 0),
+      glm::vec3(1, 0, 0),
+      glm::vec3(1, 1, 0),
+  };
+  
+  quad->uvs = {
+      glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(1, 1),
+  };
+
+  quad->normals = {
+      glm::vec3(0, 0, 1),
+      glm::vec3(0, 0, 1),
+      glm::vec3(0, 0, 1),
+      glm::vec3(0, 0, 1),
+  };
+
+  quad->colors = {
+      glm::vec3(0, 0, 0),
+      glm::vec3(1, 0, 0),
+      glm::vec3(0, 1, 0),
+      glm::vec3(0, 0, 1),
+  };
+
+  quad->indices = {
+      0, 1, 2, 0, 2, 3
+  };
+
+  
   // ###############
   // # world setup #
   // ###############
@@ -243,8 +312,15 @@ int main() {
 
   glm::vec3 position;
   
-  std::shared_ptr<Shader> shader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "ColorFragmentShader.fragmentshader");
+
+  // ###############
+  // # other tests #
+  // ###############
+  
+  auto shader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+  auto texture = std::make_shared<Texture>("test.png");
   universe.addComponent<MeshRenderer>("test", shader, centerCube);
+  universe.getComponent<MeshRenderer>().setTexture(texture);
 
   // world->startGeneratingWorld();
 
@@ -262,6 +338,7 @@ int main() {
       lastFrameTime += 1.0;
     }
 
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -274,33 +351,26 @@ int main() {
     playerController->teleport(position);
 
     
-    if ((int)(currentTime * 100)%2 == 0) {
-      centerCube->vertices[0] += glm::vec3(0, 1, 0);
-    } else {
-      centerCube->vertices[0] += glm::vec3(0, -1, 0);
-    }
-    universe.getComponent<MeshRenderer>().regenerateBuffers();
 
-    if (currentTime - lastGenTime >= 5.0) {
-      lastGenTime += 5.0;
-      
+    // ##############
+    // # world loop #
+    // ##############
 
-      
+    // random testing stuff: 
+    // if ((int)(currentTime * 100)%2 == 0) {
+    //   centerCube->vertices[0] += glm::vec3(0, 1, 0);
+    // } else {
+    //   centerCube->vertices[0] += glm::vec3(0, -1, 0);
+    // }
+    // universe.getComponent<MeshRenderer>().regenerate();
+    //
+    // if (currentTime - lastGenTime >= 5.0) {
+    //   lastGenTime += 5.0;
+    // }
 
-      // for( auto chunkMesh : world.getChunkMeshData() ) {
-      //     MeshRenderer
-      //     chunkMeshRenderer(std::make_shared<meshData>(chunkMesh));
-      //     meshRenderers.insert(std::make_shared<MeshRenderer>(chunkMeshRenderer));
-      // }
-
-      // for( auto& meshRenderer : meshRenderers ) {
-      //     meshRenderer->setupBufferData();
-      // }
-    }
-
-    // normal game loop
-    DynamicComponent::updateAll();
+    // updating components:
     MeshRenderer::drawAll();
+    Component::updateAll();
 
     glfwSwapBuffers(window);
     glfwPollEvents();
