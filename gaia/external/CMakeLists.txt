@@ -142,3 +142,17 @@ target_link_libraries(ANTTWEAKBAR_116_OGLCORE_GLFW
 	${OPENGL_LIBRARY}
 	${EXTRA_LIBS}
 )
+
+
+
+### BULLET ###
+# Bullet already has a CMakeLists.txt so let's use these
+
+set(BULLET_VERSION 3.2)
+include_directories(
+	  bullet3/src
+)
+# add_subdirectory( bullet3/src/Bullet3Common )
+add_subdirectory( bullet3/src/BulletDynamics )
+add_subdirectory( bullet3/src/BulletCollision )
+add_subdirectory( bullet3/src/LinearMath )

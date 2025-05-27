@@ -17,6 +17,8 @@ public:
     std::vector<std::unique_ptr<Component>> components;
     std::vector<std::shared_ptr<Thingy>> children;
 
+    static std::unique_ptr<Thingy> root;
+
 public:
     Thingy(std::string n) : name(n) {}
     virtual ~Thingy();
@@ -26,7 +28,7 @@ public:
 
 public:
     template<class ComponentType, typename... Args>
-    void addComponent(Args&&... args);
+    ComponentType& addComponent(Args&&... args);
 
     template<class ComponentType>
     ComponentType& getComponent();
@@ -48,8 +50,11 @@ public:
 
 
 template< class ComponentType, typename... Args >
-void Thingy::addComponent(Args&&... args) {
-    components.emplace_back(std::make_unique<ComponentType>(std::forward<Args>(args)...));
+ComponentType& Thingy::addComponent(Args&&... args) {
+    auto component = std::make_unique<ComponentType>(std::forward<Args>(args)...);
+    ComponentType& ref = *component;
+    components.emplace_back(std::move(component));
+    return ref;
 }
 
 

@@ -7,5 +7,5 @@ in vec2 UV;
 uniform sampler2D tex0;
 
 void main(){
-	color = texture( tex0, UV ).rgb * fragmentColor;
+	color = texture( tex0, UV ).rgb + fragmentColor;
 }

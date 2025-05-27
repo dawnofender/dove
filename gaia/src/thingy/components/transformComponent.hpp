@@ -8,14 +8,13 @@
 class Transform : public Component {
 CLASS_DECLARATION(Transform)
 public: 
-    Thingy* host;
     glm::vec3 position;
-    // glm::quat rotation;
+    glm::vec4 rotation;
     glm::vec3 scale;
 
 public: 
-    Transform(std::string && initialValue, Thingy* h)
-        : Component(std::move(initialValue)), host(h) {
+    Transform(std::string && initialValue)
+        : Component(std::move(initialValue)) {
     }
 };
 

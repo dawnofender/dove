@@ -23,6 +23,13 @@ void MeshRenderer::drawAll() {
   unbindBufferData();
 }
 
+void MeshRenderer::deleteAll() {
+  for (auto &renderer : renderers) {
+    renderer->deleteBuffers();
+  }
+}
+
+
 void MeshRenderer::setupBufferData() {
 
   // VAO

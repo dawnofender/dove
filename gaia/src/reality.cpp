@@ -28,16 +28,21 @@
 
 #include <src/dasset/shader.hpp>
 #include <src/dasset/dmesh.hpp>
+
+#include <src/thingy/thingy.hpp>
+#include <src/thingy/components/physicsComponent.hpp>
+#include <src/thingy/components/sphereColliderComponent.hpp>
 #include <src/thingy/components/gaiaComponent.hpp>
 #include <src/thingy/components/meshRendererComponent.hpp>
 #include <src/thingy/components/playerControllerComponent.hpp>
 #include <src/thingy/components/transformComponent.hpp>
-#include <src/thingy/thingy.hpp>
+
 
 
 GLFWwindow *window;
 
 int main() {
+    std::cout << "hi!" << std::endl;
 
   // ################
   // # OpenGL setup #
@@ -287,104 +292,119 @@ int main() {
   // ###############
 
   Thingy universe("universe");
+  universe.addComponent<Physics>("Laws Of Physics");
+  
 
   Thingy *player = &universe.createChild("player");
-  player->addComponent<Transform>("Transform", player);
-  player->addComponent<PlayerController>("PlayerController", player);
+  Transform playerTransform = player->addComponent<Transform>("Transform");
+  PlayerController playerController = player->addComponent<PlayerController>("PlayerController", player);
 
-  auto *playerController = &player->getComponent<PlayerController>();
+  
 
-  Thingy *gaia = &universe.createChild("gaia");
-  gaia->addComponent<Gaia>("Gaia", gaia, player);
+  // ###############
+  // # other tests #
+  // ###############
+    
+    auto testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    auto testTexture = std::make_shared<Texture>("test.png");
+  
+  // # GAIA
+  
+  // Thingy *gaia = &universe.createChild("gaia");
+  // gaia->addComponent<Gaia>("Gaia", gaia, player);
 
   // put player on serface (temporary)
   // playerController->teleport({0, 4210, 0});
 
-  auto *world = &gaia->getComponent<Gaia>();
-  Octree cellTree(0, 24);
+  // auto *world = &gaia->getComponent<Gaia>();
+  // Octree cellTree(0, 24);
   // world->createWorld(&cellTree);
   // 23 - a bit bigger than earth
   // 65 - max before math breaks at edges (currently breaks world entirely, but
   // can be fixed by generating from the center instead of the corner) 90 -
   // bigger than the observable universe
 
-  // playerController->teleport({0, 7210, 0});
-
-  glm::vec3 position;
+    // # GLYPHS
   
+    Thingy *testCube = &universe.createChild("Cube");
+    testCube->addComponent<MeshRenderer>("MeshRenderer", testShader, centerCube);
+    testCube->getComponent<MeshRenderer>().setTexture(testTexture);
+    
+    testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
 
-  // ###############
-  // # other tests #
-  // ###############
-  
-  auto shader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-  auto texture = std::make_shared<Texture>("test.png");
-  universe.addComponent<MeshRenderer>("test", shader, centerCube);
-  universe.getComponent<MeshRenderer>().setTexture(texture);
-
-  // world->startGeneratingWorld();
-
-  do {
-    // measure fps
-    double currentTime = glfwGetTime();
-    nbFrames++;
-    if (currentTime - lastFrameTime >= 1.0) { // If last prinf() was more than 1sec ago
-      // printf and reset
-      printf("%f ms/frame    ", 1000.0 / double(nbFrames));
-      std::cout << playerController->getPosition().x << ", "
-                << playerController->getPosition().y << ", "
-                << playerController->getPosition().z << "\n";
-      nbFrames = 0;
-      lastFrameTime += 1.0;
-    }
-
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-    // ##########
-    // # camera #
-    // ##########
-    position = playerController->getPosition();
-    computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
-                              initialFoV, speed, mouseSpeed, near, far);
-    playerController->teleport(position);
+    // world->startGeneratingWorld();
 
     
+    // #############
+    // # main loop #
+    // #############
+    
+    glm::vec3 position; // temporary for how we're doing the camera right now
+    do {
+        // #######
+        // # fps #
+        // #######
+        double currentTime = glfwGetTime();
+        nbFrames++;
+        if (currentTime - lastFrameTime >= 1.0) { // If last prinf() was more than 1sec ago
+            // printf and reset
+            printf("%f ms/frame    ", 1000.0 / double(nbFrames));
+            std::cout << playerTransform.position.x << ", "
+                      << playerTransform.position.y << ", "
+                      << playerTransform.position.z << "\n";
+            nbFrames = 0;
+            lastFrameTime += 1.0;
+        }
 
-    // ##############
-    // # world loop #
-    // ##############
+        // #################
+        // # prepare frame #
+        // #################
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // random testing stuff: 
-    // if ((int)(currentTime * 100)%2 == 0) {
-    //   centerCube->vertices[0] += glm::vec3(0, 1, 0);
-    // } else {
-    //   centerCube->vertices[0] += glm::vec3(0, -1, 0);
-    // }
-    // universe.getComponent<MeshRenderer>().regenerate();
-    //
-    // if (currentTime - lastGenTime >= 5.0) {
-    //   lastGenTime += 5.0;
-    // }
 
-    // updating components:
-    MeshRenderer::drawAll();
-    Component::updateAll();
+        // ##########
+        // # camera #
+        // ##########
+        position = playerTransform.position;
+        computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
+                                  initialFoV, speed, mouseSpeed, near, far);
+        playerTransform.position = position;
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+        
 
-  } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-           glfwWindowShouldClose(window) == 0);
+        // ##############
+        // # world loop #
+        // ##############
 
-  // for ( auto& meshRenderer : meshRenderers ) {
-  //     meshRenderer->deleteBuffers();
-  // }
+        // random testing stuff: 
+        // if ((int)(currentTime * 100)%2 == 0) {
+        //   centerCube->vertices[0] += glm::vec3(0, 1, 0);
+        // } else {
+        //   centerCube->vertices[0] += glm::vec3(0, -1, 0);
+        // }
+        // universe.getComponent<MeshRenderer>().regenerate();
+        //
+        // if (currentTime - lastGenTime >= 5.0) {
+        //   lastGenTime += 5.0;
+        // }
 
-  // glDeleteTextures(1, &Texture);
+        // updating components:
+        MeshRenderer::drawAll();
+        Component::updateAll();
 
-  glfwTerminate();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
 
-  return 0;
+    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+             glfwWindowShouldClose(window) == 0);
+
+    std::cout << "cleaning up..." << std::endl;
+    MeshRenderer::deleteAll(); 
+
+    // glDeleteTextures(1, &Texture);
+
+    glfwTerminate();
+    std::cout << "bye bye!" << std::endl;
+
+    return 0;
 }

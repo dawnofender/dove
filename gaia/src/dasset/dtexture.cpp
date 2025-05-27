@@ -3,7 +3,6 @@
 #include <iostream>
 
 Texture::Texture(const char* image, GLenum texType, GLuint slot, GLenum format, GLenum pixelType) {
-    std::cout << "test0" << std::endl;
 	  // Assigns the type of the texture ot the texture object
 	  type = texType;
 

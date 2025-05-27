@@ -54,7 +54,7 @@ public:
 
     MatrixID = glGetUniformLocation(shader->ID, "MVP");                     
     ViewMatrixID = glGetUniformLocation(shader->ID, "V");                         
-    ModelMatrixID = glGetUniformLocation(shader->ID, "M");                       
+    ModelMatrixID = glGetUniformLocation(shader->ID, "M");
     LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
 
     renderers.push_back(this);
@@ -75,6 +75,7 @@ public:
   std::shared_ptr<MeshData> getMesh();
 
   static void drawAll();
+  static void deleteAll();
 
   // temporary until we have proper material implementation
   void setTexture(std::shared_ptr<Texture> t);

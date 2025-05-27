@@ -62,7 +62,7 @@ private:
 
 public: 
     static void updateAll(); // calls update() on every dynamic component
-    void update();
+    virtual void update();
     void registerDynamic();
     void unregisterDynamic();
 
