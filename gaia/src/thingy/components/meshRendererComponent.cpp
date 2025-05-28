@@ -135,6 +135,7 @@ void MeshRenderer::draw() {
   bindBufferData();
   texture->bind();
   
+  // FIX: some of these matrices can be calculated once to be used by all rendering and the player controller
   glm::mat4 ProjectionMatrix = getProjectionMatrix();
   glm::mat4 ViewMatrix = getViewMatrix();
   glm::mat4 ModelMatrix = glm::mat4(1.0);

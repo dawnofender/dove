@@ -6,6 +6,7 @@
 #include <vector>
 #include <GL/glew.h>
 #include <string>
+#include <iostream>
 
 
 class Thingy : public std::enable_shared_from_this<Thingy> {
@@ -16,8 +17,6 @@ private:
 public: 
     std::vector<std::unique_ptr<Component>> components;
     std::vector<std::shared_ptr<Thingy>> children;
-
-    static std::unique_ptr<Thingy> root;
 
 public:
     Thingy(std::string n) : name(n) {}
@@ -35,7 +34,6 @@ public:
 
     // template< class ComponentType >
     // std::vector<ComponentType*> getComponents();
-
     Thingy& createChild(std::string childName);
 
     void addChild(std::shared_ptr<Thingy> thingy);

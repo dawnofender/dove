@@ -13,8 +13,8 @@ public:
     glm::vec3 scale;
 
 public: 
-    Transform(std::string && initialValue)
-        : Component(std::move(initialValue)) {
+    Transform(std::string && initialValue, glm::vec3 p = {0, 0, 0}, glm::vec4 r = {0, 0, 0, 0}, glm::vec3 s = {0, 0, 0})
+        : Component(std::move(initialValue)), position(p), rotation(r), scale(s) {
     }
 };
 

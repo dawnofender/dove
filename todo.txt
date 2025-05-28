@@ -4,12 +4,16 @@ todo
 # DOVE #
 ########
 
+ideas: 
+- maybe instead of the universe being a thingy with a physics component, it would be simpler to have a universe class that extends thingy and comes with physics by default.
+
 high priority: 
 - some variables may need global access for complicated systems, like the camera
 - store these in a universe object?
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
 
 do sometime: 
+
 
 eventually: 
 - octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain

@@ -69,6 +69,8 @@ add_executable(reality
     src/thingy/components/rigidBodyComponent.hpp
     src/thingy/components/sphereColliderComponent.cpp
     src/thingy/components/sphereColliderComponent.hpp
+    src/thingy/components/boxColliderComponent.cpp
+    src/thingy/components/boxColliderComponent.hpp
     src/thingy/components/meshRendererComponent.cpp
     src/thingy/components/meshRendererComponent.hpp
     # src/thingy/components/spriteRendererComponent.cpp

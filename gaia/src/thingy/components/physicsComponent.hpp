@@ -3,15 +3,33 @@
 
 #include "component.hpp"
 #include <btBulletDynamicsCommon.h>
+#include <vector>
+#include <glm/glm.hpp>
 
 
 class Physics : public Component {
 CLASS_DECLARATION(Physics)
+private:
+    btBroadphaseInterface* broadphase;
+    btDefaultCollisionConfiguration* collisionConfiguration;
+    btCollisionDispatcher* dispatcher;
+    btSequentialImpulseConstraintSolver* solver;
+    
 public: 
-  Physics(std::string &&initialValue);
+    btDiscreteDynamicsWorld* dynamicsWorld;
 
+public:
+    Physics(std::string &&initialValue);
+    
+    void addRigidBody(btRigidBody *rigidBody);
+    void rayCast(glm::vec3 position, glm::vec3 direction, float distance);
 };
 
 
+// ComponentType& Thingy::addComponent(Args&&... args) {
+//     auto component = std::make_unique<ComponentType>(std::forward<Args>(args)...);
+//     ComponentType& ref = *component;
+//     components.emplace_back(std::move(component));
+//     return ref;
 
 #endif
