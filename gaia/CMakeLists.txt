@@ -88,12 +88,13 @@ add_executable(reality
     lib/SimplexNoise.h
     lib/FastNoise.cpp
     lib/FastNoise.h
-    # lib/FastNoiseLite.h
     lib/controls.cpp
     lib/controls.hpp
     lib/texture.cpp
     lib/texture.hpp
     lib/threadsafe_vector.hpp
+    lib/bulletDebugDrawer.cpp
+    lib/bulletDebugDrawer.hpp
 
     lib/stb_image.h
 )

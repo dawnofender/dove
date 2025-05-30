@@ -2,6 +2,8 @@
 #define DMESHRENDERERCOMPONENT_HPP
 
 #include "component.hpp"
+#include "../thingy.hpp"
+#include "transformComponent.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -26,6 +28,9 @@ private:
   std::shared_ptr<Texture> texture;
   std::shared_ptr<MeshData> mesh;
 
+  Transform *transform;
+  Thingy *host;
+
   GLuint VertexArrayID;
 
   GLuint vertexbuffer;
@@ -48,8 +53,10 @@ protected:
   uint8_t state = 1;
 
 public:
-  MeshRenderer(std::string &&initialValue, std::shared_ptr<Shader> s, std::shared_ptr<MeshData> m)
-      : Component(std::move(initialValue)), shader(s), mesh(m) {
+  MeshRenderer(std::string &&initialValue, Thingy *h, std::shared_ptr<Shader> s, std::shared_ptr<MeshData> m)
+      : Component(std::move(initialValue)), host(h), shader(s), mesh(m) {
+    
+    transform = &host->getComponent<Transform>();
     setupBufferData();
 
     MatrixID = glGetUniformLocation(shader->ID, "MVP");                     

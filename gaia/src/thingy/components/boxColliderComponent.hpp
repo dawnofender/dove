@@ -2,11 +2,15 @@
 #define BOXCOLLIDERCOMPONENT_HPP
 
 #include "colliderComponent.hpp"
+#include <glm/glm.hpp>
+#include "../thingy.hpp"
 
 class BoxCollider : public Collider {
 CLASS_DECLARATION(SphereCollider)
+private:
+    Thingy* host;
 public: 
-    BoxCollider(std::string &&initialValue, float dx, float dy, float dz);
+    BoxCollider(std::string &&initialValue, Thingy *h, glm::vec3 d = {0.5, 0.5, 0.5});
 };
 
 #endif

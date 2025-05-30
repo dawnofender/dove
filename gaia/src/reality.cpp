@@ -41,6 +41,7 @@
 #include <src/thingy/components/playerControllerComponent.hpp>
 #include <src/thingy/components/transformComponent.hpp>
 
+#include <lib/bulletDebugDrawer.hpp>
 
 
 GLFWwindow *window;
@@ -63,7 +64,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
                    GL_TRUE); // To make MacOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE,
-                   GLFW_OPENGL_CORE_PROFILE); // We don't want the old OpenGL
+                   GLFW_OPENGL_COMPAT_PROFILE); // We don't want the old OpenGL
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);  
 
 
@@ -117,35 +118,35 @@ int main() {
 
     centerCube->vertices = {
         // +x
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 0, 1),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 1, 0),
+        glm::vec3(.5f, .5f, .5f),
+        glm::vec3(.5f, -.5f, .5f),
+        glm::vec3(.5f, -.5f, -.5f),
+        glm::vec3(.5f, .5f, -.5f),
         // -x
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 1, 1),
+        glm::vec3(-.5f, .5f, -.5f),
+        glm::vec3(-.5f, -.5f, -.5f),
+        glm::vec3(-.5f, -.5f, .5f),
+        glm::vec3(-.5f, .5f, .5f),
         // +y
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 1, 1),
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 1, 0),
+        glm::vec3(-.5f, .5f, -.5f),
+        glm::vec3(-.5f, .5f, .5f),
+        glm::vec3(.5f, .5f, .5f),
+        glm::vec3(.5f, .5f, -.5f),
         // -y
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 0, 1),
+        glm::vec3(-.5f, -.5f, .5f),
+        glm::vec3(-.5f, -.5f, -.5f),
+        glm::vec3(.5f, -.5f, -.5f),
+        glm::vec3(.5f, -.5f, .5f),
         // +z
-        glm::vec3(0, 1, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(1, 0, 1),
-        glm::vec3(1, 1, 1),
+        glm::vec3(-.5f, .5f, .5f),
+        glm::vec3(-.5f, -.5f, .5f),
+        glm::vec3(.5f, -.5f, .5f),
+        glm::vec3(.5f, .5f, .5f),
         // -z
-        glm::vec3(1, 1, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 1, 0),
+        glm::vec3(.5f, .5f, -.5f),
+        glm::vec3(.5f, -.5f, -.5f),
+        glm::vec3(-.5f, -.5f, -.5f),
+        glm::vec3(-.5f, .5f, -.5f),
     };
 
     centerCube->uvs = {
@@ -310,8 +311,31 @@ int main() {
     // ###############
     
     auto testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    auto testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
     auto testTexture = std::make_shared<Texture>("test.png");
+    
+    // # Basic scene
+    Thingy *ground = &universe.createChild("Ground");
+    Transform *groundTransform = &ground->addComponent<Transform>("Transform");
+    groundTransform->setPosition({0, -32.f, 0});
+    groundTransform->setScale({32.f, 32.f, 32.f});
+    ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(.5f, .5f, .5f));
+    ground->addComponent<RigidBody>("RigidBody", &physics, ground, 0);
+    // ground->addComponent<MeshRenderer>("MeshRenderer", ground, testShader, centerCube);
+
   
+    Thingy *testCube = &universe.createChild("Cube");
+    Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
+    cubeTransform->setPosition({0, 16.f, 0});
+
+    testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
+    // testCube->addComponent<SphereCollider>("SphereCollider", .5f);
+    testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1);
+    
+    testCube->addComponent<MeshRenderer>("MeshRenderer", testCube, testShader, centerCube);
+    testCube->getComponent<MeshRenderer>().setTexture(testTexture);
+
+
     // # GAIA
     
     // Thingy *gaia = &universe.createChild("gaia");
@@ -327,42 +351,36 @@ int main() {
     // 65 - max before math breaks at edges (currently breaks world entirely, but
     // can be fixed by generating from the center instead of the corner) 90 -
     // bigger than the observable universe
-
-    // # GLYPHS
-  
-    Thingy *testCube = &universe.createChild("Cube");
-    testCube->addComponent<MeshRenderer>("MeshRenderer", testShader, centerCube);
-    testCube->addComponent<Transform>("Transform");
-    testCube->addComponent<BoxCollider>("BoxCollider", 1.0f, 1.0f, 1.0f);
-    testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 0);
     
-    testCube->getComponent<MeshRenderer>().setTexture(testTexture);
-
     // world->startGeneratingWorld();
-
     
     // #############
     // # main loop #
     // #############
     
-    glm::vec3 position; // temporary for how we're doing the camera right now
     int screenWidth = 1024; // could be defined & updated globally later
     int screenHeight = 768;
     int mouseX = 512;
     int mouseY = 384;
-
+		
+    BulletDebugDrawer_DeprecatedOpenGL mydebugdrawer;     // also temporary - move into physics component later on
+    physics.dynamicsWorld->setDebugDrawer(&mydebugdrawer);
+    double deltaTime;
+    double lastTime;
+    double time;
     do {
         // #######
         // # fps #
         // #######
-        double currentTime = glfwGetTime();
+        lastTime = time;
+        time = glfwGetTime();
         nbFrames++;
-        if (currentTime - lastFrameTime >= 1.0) { // If last prinf() was more than 1sec ago
+        if ( time - lastFrameTime >= 1.0) { // If last prinf() was more than 1sec ago
             // printf and reset
             printf("%f ms/frame    ", 1000.0 / double(nbFrames));
-            std::cout << playerTransform.position.x << ", "
-                      << playerTransform.position.y << ", "
-                      << playerTransform.position.z << "\n";
+            std::cout << playerTransform.getPosition().x << ", "
+                      << playerTransform.getPosition().y << ", "
+                      << playerTransform.getPosition().z << "\n";
             nbFrames = 0;
             lastFrameTime += 1.0;
         }
@@ -373,13 +391,6 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-        // ##########
-        // # camera #
-        // ##########
-        position = playerTransform.position;
-        computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
-                                  initialFoV, speed, mouseSpeed, near, far);
-        playerTransform.position = position;
 
         
 
@@ -387,45 +398,70 @@ int main() {
         // # world loop #
         // ##############
         
-        // # raycasting for clicking:
-        // this should be moved into the player controller component later
-        if (currentTime - lastGenTime >= 1.0) {
-            lastGenTime += 1.0;
+        // # physics - should be one function in physics component
+        RigidBody::syncFromTransforms();
+        deltaTime = time - lastTime;
+        physics.dynamicsWorld->stepSimulation(deltaTime);
+        physics.dynamicsWorld->updateAabbs();
+        physics.dynamicsWorld->computeOverlappingPairs();
+        RigidBody::syncToTransforms();
 
-            // The ray Start and End positions, in Normalized Device Coordinates 
-            glm::vec4 lRayStart_NDC(
-            	  ((float)mouseX/(float)screenWidth  - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
-            	  ((float)mouseY/(float)screenHeight - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
-            	  -1.0, // The near plane maps to Z=-1 in Normalized Device Coordinates
-            	  1.0f
-            );
-            glm::vec4 lRayEnd_NDC(
-            	  ((float)mouseX/(float)screenWidth  - 0.5f) * 2.0f,
-            	  ((float)mouseY/(float)screenHeight - 0.5f) * 2.0f,
-            	  0.0,
-            	  1.0f
-            );
-            
-            glm::mat4 ProjectionMatrix = getProjectionMatrix();
-            glm::mat4 ViewMatrix = getViewMatrix();
+        // # Player controls
+        // these should be moved into components later (input, camera)
+        glm::vec3 position = playerTransform.getPosition();
+        computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
+                                  initialFoV, speed, mouseSpeed, near, far);
+        playerTransform.setPosition(position);
+        // raycasting for clicking:
+        // The ray Start and End positions, in Normalized Device Coordinates 
+        glm::vec4 lRayStart_NDC(
+            ((float)mouseX/(float)screenWidth  - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
+        	  ((float)mouseY/(float)screenHeight - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
+        	  -1.0, // The near plane maps to Z=-1 in Normalized Device Coordinates
+        	  1.0f
+        );
 
-            glm::mat4 M = glm::inverse(ProjectionMatrix * ViewMatrix);
-            glm::vec4 lRayStart_world = M * lRayStart_NDC; lRayStart_world/=lRayStart_world.w;
-            glm::vec4 lRayEnd_world   = M * lRayEnd_NDC  ; lRayEnd_world  /=lRayEnd_world.w;
-
-            glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
-            lRayDir_world = glm::normalize(lRayDir_world);
+        glm::vec4 lRayEnd_NDC(
+        	  ((float)mouseX/(float)screenWidth  - 0.5f) * 2.0f,
+        	  ((float)mouseY/(float)screenHeight - 0.5f) * 2.0f,
+        	  0.0,
+        	  1.0f
+        );
         
+        glm::mat4 projectionMatrix = getProjectionMatrix();
+        glm::mat4 viewMatrix = getViewMatrix();
+        glm::mat4 M = glm::inverse(projectionMatrix * viewMatrix);
+        glm::vec4 lRayStart_world = M * lRayStart_NDC; lRayStart_world/=lRayStart_world.w;
+        glm::vec4 lRayEnd_world   = M * lRayEnd_NDC  ; lRayEnd_world  /=lRayEnd_world.w;
 
-            physics.rayCast(position, lRayDir_world, 1000);
+        glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
+        lRayDir_world = glm::normalize(lRayDir_world);
+        
+        Thingy* hoverObject = physics.rayCast(playerTransform.getPosition(), lRayDir_world, 1000);
+        
+        // on click, do something to hovered object 
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
+            if (hoverObject && hoverObject == testCube) {
+                Transform *hObjectTransform = &hoverObject->getComponent<Transform>();
+                std::cout << hObjectTransform->getPosition().y << std::endl;
+                hObjectTransform->translate(glm::vec3(0, 1, 0));
+                std::cout << hObjectTransform->getPosition().y << std::endl;
+            }
         }
 
-        // updating components:
+        // if (time - lastGenTime >= 1.0) {
+        //     lastGenTime += 1.0;
+
+        // }
+       
+        
+        // # updating components
         Component::updateAll();
 
-        // rendering stuff
+        // # rendering stuff
         MeshRenderer::drawAll();
-
+        mydebugdrawer.SetMatrices(viewMatrix, projectionMatrix);
+        physics.dynamicsWorld->debugDrawWorld();
         glfwSwapBuffers(window);
         glfwPollEvents();
 

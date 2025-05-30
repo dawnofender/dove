@@ -2,10 +2,10 @@
 #define PHYSICSCOMPONENT_HPP
 
 #include "component.hpp"
+#include "../thingy.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 #include <glm/glm.hpp>
-
 
 class Physics : public Component {
 CLASS_DECLARATION(Physics)
@@ -14,15 +14,14 @@ private:
     btDefaultCollisionConfiguration* collisionConfiguration;
     btCollisionDispatcher* dispatcher;
     btSequentialImpulseConstraintSolver* solver;
-    
+
 public: 
     btDiscreteDynamicsWorld* dynamicsWorld;
 
 public:
     Physics(std::string &&initialValue);
     
-    void addRigidBody(btRigidBody *rigidBody);
-    void rayCast(glm::vec3 position, glm::vec3 direction, float distance);
+    Thingy* rayCast(glm::vec3 position, glm::vec3 direction, float distance);
 };
 
 

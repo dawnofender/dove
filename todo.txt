@@ -6,13 +6,24 @@ todo
 
 ideas: 
 - maybe instead of the universe being a thingy with a physics component, it would be simpler to have a universe class that extends thingy and comes with physics by default.
+    - probably not doing this tho
+- more thingy types, or template, with specific features & amount of children
+    - useful for octree & similar data structures 
+- 'player controller' is boring. lets fix that
+    - 'you' but i feel like that should be reserved for something personal to the player, like their profile, as a component on their host thingy. 
+    - 'input' or something related to isolate controls
+    - 'sight' for graphics
+
 
 high priority: 
-- some variables may need global access for complicated systems, like the camera
-- store these in a universe object?
+- connect mesh renderer with transform
+- sync rigidbody transform and object transform
+    -for each rigidbody, set the transform to the rigidbody's position, and after updates, set each rigidbody to the transform position
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
 
 do sometime: 
+- some variables may need global access for complicated systems, like the camera
+- store these in a universe object?
 
 
 eventually: 

@@ -21,11 +21,11 @@ public:
     }
 
     void teleport(glm::vec3 pos) {
-        transformComp->position = pos;
+        transformComp->getPosition() = pos;
     }
 
     glm::vec3 getPosition() {
-        return transformComp->position;
+        return transformComp->getPosition();
     }
 
 };

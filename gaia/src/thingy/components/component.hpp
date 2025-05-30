@@ -42,7 +42,6 @@ bool childclass::IsClassType( const std::size_t classType ) const {             
 
 
 // Component base class
-class Thingy;
 class Component {
 public: 
     std::string value = "uninitialized";

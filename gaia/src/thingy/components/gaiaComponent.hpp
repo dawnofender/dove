@@ -213,28 +213,28 @@ public:
 };
 
 class GaiaChunk : public Component {
-  CLASS_DECLARATION(GaiaChunk)
+    CLASS_DECLARATION(GaiaChunk)
 private:
-  Thingy *host;
-  Octree *cellTree;
-  std::shared_ptr<OctreeNode> chunk;
-  int8_t depth;
-  glm::vec3 position;
-  MeshRenderer *meshRenderer;
-  std::shared_ptr<Shader> shader;
-  std::shared_ptr<MeshData> mesh;
-  MeshData cube;
-  threadedCellMap *leafMap; // (depth, (position, leaf cell))
+    Thingy *host;
+    Octree *cellTree;
+    std::shared_ptr<OctreeNode> chunk;
+    int8_t depth;
+    glm::vec3 position;
+    MeshRenderer *meshRenderer;
+    std::shared_ptr<Shader> shader;
+    std::shared_ptr<MeshData> mesh;
+    MeshData cube;
+    threadedCellMap *leafMap; // (depth, (position, leaf cell))
 
-  static inline std::vector<GaiaChunk *> gaiaChunks;
-  static inline std::mutex m_gaiachunks;
-
-public:
-  bool shouldUpdate = false;
+    static inline std::vector<GaiaChunk *> gaiaChunks;
+    static inline std::mutex m_gaiachunks;
 
 public:
-  GaiaChunk(std::string &&initialValue, Thingy *h, Octree *ot, threadedCellMap *lm, std::shared_ptr<OctreeNode> c, std::shared_ptr<Shader> s, int8_t d)
-      : Component(std::move(initialValue)), host(h), cellTree(ot), leafMap(lm), chunk(c), shader(s), depth(d) {
+    bool shouldUpdate = false;
+
+public:
+    GaiaChunk(std::string &&initialValue, Thingy *h, Octree *ot, threadedCellMap *lm, std::shared_ptr<OctreeNode> c, std::shared_ptr<Shader> s, int8_t d)
+        : Component(std::move(initialValue)), host(h), cellTree(ot), leafMap(lm), chunk(c), shader(s), depth(d) {
 
     cube.vertices = {
         // +x
@@ -282,7 +282,7 @@ public:
       shouldUpdate = true;
       std::lock_guard<std::mutex> lock(m_gaiachunks);
       gaiaChunks.push_back(this);
-      host->addComponent<MeshRenderer>("MeshRenderer", shader, mesh);
+      host->addComponent<MeshRenderer>("MeshRenderer", host, shader, mesh);
     }
   }
 
@@ -590,9 +590,9 @@ public:
     while (generatingWorld) {
       std::cout << "building chunks.. " << std::endl;
       buildChunkThingies();
-      if (playerTransform->position != lastPlayerPos) {
+      if (playerTransform->getPosition() != lastPlayerPos) {
         std::cout << "updating sample data.. " << std::endl;
-        lastPlayerPos = playerTransform->position;
+        lastPlayerPos = playerTransform->getPosition();
         time0 = glfwGetTime();
         updateSampleData();
         time1 = glfwGetTime();
@@ -662,9 +662,9 @@ public:
 
       if (depth > cellTree->minDepth && cell->surface) {
         float distance =
-            glm::distance(cellCenter, glm::vec3(playerTransform->position.x,
-                                                playerTransform->position.y,
-                                                playerTransform->position.z));
+            glm::distance(cellCenter, glm::vec3(playerTransform->getPosition().x,
+                                                playerTransform->getPosition().y,
+                                                playerTransform->getPosition().z));
 
         if (checkLOD(distance, depth)) {
           // this cell should me upsampled
@@ -680,8 +680,8 @@ public:
         // cellCenter = parentPos + glm::vec3(size);
 
         // float distance = glm::distance(cellCenter,
-        // glm::vec3(playerTransform->position.x, playerTransform->position.y,
-        // playerTransform->position.z)); if (!checkLOD(distance, depth+1)) {
+        // glm::vec3(playerTransform->getPosition().x, playerTransform->getPosition().y,
+        // playerTransform->getPosition().z)); if (!checkLOD(distance, depth+1)) {
 
         //     // parent cell should be downsampled
         //     sampleQueue.push(CellSampleData(cell->parent, distance,
@@ -895,14 +895,14 @@ public:
 
   //                     // correct cam pos (temporary)
   //                     if(glm::distance(childPos,
-  //                     {playerTransform->position.x,
-  //                     playerTransform->position.y,
-  //                     playerTransform->position.z}) <
+  //                     {playerTransform->getPosition().x,
+  //                     playerTransform->getPosition().y,
+  //                     playerTransform->getPosition().z}) <
   //                     cellTree->getCellSize(data.depth - 2)) {
-  //                         playerTransform->position.y = child->transparent ?
-  //                         playerTransform->position.y -
+  //                         playerTransform->getPosition().y = child->transparent ?
+  //                         playerTransform->getPosition().y -
   //                         cellTree->getCellSize(data.depth - 1) :
-  //                         playerTransform->position.y +
+  //                         playerTransform->getPosition().y +
   //                         cellTree->getCellSize(data.depth - 1);
   //                     }
   //                 }
@@ -926,7 +926,7 @@ public:
         }
       }
 
-      float distance = glm::distance(playerTransform->position, position);
+      float distance = glm::distance(playerTransform->getPosition(), position);
 
       chunkQueue.push(CellSampleData(chunk, distance, position, depth, true));
     }
@@ -1152,7 +1152,7 @@ public:
         mountainHeight * (pow(0.9999f, (abs(blockPos.x) + abs(blockPos.z))));
 
     bool solid = mountains + mountain > blockPos.y;
-    // bool solid = blockPos.y - (1/3) < playerTransform->position.y;
+    // bool solid = blockPos.y - (1/3) < playerTransform->getPosition().y;
 
     // monolith
     // if(-1.f < blockPos.x && blockPos.x < 2.f && -1.f < blockPos.z &&
