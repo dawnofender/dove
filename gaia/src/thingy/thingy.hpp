@@ -1,7 +1,7 @@
 #ifndef DTHINGY_HPP
 #define DTHINGY_HPP
 
-#include "components/component.hpp"
+#include "../components/component.hpp"
 #include <memory>
 #include <vector>
 #include <GL/glew.h>

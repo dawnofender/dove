@@ -1,4 +1,4 @@
-#include "dtexture.hpp"
+#include "texture.hpp"
 
 #include <iostream>
 
@@ -17,7 +17,6 @@ Texture::Texture(const char* image, GLenum texType, GLuint slot, GLenum format, 
 	  glGenTextures(1, &ID);
 	  // Assigns the texture to a Texture Unit
 	  glActiveTexture(GL_TEXTURE0 + slot);
-	  unit = slot;
 	  glBindTexture(texType, ID);
 
 	  // Configures the type of algorithm that is used to make the image smaller or bigger
@@ -45,12 +44,14 @@ Texture::Texture(const char* image, GLenum texType, GLuint slot, GLenum format, 
 	  glBindTexture(texType, 0);
 }
 
-void Texture::bind() {
+void Texture::bind(GLuint unit) {
+    // FIX: if texture was never unbinded, this segfaults
 	  glActiveTexture(GL_TEXTURE0 + unit);
 	  glBindTexture(type, ID);
 }
 
-void Texture::unbind() {
+void Texture::unbind(GLuint unit) {
+	  glActiveTexture(GL_TEXTURE0 + unit);
 	  glBindTexture(type, 0);
 }
 

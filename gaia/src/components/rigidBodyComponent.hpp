@@ -6,7 +6,7 @@
 #include "transformComponent.hpp"
 #include "physicsComponent.hpp"
 #include "btBulletDynamicsCommon.h"
-#include "../thingy.hpp"
+#include "../thingy/thingy.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>

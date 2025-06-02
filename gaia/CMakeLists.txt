@@ -49,38 +49,38 @@ add_executable(reality
     src/worldgen/doctree.cpp
     src/worldgen/doctree.hpp
 
-    src/dasset/dmesh.cpp
-    src/dasset/dmesh.hpp
-    src/dasset/dtexture.cpp
-    src/dasset/dtexture.hpp
+    src/dasset/mesh.cpp
+    src/dasset/mesh.hpp
+    src/dasset/texture.cpp
+    src/dasset/texture.hpp
     src/dasset/shader.hpp
     src/dasset/shader.cpp
+    src/dasset/material.cpp
+    src/dasset/material.hpp
 
 
     src/thingy/thingy.cpp
     src/thingy/thingy.hpp
-    src/thingy/components/component.cpp
-    src/thingy/components/component.hpp
-    src/thingy/components/physicsComponent.cpp
-    src/thingy/components/physicsComponent.hpp
-    src/thingy/components/colliderComponent.cpp
-    src/thingy/components/colliderComponent.hpp
-    src/thingy/components/rigidBodyComponent.cpp
-    src/thingy/components/rigidBodyComponent.hpp
-    src/thingy/components/sphereColliderComponent.cpp
-    src/thingy/components/sphereColliderComponent.hpp
-    src/thingy/components/boxColliderComponent.cpp
-    src/thingy/components/boxColliderComponent.hpp
-    src/thingy/components/meshRendererComponent.cpp
-    src/thingy/components/meshRendererComponent.hpp
-    # src/thingy/components/spriteRendererComponent.cpp
-    # src/thingy/components/spriteRendererComponent.hpp
-    src/thingy/components/transformComponent.cpp
-    src/thingy/components/transformComponent.hpp
-    src/thingy/components/playerControllerComponent.cpp
-    src/thingy/components/playerControllerComponent.hpp
-    src/thingy/components/gaiaComponent.cpp
-    src/thingy/components/gaiaComponent.hpp
+    src/components/component.cpp
+    src/components/component.hpp
+    src/components/physicsComponent.cpp
+    src/components/physicsComponent.hpp
+    src/components/colliderComponent.cpp
+    src/components/colliderComponent.hpp
+    src/components/rigidBodyComponent.cpp
+    src/components/rigidBodyComponent.hpp
+    src/components/sphereColliderComponent.cpp
+    src/components/sphereColliderComponent.hpp
+    src/components/boxColliderComponent.cpp
+    src/components/boxColliderComponent.hpp
+    src/components/meshRendererComponent.cpp
+    src/components/meshRendererComponent.hpp
+    src/components/transformComponent.cpp
+    src/components/transformComponent.hpp
+    src/components/playerControllerComponent.cpp
+    src/components/playerControllerComponent.hpp
+    # src/components/gaiaComponent.cpp
+    # src/components/gaiaComponent.hpp
 
     lib/shaderLoader.cpp
     lib/shaderLoader.hpp

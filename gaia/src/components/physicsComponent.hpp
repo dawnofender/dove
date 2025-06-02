@@ -2,7 +2,7 @@
 #define PHYSICSCOMPONENT_HPP
 
 #include "component.hpp"
-#include "../thingy.hpp"
+#include "../thingy/thingy.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 #include <glm/glm.hpp>

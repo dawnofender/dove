@@ -14,12 +14,12 @@ class Texture {
 public: 
     GLuint ID;
     GLenum type;
-    GLuint unit;
+    GLenum unit;
 
     Texture(const char* image="", GLenum texType=GL_TEXTURE_2D, GLuint slot=0, GLenum format=GL_RGBA, GLenum pixelType=GL_UNSIGNED_BYTE);
 
-    void bind();
-    void unbind();
+    void bind(GLuint unit);
+    void unbind(GLuint unit);
     void deleteTexture();
 };
 

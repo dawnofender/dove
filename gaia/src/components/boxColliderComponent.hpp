@@ -3,7 +3,7 @@
 
 #include "colliderComponent.hpp"
 #include <glm/glm.hpp>
-#include "../thingy.hpp"
+#include "../thingy/thingy.hpp"
 
 class BoxCollider : public Collider {
 CLASS_DECLARATION(SphereCollider)

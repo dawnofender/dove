@@ -9,18 +9,19 @@
 #include <vector>
 
 #include <lib/controls.hpp>
-#include <src/dasset/dmesh.hpp>
-#include <src/dasset/shader.hpp>
 
 CLASS_DEFINITION(Component, MeshRenderer)
 
 
 // MeshRenderer Component
 void MeshRenderer::drawAll() {
-  for (auto &renderer : renderers) {
-    renderer->draw();
-  }
-  unbindBufferData();
+    
+    // this is dumb and they should be stored somewhere else and set there instead of calling functions from the tutorial library
+    
+    for (auto &renderer : renderers) {
+        renderer->draw();
+    }
+    unbindBufferData();
 }
 
 void MeshRenderer::deleteAll() {
@@ -130,30 +131,22 @@ void MeshRenderer::regenerate() {
 void MeshRenderer::draw() {
   // later, this could instead use a material object to deal with uniforms
   // so, thingy->meshrenderer->material->shader
-  if (!transform) {
-    transform = &host->getComponent<Transform>();
-    return;
-  }
 
-  shader->Activate();
-  bindBufferData();
-  texture->bind();
+    if (!transform) {
+        std::cout << host->getName() + ": transform not found, attempting fix" << std::endl;
+        transform = &host->getComponent<Transform>();
+        return;
+    }
+
+    modelMatrix = transform->getMatrix();
+
+    // FIX: if this returns false, there was an error, we can skip the object and render all errored objects last with the same shader 
+    material->Activate(modelMatrix);
   
-  // FIX: some of these matrices can be calculated once to be used by all rendering and the player controller
-  glm::mat4 ProjectionMatrix = getProjectionMatrix();
-  glm::mat4 ViewMatrix = getViewMatrix();
-  glm::mat4 ModelMatrix = transform->getMatrix();
-  glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
-  glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-  glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
-  glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
+    bindBufferData();
 
-  glm::vec3 lightPos = glm::vec3(0, 10000, 0);
-  glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
-
-
-  glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }
 
 void MeshRenderer::deleteBuffers() {
@@ -167,7 +160,3 @@ void MeshRenderer::deleteBuffers() {
 
 void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) { bounds = {a, b}; }
 
-// temporary until we have proper material implementation
-void MeshRenderer::setTexture(std::shared_ptr<Texture> t) {
-  texture = t;
-}

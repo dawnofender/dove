@@ -27,7 +27,7 @@
 
 #include <lib/FastNoise.h>
 #include <lib/SimplexNoise.h>
-#include <src/dasset/dmesh.hpp>
+#include <src/dasset/mesh.hpp>
 #include <src/dasset/shader.hpp>
 #include <src/thingy/components/meshRendererComponent.hpp>
 #include <src/thingy/components/transformComponent.hpp>
@@ -428,7 +428,7 @@ private:
   float lod = 16.f;
   int8_t chunkDepth = 5;
   MeshData worldMesh;
-  std::shared_ptr<Shader> shader;
+  Shader *shader;
   Thingy *player;
   Thingy *host;
   Transform *playerTransform;
@@ -454,7 +454,7 @@ public:
     // FIX: breaks if transform component doesn't exist
     playerTransform = &player->getComponent<Transform>();
 
-    shader = std::make_shared<Shader>("TransformVertexShader.vertexshader",
+    shader = new Shader("TransformVertexShader.vertexshader",
                                       "ColorFragmentShader.fragmentshader");
   }
 

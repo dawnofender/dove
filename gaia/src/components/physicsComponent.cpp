@@ -45,17 +45,10 @@ Thingy* Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distance) 
     	  RayCallback
     );
     
-    std::string message;
+
     if (RayCallback.hasHit()) {
 	      return (Thingy*)RayCallback.m_collisionObject->getUserPointer();
-    } else {
-	      return nullptr;
     }
 
-    std::cout << "raycast info:" << std::endl <<
-        "start: " << origin.x << ", " << origin.y << ", " << origin.z << std::endl <<
-        "end:   " << out_end.x << ", " << out_end.y << ", " << out_end.z << std::endl <<
-        "dir:   " << direction.x << ", " << direction.y << ", " << direction.z << std::endl <<
-        message << std::endl;
-
+	  return nullptr;
 }

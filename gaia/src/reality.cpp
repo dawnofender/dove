@@ -29,17 +29,17 @@
 #include <lib/SimplexNoise.h>
 
 #include <src/dasset/shader.hpp>
-#include <src/dasset/dmesh.hpp>
+#include <src/dasset/mesh.hpp>
 
 #include <src/thingy/thingy.hpp>
-#include <src/thingy/components/physicsComponent.hpp>
-#include <src/thingy/components/sphereColliderComponent.hpp>
-#include <src/thingy/components/boxColliderComponent.hpp>
-#include <src/thingy/components/rigidBodyComponent.hpp>
-#include <src/thingy/components/gaiaComponent.hpp>
-#include <src/thingy/components/meshRendererComponent.hpp>
-#include <src/thingy/components/playerControllerComponent.hpp>
-#include <src/thingy/components/transformComponent.hpp>
+#include <src/components/physicsComponent.hpp>
+#include <src/components/sphereColliderComponent.hpp>
+#include <src/components/boxColliderComponent.hpp>
+#include <src/components/rigidBodyComponent.hpp>
+// #include <src/components/gaiaComponent.hpp>
+#include <src/components/meshRendererComponent.hpp>
+#include <src/components/playerControllerComponent.hpp>
+#include <src/components/transformComponent.hpp>
 
 #include <lib/bulletDebugDrawer.hpp>
 
@@ -115,6 +115,7 @@ int main() {
     // ##########
 
     std::shared_ptr<MeshData> centerCube = std::make_shared<MeshData>();
+    
 
     centerCube->vertices = {
         // +x
@@ -290,12 +291,16 @@ int main() {
     quad->indices = {
         0, 1, 2, 0, 2, 3
     };
+    
+    std::shared_ptr<Shader> testShader =  std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+                                
+    std::shared_ptr<Shader> testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    std::shared_ptr<Texture> testTexture = std::make_shared<Texture>("test.png");
 
-    auto testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    auto testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    
-    auto testTexture = std::make_shared<Texture>("test.png");
-    
+    std::vector testTextureVector = {testTexture};
+    std::shared_ptr<Material> testMaterial = std::make_shared<Material>(testShader, testTextureVector);
+    std::shared_ptr<Material> testMaterial2 = std::make_shared<Material>(testShader2, testTextureVector);
+
     // ###############
     // # world setup #
     // ###############
@@ -308,7 +313,7 @@ int main() {
     // Thingy *sight = &universe.createChild("perception");
     Transform playerTransform = player->addComponent<Transform>("Transform");
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    player->addComponent<RigidBody>("RigidBody", &physics, player, 1.f, false, false);
+    player->addComponent<RigidBody>("RigidBody", &physics, player, 0.f, false, true);
 
     // # Basic scene
     Thingy *ground = &universe.createChild("Ground");
@@ -316,32 +321,26 @@ int main() {
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
-    ground->addComponent<RigidBody>("RigidBody", &physics, ground, 100.f, true, false);
-    // ground->addComponent<MeshRenderer>("MeshRenderer", ground, testShader, centerCube);
+    ground->addComponent<RigidBody>("RigidBody", &physics, ground, 0.f, false, true);
   
     Thingy *testCube = &universe.createChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
     testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1.f);
-    testCube->addComponent<MeshRenderer>("MeshRenderer", testCube, testShader, centerCube);
-    testCube->getComponent<MeshRenderer>().setTexture(testTexture);
-
+    testCube->addComponent<MeshRenderer>("MeshRenderer", testCube, testMaterial, centerCube);
+    
     Thingy *testCube2 = &universe.createChild("Cube");
-    Transform *cube2Transform = &testCube2->addComponent<Transform>("Transform");
-    cube2Transform->setPosition({.7f, 15.f, 0});
+    Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform");
+    cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", &physics, testCube2, 1.f);
-    
-    
+    testCube2->addComponent<MeshRenderer>("MeshRenderer", testCube2, testMaterial2, centerCube);
 
     // ###############
     // # other tests #
     // ###############
     
-    
-    // testCube2->addComponent<MeshRenderer>("MeshRenderer", testCube2, testShader, centerCube);
-    // testCube2->getComponent<MeshRenderer>().setTexture(testTexture);
 
     // # GAIA
     
@@ -375,6 +374,8 @@ int main() {
     double deltaTime;
     double lastTime;
     double time;
+    
+    // int y = 0;
     do {
         // #######
         // # fps #
@@ -452,16 +453,10 @@ int main() {
             if (hoverObject && hoverObject == testCube) {
                 Transform *hObjectTransform = &hoverObject->getComponent<Transform>();
                 std::cout << hObjectTransform->getPosition().y << std::endl;
-                hObjectTransform->translate(glm::vec3(0, 1, 0));
+                hObjectTransform->translate(glm::vec3(0, -1, 0));
                 std::cout << hObjectTransform->getPosition().y << std::endl;
             }
         }
-
-        // if (time - lastGenTime >= 1.0) {
-        //     lastGenTime += 1.0;
-
-        // }
-       
         
         // # updating components
         Component::updateAll();

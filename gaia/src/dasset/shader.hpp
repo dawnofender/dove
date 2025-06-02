@@ -1,5 +1,5 @@
-#ifndef SHADER_HPP
-#define SHADER_HPP
+#ifndef DSHADER_HPP
+#define DSHADER_HPP
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -10,6 +10,8 @@
 
 
 class Shader {
+private: 
+    bool active;
 public: 
     GLuint ID;
 
