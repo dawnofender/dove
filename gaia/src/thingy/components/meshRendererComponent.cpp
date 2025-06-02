@@ -142,8 +142,7 @@ void MeshRenderer::draw() {
   // FIX: some of these matrices can be calculated once to be used by all rendering and the player controller
   glm::mat4 ProjectionMatrix = getProjectionMatrix();
   glm::mat4 ViewMatrix = getViewMatrix();
-  glm::vec3 position = transform->getPosition();
-  glm::mat4 ModelMatrix = glm::translate(glm::mat4(), position);
+  glm::mat4 ModelMatrix = transform->getMatrix();
   glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
   glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);

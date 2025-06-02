@@ -20,8 +20,13 @@ void Transform::translate(glm::vec3 translation) {
 
 
 void Transform::setScale(glm::vec3 newScale) {
-    glm::vec3 scaleDif = newScale - getScale();
-    transform = glm::scale(transform, scaleDif);
+    transform = glm::scale(transform, newScale);
+}
+
+void Transform::setRotation(glm::quat newOrientation) {
+    transform = glm::translate(glm::mat4(1.0), getPosition()) * 
+                glm::scale(glm::mat4(1.f), getScale()) * 
+                glm::mat4_cast(newOrientation);
 }
 
 
@@ -46,15 +51,5 @@ glm::vec3 Transform::getScale() {
 
 
 glm::quat Transform::getRotation() {
-    glm::vec3 scale = getScale();
-    glm::mat3 upper3x3(transform);
-    
-    return glm::quat(glm::quat_cast(
-        // rotation matrix
-        glm::mat3(
-            upper3x3[0] / scale.x,
-            upper3x3[1] / scale.y,
-            upper3x3[2] / scale.z
-        )
-    ));
+    return glm::quat_cast(transform);
 }

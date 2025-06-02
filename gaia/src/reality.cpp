@@ -291,6 +291,10 @@ int main() {
         0, 1, 2, 0, 2, 3
     };
 
+    auto testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    auto testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    
+    auto testTexture = std::make_shared<Texture>("test.png");
     
     // ###############
     // # world setup #
@@ -300,41 +304,44 @@ int main() {
     Physics physics = universe.addComponent<Physics>("Laws Of Physics");
     
 
-    Thingy *player = &universe.createChild("player");
+    Thingy *player = &universe.createChild("it's you!");
+    // Thingy *sight = &universe.createChild("perception");
     Transform playerTransform = player->addComponent<Transform>("Transform");
-    PlayerController playerController = player->addComponent<PlayerController>("PlayerController", player);
+    player->addComponent<SphereCollider>("SphereCollider", 0.5f);
+    player->addComponent<RigidBody>("RigidBody", &physics, player, 1.f, false, false);
 
+    // # Basic scene
+    Thingy *ground = &universe.createChild("Ground");
+    Transform *groundTransform = &ground->addComponent<Transform>("Transform");
+    groundTransform->setPosition({0, -16.f, 0});
+    groundTransform->setScale({32.f, 32.f, 32.f});
+    ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
+    ground->addComponent<RigidBody>("RigidBody", &physics, ground, 100.f, true, false);
+    // ground->addComponent<MeshRenderer>("MeshRenderer", ground, testShader, centerCube);
+  
+    Thingy *testCube = &universe.createChild("Cube");
+    Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
+    cubeTransform->setPosition({0, 16.f, 0});
+    testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
+    testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1.f);
+    testCube->addComponent<MeshRenderer>("MeshRenderer", testCube, testShader, centerCube);
+    testCube->getComponent<MeshRenderer>().setTexture(testTexture);
+
+    Thingy *testCube2 = &universe.createChild("Cube");
+    Transform *cube2Transform = &testCube2->addComponent<Transform>("Transform");
+    cube2Transform->setPosition({.7f, 15.f, 0});
+    testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
+    testCube2->addComponent<RigidBody>("RigidBody", &physics, testCube2, 1.f);
+    
     
 
     // ###############
     // # other tests #
     // ###############
     
-    auto testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    auto testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    auto testTexture = std::make_shared<Texture>("test.png");
     
-    // # Basic scene
-    Thingy *ground = &universe.createChild("Ground");
-    Transform *groundTransform = &ground->addComponent<Transform>("Transform");
-    groundTransform->setPosition({0, -32.f, 0});
-    groundTransform->setScale({32.f, 32.f, 32.f});
-    ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(.5f, .5f, .5f));
-    ground->addComponent<RigidBody>("RigidBody", &physics, ground, 0);
-    // ground->addComponent<MeshRenderer>("MeshRenderer", ground, testShader, centerCube);
-
-  
-    Thingy *testCube = &universe.createChild("Cube");
-    Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
-    cubeTransform->setPosition({0, 16.f, 0});
-
-    testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
-    // testCube->addComponent<SphereCollider>("SphereCollider", .5f);
-    testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1);
-    
-    testCube->addComponent<MeshRenderer>("MeshRenderer", testCube, testShader, centerCube);
-    testCube->getComponent<MeshRenderer>().setTexture(testTexture);
-
+    // testCube2->addComponent<MeshRenderer>("MeshRenderer", testCube2, testShader, centerCube);
+    // testCube2->getComponent<MeshRenderer>().setTexture(testTexture);
 
     // # GAIA
     
@@ -399,11 +406,12 @@ int main() {
         // ##############
         
         // # physics - should be one function in physics component
-        RigidBody::syncFromTransforms();
         deltaTime = time - lastTime;
+        RigidBody::syncFromTransforms();
         physics.dynamicsWorld->stepSimulation(deltaTime);
-        physics.dynamicsWorld->updateAabbs();
-        physics.dynamicsWorld->computeOverlappingPairs();
+        // physics.dynamicsWorld->updateAabbs();
+        // physics.dynamicsWorld->computeOverlappingPairs();
+        // physics.dynamicsWorld->performDiscreteCollisionDetection();
         RigidBody::syncToTransforms();
 
         // # Player controls

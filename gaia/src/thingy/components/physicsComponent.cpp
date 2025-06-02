@@ -11,6 +11,11 @@ CLASS_DEFINITION(Component, Physics)
 Physics::Physics(std::string &&initialValue)
     : Component(std::move(initialValue)) {
     // Build the broadphase
+	// filterCallback = new btOverlapFilterCallback();
+    // pairCache = new btHashedOverlappingPairCache();
+    // pairCache->setOverlapFilterCallback(filterCallback);
+    // broadphase = new btDbvtBroadphase(pairCache);
+
     broadphase = new btDbvtBroadphase();
     
     // Set up the collision configuration and dispatcher
@@ -23,18 +28,6 @@ Physics::Physics(std::string &&initialValue)
     // The world.
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher,broadphase,solver,collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -9.81f, 0));
-    
-    // btVector3 localInertia(0, 0, 0);
-    // btTransform groundTransform;
-    // groundTransform.setIdentity();
-    // groundTransform.setOrigin(btVector3(0, -50, 0));
-    // btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-    // btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-    // btRigidBody::btRigidBodyConstructionInfo rbInfo(0, myMotionState, groundShape, localInertia);
-    // btRigidBody* body = new btRigidBody(rbInfo);
-    // body->setFriction(1);
-    // //add the body to the dynamics world
-    // dynamicsWorld->addRigidBody(body);
 }
 
 Thingy* Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distance) {

@@ -10,10 +10,13 @@
 class Physics : public Component {
 CLASS_DECLARATION(Physics)
 private:
+    // btOverlapFilterCallback* filterCallback;
+	// btOverlappingPairCache* pairCache;
     btBroadphaseInterface* broadphase;
     btDefaultCollisionConfiguration* collisionConfiguration;
     btCollisionDispatcher* dispatcher;
     btSequentialImpulseConstraintSolver* solver;
+
 
 public: 
     btDiscreteDynamicsWorld* dynamicsWorld;

@@ -1,16 +1,10 @@
 #include "rigidBodyComponent.hpp"
-#include "colliderComponent.hpp"
-#include "transformComponent.hpp"
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <iostream>
 
 CLASS_DEFINITION(Component, RigidBody)
 
 
-RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thingy *h, float mass = 0) 
-    : Component(std::move(initialValue)), host(h) {
+RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thingy *h, float m, bool k, bool s) 
+    : Component(std::move(initialValue)), host(h), mass(m), b_kinematic(k), b_static(s) {
     
     // get transform information
     transform = &host->getComponent<Transform>();
@@ -27,38 +21,46 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
     // get shape of collider
     // FIX: handle no collider found
     btCollisionShape* colliderShape = host->getComponent<Collider>().collisionShape;
-
     motionstate = new btDefaultMotionState(bulletTransform);
+    btVector3 localInertia;
 
+    if (mass != 0.f) colliderShape->calculateLocalInertia(mass, localInertia);
 
-    btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(
-    	  mass,                 // mass, in kg. 0 -> Static object, will never move.
+    bulletRigidBody = new btRigidBody( btRigidBody::btRigidBodyConstructionInfo(
+    	  mass,
     	  motionstate,
-    	  colliderShape,        // collision shape from collider component
-    	  btVector3(0,0,0)      // local inertia
-    );
+    	  colliderShape,
+    	  localInertia
+    ));
     
-    bulletRigidBody = new btRigidBody(rigidBodyCI);
+	// bulletRigidBody->setContactStiffnessAndDamping(300, 10);
+
     bulletRigidBody->setUserPointer((void*)host);
+    if (b_kinematic) bulletRigidBody->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+    if (b_static)    bulletRigidBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+    
     physicsComponent->dynamicsWorld->addRigidBody(bulletRigidBody);
-    std::cout << "created rigidbody" << std::endl;
 
     rigidBodies.push_back(this);
 }
 
 void RigidBody::syncFromTransform() {
-    // get transform matrix from transform component
-    float transformMatrix[16];
-    memcpy(transformMatrix, (void*)glm::value_ptr(transform->getMatrix()), 16*sizeof(GLfloat));
+    float bulletTransformMatrix[16];
+    // get transform matrix from transform component, but with reset scale
+    glm::mat4 oglTransformMatrix = glm::scale(transform->getMatrix(), glm::vec3(1) / transform->getScale());
+    memcpy(bulletTransformMatrix, (void*)glm::value_ptr(oglTransformMatrix), 16*sizeof(GLfloat));
     
-    bulletTransform.setFromOpenGLMatrix(transformMatrix);
+    bulletTransform.setFromOpenGLMatrix(bulletTransformMatrix);
     bulletRigidBody->setWorldTransform(bulletTransform);
 }
 
 void RigidBody::syncToTransform() {
     float bulletTransformMatrix[16];
     bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
-    transform->setMatrix(glm::make_mat4(bulletTransformMatrix));
+    glm::mat4 oglTransformMatrix = glm::make_mat4(bulletTransformMatrix);
+    transform->setPosition(glm::vec3(oglTransformMatrix[3]));
+    transform->setRotation(glm::quat_cast(oglTransformMatrix));
+    // transform->setScale(lastScale);
 }
 
 void RigidBody::syncFromTransforms() {

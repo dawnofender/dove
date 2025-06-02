@@ -22,7 +22,7 @@ public:
     void setPosition(glm::vec3 newPos);
     void translate(glm::vec3 translation);
     void setScale(glm::vec3 newScale);
-    void setRotation();
+    void setRotation(glm::quat newRotation);
     
     glm::mat4 getMatrix();
     glm::vec3 getPosition();
