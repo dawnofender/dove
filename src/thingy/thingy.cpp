@@ -3,6 +3,7 @@
 #include <vector>
 
 
+
 Thingy::~Thingy() {
 
     for ( auto&& child : children ) {
@@ -17,19 +18,112 @@ Thingy::~Thingy() {
 
 }
 
+struct SerializedThingy {
+    unsigned ID;
+    std::string name;
+    unsigned componentCount;
+    unsigned childCount;
+    std::stack<unsigned> componentIDs;
+    std::stack<unsigned> childIDs;
+};
+
 // Serialize thingy from metadata
-Thingy::Thingy(Metadata *m) {
+Thingy::Thingy(Metadata *metadata)
     : Thingy("") {
 
     std::ifstream file(metadata->filename, std::ios::binary);
-
     if (!file.is_open()) {
         std::cerr << "Error: Failed to open file for reading." << std::endl;
     }
     
+    // # metadata contains 2 things: thingy hierarchy info, and component data.
+    // 1) build ID maps
     
-    file.read(reinterpret_cast<char*>(this),
-              sizeof(*this));
+    // keep track of relationships by mapping thingies to the IDs of their children and components.
+    // thingies -> child IDs
+    // thingies -> component IDs
+    
+    unsigned totalThingies;
+    unsigned totalComponents;
+    file >> totalThingies;
+    file >> totalComponents;
+     
+    // discover thingies and add them to maps
+    std::unordered_map<std::shared_ptr<Thingy>, SerializedThingy> thingyDataMap;
+    std::map<unsigned, std::shared_ptr<Thingy>> IDThingyMap;
+    std::map<unsigned, Component*> IDComponentMap;
+    std::cout << "total thingies to deserialize: " << totalThingies << std::endl;
+    for (int i = 0; i < totalThingies; i++) {
+        SerializedThingy thingyData;
+
+        file >> 
+            thingyData.ID >> 
+            std::quoted(thingyData.name) >>
+            thingyData.componentCount >> 
+            thingyData.childCount;
+        
+
+        for (int i = 0; i < thingyData.componentCount; i++) {
+            thingyData.componentIDs.push(0);
+            file >> thingyData.componentIDs.top();
+
+            // discover components and add them to map
+            // there may be many types of components that inherit from the base component class,
+            // so we will make use of ComponentFactory to instantiate components of any type.
+            // NOTE: this could be improved in serialization by hashing the component types at the start of the metadata file.
+            unsigned id; std::size_t componentType;
+            file >> id >> componentType;
+
+            auto component = ComponentFactory::instance().create(componentType);
+            IDComponentMap[id] = component.get();
+        }
+        
+        for (int i = 0; i < thingyData.childCount; i++) {
+            thingyData.childIDs.push(0);
+            file >> thingyData.childIDs.top();
+        }
+
+        // create a thingy for each ID, with null relationships.
+        std::shared_ptr<Thingy> thingy = std::make_shared<Thingy>(thingyData.name);
+        thingy->children.resize(thingyData.childCount);
+        thingy->components.resize(thingyData.componentCount);
+        
+        thingyDataMap[thingy] = thingyData;
+        IDThingyMap[thingyData.ID] = thingy;
+
+        // name : 0
+        // 0 components
+        // 0 children
+        std::cout << thingyData.name << " : " << thingyData.ID << std::endl <<
+            thingyData.componentCount << " components"  << std::endl << 
+            thingyData.childCount     << " children"    << std::endl;
+    }
+    
+    // 2) build hierarchy
+    //    - connect children to parents
+    //    - connect components to host thingy
+    for (auto& [thingy, thingyData] : thingyDataMap) {
+        for (int i = thingyData.childCount-1; i >= 0; i--) {
+            auto& child = IDThingyMap[thingyData.childIDs.top()]; thingyData.childIDs.pop();
+            thingy->children[i] = child;
+        }
+
+        for (int i = thingyData.componentCount-1; i >= 0; i--) {
+            auto& component = IDComponentMap[thingyData.componentIDs.top()]; 
+            thingyData.componentIDs.pop();
+            thingy->components[i].reset(component);
+        }
+    }
+    
+    // 3) load component data
+    unsigned id;
+    for (int i = 0; i < totalComponents; i++) {
+        file >> id;
+        Component* component = IDComponentMap[id];
+        file >> component->value;
+        component->unserialize(file);
+    }
+    
     file.close();
     std::cout << "Object deserialized successfully." << std::endl;
 }
@@ -139,24 +233,26 @@ void Thingy::serializeHierarchy(Thingy *root, std::string filename) {
         
         // FIX: handle if child or component is null (by just writing a zero probably)
         
-        // total thingy count
+        // total thingy and component count
         file << " " << thingyIDMap.size();
+        file << " " << componentIDMap.size();
 
         for (const auto& [thingy, id] : thingyIDMap) {
-            // thingy ID
+            // thingy ID,
+            // thingy name,
+            // amount of components,
+            // amount of children
             file << 
                 " " << id << 
-            // thingy name
-                " " << thingy->getName().length() << 
-                " " << thingy->getName() << 
-            // amount of components
-                " " << thingy->components.size();
-            // component IDs
-            for (auto& component : thingy->components)
-                file << " " << componentIDMap[component.get()];
-            // amount of children
-            file << " " << thingy->children.size();
+                " \"" << thingy->getName() << "\"" <<
+                " " << thingy->components.size() <<
+                " " << thingy->children.size();
+            // component IDs and types,
             // child IDs
+            for (auto& component : thingy->components)
+                file << " " << componentIDMap[component.get()] <<
+                        " " << component->Type;
+            
             for (auto& child : thingy->children)
                 file << " " << thingyIDMap[child.get()];
         }
@@ -165,12 +261,11 @@ void Thingy::serializeHierarchy(Thingy *root, std::string filename) {
         file << " " << componentIDMap.size();
 
         for (const auto& [component, id] : componentIDMap) {
-            // component ID
-            file << 
-                " " << id << 
-                " " << component->value.length() << 
-                " " << component->value;
-            
+            // component value 
+            file << " " << id <<
+                    " \"" << component->value << "\" ";
+
+            // component data
             component->serialize(file);
         }
 

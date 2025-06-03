@@ -13,8 +13,6 @@
 // https://stackoverflow.com/questions/44105058/implementing-component-system-from-unity-in-c
 
 
-
-
 // Component base class
 class Component {
 public: 
@@ -30,7 +28,7 @@ public:
         out << value;
     }
 
-    virtual void deserialize(std::istream& in) {
+    virtual void unserialize(std::istream& in) {
         in >> value;
     }
 

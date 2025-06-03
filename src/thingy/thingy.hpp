@@ -7,11 +7,15 @@
 #include <vector>
 #include <GL/glew.h>
 #include <string>
+#include <queue>
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <algorithm>
+#include <unordered_map>
 #include <stack>
-
+#include <iomanip>
+#include <sstream>
 
 class Thingy : public std::enable_shared_from_this<Thingy> {
 private: 
@@ -24,7 +28,7 @@ public:
 
 public:
     Thingy(std::string n) : name(n) {}
-    Thingy(Metadata *m) {}
+    Thingy(Metadata *m);
     virtual ~Thingy();
     Thingy(const Thingy&) = delete;
     Thingy& operator=(const Thingy&) = delete;
