@@ -43,7 +43,8 @@ ideas:
 - 'player controller' is boring. lets fix that
     - 'Expression' for control
     - 'Perception' for graphics, audio, haptics, etc.
-- instead of rigidbody component / similar components, have a special type of transform component that contains the same features but with physics
+- instead of rigidbody component / similar components, have a special type of transform component that contains any physics features you need
+- 
 
 high priority: 
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
@@ -53,13 +54,17 @@ high priority:
 
 do sometime: 
 - some variables may need global access for complicated systems, like the camera
-- store these in universe object?
+    - store these in universe object?
 - setInternalTickCallback in physics 
 - namespace for dov
 
 
 eventually: 
 - octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain
+- unify file system and game engine
+    - efficiently serialize & deserialize objects & components
+    - file thingies which exist in the universe but reference actual files
+        - these connect to asset types somehow... so assets 
 
 ########
 # GAIA #
