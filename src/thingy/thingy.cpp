@@ -124,10 +124,11 @@ Thingy::Thingy(Metadata *metadata)
     for (int i = 0; i < totalComponents; i++) {
         std::cout << i << std::endl;
         file >> id;
-        auto& component = IDComponentMap[id];
+        std::cout << id << std::endl;
+        auto&& component = IDComponentMap[id];
         if (!component) continue;
         std::cout << "test1" << std::endl;
-        component->unserialize(file);
+        component->unserialize(file); //FIX: 
         std::cout << "test2" << std::endl;
     }
     
@@ -266,15 +267,14 @@ void Thingy::serializeHierarchy(Thingy *root, std::string filename) {
                 file << " " << thingyIDMap[child.get()];
         }
 
-        // total component count 
-        file << " " << componentIDMap.size();
 
         for (const auto& [component, id] : componentIDMap) {
-            // component value 
-            file << " " << id <<
-                    " \"" << component->value << "\" ";
+            // component id 
+            file << " " << id << " ";
 
             // component data
+            std::cout << component->value << std::endl;
+            if (component && component->value != "uninitialized")
             component->serialize(file);
         }
 

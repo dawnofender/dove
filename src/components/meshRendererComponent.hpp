@@ -68,6 +68,10 @@ public:
         renderers.erase(std::remove(renderers.begin(), renderers.end(), this), renderers.end());
     }
 
+    // void unserialize(std::istream& in) {
+    //     in >> value;
+    // }
+
     void setupBufferData();
     void bindBufferData();
     static void unbindBufferData();

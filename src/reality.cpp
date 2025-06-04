@@ -218,35 +218,35 @@ int main() {
 
     centerCube->colors = {
         // +x
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 0, 1),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 1, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
         // -x
-        glm::vec3(0, 1, 0),
         glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 1, 1),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
         // +y
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 1, 1),
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 1, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
         // -y
-        glm::vec3(0, 0, 1),
         glm::vec3(0, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 0, 1),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
         // +z
-        glm::vec3(0, 1, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(1, 0, 1),
-        glm::vec3(1, 1, 1),
-        // -z
-        glm::vec3(1, 1, 0),
-        glm::vec3(1, 0, 0),
         glm::vec3(0, 0, 0),
-        glm::vec3(0, 1, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        // -z
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0, 0),
     };
 
     centerCube->indices = {
@@ -259,7 +259,6 @@ int main() {
     };
     
     std::shared_ptr<MeshData> quad = std::make_shared<MeshData>();
-
     quad->vertices = {
         glm::vec3(0, 1, 0),
         glm::vec3(0, 0, 0),
@@ -292,14 +291,22 @@ int main() {
         0, 1, 2, 0, 2, 3
     };
     
+    // std::shared_ptr<MeshData colorCube = std::make_shared<MeshData>(colorCube);
+    // colorCube->colors = {
+
+    // }
+
     std::shared_ptr<Shader> testShader =  std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
                                 
     std::shared_ptr<Shader> testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
     std::shared_ptr<Texture> testTexture = std::make_shared<Texture>("test.png");
+    std::shared_ptr<Texture> UVGridTexture = std::make_shared<Texture>("../assets/textures/UVgrid.png");
 
     std::vector testTextureVector = {testTexture};
+    std::vector testTextureVector2 = {UVGridTexture};
     std::shared_ptr<Material> testMaterial = std::make_shared<Material>(testShader, testTextureVector);
     std::shared_ptr<Material> testMaterial2 = std::make_shared<Material>(testShader2, testTextureVector);
+    std::shared_ptr<Material> testMaterial3 = std::make_shared<Material>(testShader, testTextureVector2);
     
     
     // ###############
@@ -323,6 +330,7 @@ int main() {
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
     ground->addComponent<RigidBody>("RigidBody", &physics, ground, 0.f, false, true);
+    ground->addComponent<MeshRenderer>("MeshRenderer", ground, testMaterial3, centerCube);
   
     Thingy *testCube = &universe.createChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
@@ -409,17 +417,15 @@ int main() {
         // ##############
 
         // testing serialization
-        if (frame == 100) {
-            Thingy::serializeHierarchy(&universe, "universe.metadata");
+        // if (frame == 100) {
+        //     Thingy::serializeHierarchy(&universe, "universe.metadata");
+        // }
 
-            // universe.serialize("universe.metadata");
-        }
-
-        if (frame == 101) {
-            Metadata metadata = {"universe.metadata"};
-            universe2 = new Thingy(&metadata);
-            std::cout << universe2->getName() << std::endl;
-        }
+        // if (frame == 101) {
+        //     Metadata metadata = {"universe.metadata"};
+        //     universe2 = new Thingy(&metadata);
+        //     std::cout << universe2->getName() << std::endl;
+        // }
 
         // # physics - should be one function in physics component
         deltaTime = time - lastTime;
