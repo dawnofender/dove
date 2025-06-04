@@ -36,6 +36,10 @@ public:
         return classType == Type;
     }
 
+    virtual std::size_t getType() const { 
+        return Type; 
+    }
+
 private: 
   static inline std::vector<Component *> dynamicComponents;
 
@@ -101,6 +105,7 @@ private:
 public:                                                                                     \
     static const std::size_t Type;                                                          \
     virtual bool IsClassType( const std::size_t classType ) const override;                 \
+    virtual std::size_t getType() const override;                                           \
 
 
 //****************
@@ -119,27 +124,27 @@ public:                                                                         
 // Does the original CLASS_DEFINITION, then registers the component type in the factory. 
 // This allows for dynamic component initialization, given just a size_t type
 // - useful for unserialization while reading component data from file.
-#define CLASS_DEFINITION( parentclass, childclass )                                    \
-    /* 1) Define the static Type‐hash for childclass: */                               \
-    const std::size_t childclass::Type =                                               \
-        std::hash<std::string>()(TO_STRING(childclass));                               \
-                                                                                       \
-    /* 2) Implement IsClassType(...) in terms of parentclass::IsClassType: */          \
-    bool childclass::IsClassType(const std::size_t classType) const {                  \
-        if (classType == childclass::Type)                                             \
-            return true;                                                               \
-        return parentclass::IsClassType(classType);                                    \
-    }                                                                                  \
-                                                                                       \
-    /* 3) Static registration at load‐time: */                                         \
-    namespace {                                                                        \
-        static const bool _registered_##childclass =                                   \
-            ComponentFactory::instance().registerType(                                 \
-                childclass::Type,                                                      \
-                []() -> std::unique_ptr<Component> {                                   \
-                    return std::make_unique<childclass>();                             \
-                }                                                                      \
-            );                                                                         \
+#define CLASS_DEFINITION( parentclass, childclass )                                     \
+    const std::size_t childclass::Type =                                                \
+        std::hash<std::string>()(TO_STRING(childclass));                                \
+                                                                                        \
+    bool childclass::IsClassType(const std::size_t classType) const {                   \
+        if (classType == childclass::Type)                                              \
+            return true;                                                                \
+        return parentclass::IsClassType(classType);                                     \
+    }                                                                                   \
+                                                                                        \
+    std::size_t childclass::getType() const { return Type; }                            \
+                                                                                        \
+    /* Static registration at load‐time: */                                             \
+    namespace {                                                                         \
+        static const bool _registered_##childclass =                                    \
+            ComponentFactory::instance().registerType(                                  \
+                childclass::Type,                                                       \
+                []() -> std::unique_ptr<Component> {                                    \
+                    return std::make_unique<childclass>();                              \
+                }                                                                       \
+            );                                                                          \
     }
 
 #endif

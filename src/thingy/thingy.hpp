@@ -53,12 +53,6 @@ public:
 
 
     static void serializeHierarchy(Thingy *root, std::string filename);
-
-    Metadata serialize() {
-        Metadata metadata;
-        return metadata;
-    }
-    
     
 };
 

@@ -337,7 +337,7 @@ int main() {
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", &physics, testCube2, 1.f);
     testCube2->addComponent<MeshRenderer>("MeshRenderer", testCube2, testMaterial2, centerCube);
-
+    
     // ###############
     // # other tests #
     // ###############
