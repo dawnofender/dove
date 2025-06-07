@@ -38,7 +38,7 @@
 #include <src/components/rigidBodyComponent.hpp>
 // #include <src/components/gaiaComponent.hpp>
 #include <src/components/meshRendererComponent.hpp>
-#include <src/components/playerControllerComponent.hpp>
+#include <src/components/skyRendererComponent.hpp>
 #include <src/components/transformComponent.hpp>
 
 #include <lib/bulletDebugDrawer.hpp>
@@ -110,14 +110,12 @@ int main() {
     double lastGenTime = lastFrameTime;
     int nbFrames = 0;
 
-    // ##########
-    // # assets #
-    // ##########
-
-    std::shared_ptr<MeshData> centerCube = std::make_shared<MeshData>();
     
-
-    centerCube->vertices = {
+    // ##########   
+    // # ASSETS #   
+    // ##########   
+    
+    std::vector<glm::vec3> cubeVertices = {
         // +x
         glm::vec3(.5f, .5f, .5f),
         glm::vec3(.5f, -.5f, .5f),
@@ -149,8 +147,8 @@ int main() {
         glm::vec3(-.5f, -.5f, -.5f),
         glm::vec3(-.5f, .5f, -.5f),
     };
-
-    centerCube->uvs = {
+    
+    std::vector<glm::vec2> cubeUVs =  {
         // +x
         glm::vec2(0, 1),
         glm::vec2(0, 0),
@@ -183,7 +181,8 @@ int main() {
         glm::vec2(1, 1),
     };
     
-    centerCube->normals = {
+    // normals:
+    std::vector<glm::vec3> cubeNormals = {
         // +x
         glm::vec3(1, 0, 0),
         glm::vec3(1, 0, 0),
@@ -215,8 +214,9 @@ int main() {
         glm::vec3(0, 0, -1),
         glm::vec3(0, 0, -1),
     };
-
-    centerCube->colors = {
+    
+    // colors:
+    std::vector<glm::vec3> cubeColors = {
         // +x
         glm::vec3(0, 0, 0),
         glm::vec3(0, 0, 0),
@@ -248,8 +248,9 @@ int main() {
         glm::vec3(0, 0, 0),
         glm::vec3(0, 0, 0),
     };
-
-    centerCube->indices = {
+    
+    // indices:
+    std::vector<unsigned int> cubeIndices = {
         0,  1,  2,  0,  2,  3,  //+x
         4,  5,  6,  4,  6,  7,  //-x
         8,  9,  10, 8,  10, 11, //+y
@@ -258,94 +259,118 @@ int main() {
         20, 21, 22, 20, 22, 23  //-z
     };
     
-    std::shared_ptr<MeshData> quad = std::make_shared<MeshData>();
-    quad->vertices = {
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 1, 0),
-    };
+    std::shared_ptr<MeshData> cube = std::make_shared<MeshData>(
+        cubeVertices,
+        cubeColors,
+        cubeUVs,
+        cubeNormals,
+        cubeIndices
+    ); 
     
-    quad->uvs = {
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-    };
-
-    quad->normals = {
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-    };
-
-    quad->colors = {
-        glm::vec3(0, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 0, 1),
-    };
-
-    quad->indices = {
-        0, 1, 2, 0, 2, 3
-    };
     
-    // std::shared_ptr<MeshData colorCube = std::make_shared<MeshData>(colorCube);
-    // colorCube->colors = {
-
-    // }
-
-    std::shared_ptr<Shader> testShader =  std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-                                
+    // std::shared_ptr<MeshData> quad = std::make_shared<MeshData> (
+    //     // vertices:
+    //     std::vector<glm::vec3> = {
+    //         quad->vertices = {
+    //         glm::vec3(0, 1, 0),
+    //         glm::vec3(0, 0, 0),
+    //         glm::vec3(1, 0, 0),
+    //         glm::vec3(1, 1, 0),
+    //     },
+    // 
+    //     // uvs:
+    //     std::vector<glm::vec2> = {
+    //         glm::vec2(0, 1),
+    //         glm::vec2(0, 0),
+    //         glm::vec2(1, 0),
+    //         glm::vec2(1, 1),
+    //     },
+    
+    //     //normals:
+    //     std::vector<glm::vec3> = {
+    //         glm::vec3(0, 0, 1),
+    //         glm::vec3(0, 0, 1),
+    //         glm::vec3(0, 0, 1),
+    //         glm::vec3(0, 0, 1),
+    //     }, 
+    
+    //     // colors:
+    //     std::vector<glm::vec3> = {
+    //         glm::vec3(0, 0, 0),
+    //         glm::vec3(1, 0, 0),
+    //         glm::vec3(0, 1, 0),
+    //         glm::vec3(0, 0, 1),
+    //     },
+    
+    //     // indices:
+    //     std::vector<unsigned int> = {
+    //         0, 1, 2, 0, 2, 3
+    //     }
+    // ); 
+    
+    
+    std::shared_ptr<Shader> testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
     std::shared_ptr<Shader> testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    std::shared_ptr<Shader> testSkyShader = std::make_shared<Shader>("SkyVertexShader.vertexshader", "SkyboxFragmentShader.fragmentshader");
+    
     std::shared_ptr<Texture> testTexture = std::make_shared<Texture>("test.png");
     std::shared_ptr<Texture> UVGridTexture = std::make_shared<Texture>("../assets/textures/UVgrid.png");
-
+    
     std::vector testTextureVector = {testTexture};
     std::vector testTextureVector2 = {UVGridTexture};
+    
     std::shared_ptr<Material> testMaterial = std::make_shared<Material>(testShader, testTextureVector);
     std::shared_ptr<Material> testMaterial2 = std::make_shared<Material>(testShader2, testTextureVector);
     std::shared_ptr<Material> testMaterial3 = std::make_shared<Material>(testShader, testTextureVector2);
-    
-    
+    std::shared_ptr<Material> testSkyMaterial = std::make_shared<Material>(testSkyShader, testTextureVector);
+
     // ###############
     // # world setup #
     // ###############
 
+    // essential thingies
     Thingy universe("universe");
     Physics physics = universe.addComponent<Physics>("Laws Of Physics");
-    
 
     Thingy *player = &universe.createChild("it's you!");
     // Thingy *sight = &universe.createChild("perception");
-    Transform playerTransform = player->addComponent<Transform>("Transform");
+    Transform *playerTransform = &player->addComponent<Transform>("Transform");
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    player->addComponent<RigidBody>("RigidBody", &physics, player, 0.f, false, true);
+    player->addComponent<RigidBody>("RigidBody", &physics, player, 0.f, true, true);
 
     // # Basic scene
+    // environment:
+    Thingy *sky = &universe.createChild("Sky");
+    sky->addComponent<Transform>("Transform");
+    sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial);
+    
+    // ground:
     Thingy *ground = &universe.createChild("Ground");
     Transform *groundTransform = &ground->addComponent<Transform>("Transform");
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
     ground->addComponent<RigidBody>("RigidBody", &physics, ground, 0.f, false, true);
-    ground->addComponent<MeshRenderer>("MeshRenderer", ground, testMaterial3, centerCube);
+    std::cout << "test0" << std::endl;
+    ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
   
+    std::cout << "test1" << std::endl;
     Thingy *testCube = &universe.createChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
+    // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
     testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1.f);
-    testCube->addComponent<MeshRenderer>("MeshRenderer", testCube, testMaterial, centerCube);
+    testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
     Thingy *testCube2 = &universe.createChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform");
     cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", &physics, testCube2, 1.f);
-    testCube2->addComponent<MeshRenderer>("MeshRenderer", testCube2, testMaterial2, centerCube);
+    testCube2->addComponent<ObjectRenderer>("ObjectRenderer", testCube2, testMaterial2, cube);
     
+
     // ###############
     // # other tests #
     // ###############
@@ -385,7 +410,6 @@ int main() {
     double time;
     
     int frame = 0;
-    Thingy* universe2;
     do {
         // #######
         // # fps #
@@ -396,9 +420,9 @@ int main() {
         if ( time - lastFrameTime >= 1.0) { // If last prinf() was more than 1sec ago
             // printf and reset
             printf("%f ms/frame    ", 1000.0 / double(nbFrames));
-            std::cout << playerTransform.getPosition().x << ", "
-                      << playerTransform.getPosition().y << ", "
-                      << playerTransform.getPosition().z << "\n";
+            std::cout << playerTransform->getPosition().x << ", "
+                      << playerTransform->getPosition().y << ", "
+                      << playerTransform->getPosition().z << "\n";
             nbFrames = 0;
             lastFrameTime += 1.0;
         }
@@ -423,7 +447,7 @@ int main() {
 
         // if (frame == 101) {
         //     Metadata metadata = {"universe.metadata"};
-        //     universe2 = new Thingy(&metadata);
+        //     Thingy* universe2 = new Thingy(&metadata);
         //     std::cout << universe2->getName() << std::endl;
         // }
 
@@ -438,10 +462,10 @@ int main() {
 
         // # Player controls
         // these should be moved into components later (input, camera)
-        glm::vec3 position = playerTransform.getPosition();
+        glm::vec3 position = playerTransform->getPosition();
         computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
                                   initialFoV, speed, mouseSpeed, near, far);
-        playerTransform.setPosition(position);
+        playerTransform->setPosition(position);
         // raycasting for clicking:
         // The ray Start and End positions, in Normalized Device Coordinates 
         glm::vec4 lRayStart_NDC(
@@ -467,7 +491,7 @@ int main() {
         glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
         lRayDir_world = glm::normalize(lRayDir_world);
         
-        Thingy* hoverObject = physics.rayCast(playerTransform.getPosition(), lRayDir_world, 1000);
+        Thingy* hoverObject = physics.rayCast(playerTransform->getPosition(), lRayDir_world, 1000);
         
         // on click, do something to hovered object 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
@@ -483,7 +507,8 @@ int main() {
         Component::updateAll();
 
         // # rendering stuff
-        MeshRenderer::drawAll();
+        ObjectRenderer::drawAll();
+        SkyRenderer::drawAll();
         mydebugdrawer.SetMatrices(viewMatrix, projectionMatrix);
         physics.dynamicsWorld->debugDrawWorld();
         glfwSwapBuffers(window);
@@ -495,7 +520,7 @@ int main() {
              glfwWindowShouldClose(window) == 0);
 
     std::cout << "cleaning up..." << std::endl;
-    MeshRenderer::deleteAll(); 
+    // ObjectRenderer::deleteAll(); 
 
     // glDeleteTextures(1, &Texture);
 

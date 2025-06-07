@@ -14,7 +14,6 @@ public:
     glm::mat4 transform;
 
 public: 
-    Transform() = default;
     Transform(std::string && initialValue, glm::mat4 t = glm::mat4(1))
         : Component(std::move(initialValue)), transform(t) {
     }

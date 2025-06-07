@@ -6,7 +6,6 @@
 class SphereCollider : public Collider {
 CLASS_DECLARATION(SphereCollider)
 public: 
-    SphereCollider() = default;
     SphereCollider(std::string &&initialValue, float radius);
 
     void setRadius(float r);

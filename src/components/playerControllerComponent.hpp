@@ -13,7 +13,6 @@ private:
     Transform* transformComp;
 
 public: 
-    PlayerController() = default;
     PlayerController(std::string && initialValue, Thingy* h)
         : Component(std::move(initialValue)), host(h) {
         

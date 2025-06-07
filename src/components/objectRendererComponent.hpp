@@ -1,5 +1,5 @@
-#ifndef MESHRENDERERCOMPONENT_HPP
-#define MESHRENDERERCOMPONENT_HPP
+#ifndef OBJECTRENDERERCOMPONENT_HPP
+#define OBJECTRENDERERCOMPONENT_HPP
 
 #include "component.hpp"
 #include "../thingy/thingy.hpp"
@@ -20,25 +20,36 @@
 #include <lib/controls.hpp>
 
 
-class MeshRenderer : public Component {
-CLASS_DECLARATION(MeshRenderer)
+class ObjectRenderer : public Component {
+CLASS_DECLARATION(ObjectRenderer)
 private:
+
 
     // maybe make this a vector so people can layer materials? probably not great for performance but could be interesting...
     std::shared_ptr<Material> material;
     std::shared_ptr<MeshData> mesh;
-    
+
+    Transform *transform;
+    Thingy *host;
+
     GLuint VertexArrayID;
-    std::vector<GLuint> buffers;
-    GLuint elementBuffer;
+
+    glm::mat4 modelMatrix;
     glm::mat4 MVP;
+
+    std::pair<glm::vec3, glm::vec3> bounds;
+
     
+    static inline std::vector<ObjectRenderer *> renderers;
+
 protected:
     uint8_t state = 1;
 
 public:
-    MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr)
-        : Component(std::move(initialValue)), material(s), mesh(m) {
+    ObjectRenderer(std::string &&initialValue, Thingy *h = nullptr, std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr)
+        : Component(std::move(initialValue)), host(h), material(s), mesh(m) {
+        if (host) 
+            transform = &host->getComponent<Transform>();
         
         setupBufferData();
 
@@ -46,17 +57,14 @@ public:
         renderers.push_back(this);
     }
 
-    MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s = nullptr)
+    ObjectRenderer(std::string &&initialValue, std::shared_ptr<Material> s = nullptr)
         : Component(std::move(initialValue)), material(s) {
         setupBufferData();
     }
   
-    ~MeshRenderer() {
-        glDeleteVertexArrays(1, &VertexArrayID);
-        for (auto& buffer : buffers) {
-            glDeleteBuffers(1, &buffer);
-        }
-
+    ~ObjectRenderer() {
+        deleteBuffers();
+        renderers.erase(std::remove(renderers.begin(), renderers.end(), this), renderers.end());
     }
 
     // void unserialize(std::istream& in) {
@@ -68,6 +76,8 @@ public:
     static void unbindBufferData();
     void regenerate();
     void draw();
+    void deleteBuffers();
+    void setBounds(glm::vec3 a, glm::vec3 b);
     void setMesh(std::shared_ptr<MeshData>);
     void setMaterial(std::shared_ptr<Material>);
     std::shared_ptr<MeshData> getMesh();

@@ -22,7 +22,6 @@ public:
     btDiscreteDynamicsWorld* dynamicsWorld;
 
 public:
-    Physics() = default;
     Physics(std::string &&initialValue);
     
     Thingy* rayCast(glm::vec3 position, glm::vec3 direction, float distance);

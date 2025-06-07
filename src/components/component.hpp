@@ -20,6 +20,7 @@ public:
     static const std::size_t Type;
 
     virtual ~Component() = default;
+    
     Component( std::string && initialValue = "")
         : value( initialValue ) { 
     }
@@ -103,6 +104,7 @@ private:
 //****************
 #define CLASS_DECLARATION( classname )                                                      \
 public:                                                                                     \
+    classname() = default;                                                                  \
     static const std::size_t Type;                                                          \
     virtual bool IsClassType( const std::size_t classType ) const override;                 \
     virtual std::size_t getType() const override;                                           \

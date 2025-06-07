@@ -6,11 +6,10 @@
 #include "../thingy/thingy.hpp"
 
 class BoxCollider : public Collider {
-CLASS_DECLARATION(SphereCollider)
+CLASS_DECLARATION(BoxCollider)
 private:
     Thingy* host;
 public: 
-    BoxCollider() = default;
     BoxCollider(std::string &&initialValue, Thingy *h, glm::vec3 d = {0.5, 0.5, 0.5});
 };
 

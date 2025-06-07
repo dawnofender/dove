@@ -29,7 +29,6 @@ public:
     float mass;
 
 public:
-    RigidBody() = default;
     RigidBody(std::string && initialValue, Physics *physicsComponent, Thingy *h, float m = 0, bool k = false, bool s = false);
 
     void syncFromTransform();

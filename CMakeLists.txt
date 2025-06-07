@@ -60,7 +60,6 @@ add_executable(reality
     src/dasset/material.cpp
     src/dasset/material.hpp
 
-
     src/thingy/thingy.cpp
     src/thingy/thingy.hpp
     src/components/component.cpp
@@ -77,6 +76,8 @@ add_executable(reality
     src/components/boxColliderComponent.hpp
     src/components/meshRendererComponent.cpp
     src/components/meshRendererComponent.hpp
+    src/components/skyRendererComponent.cpp
+    src/components/skyRendererComponent.hpp
     src/components/transformComponent.cpp
     src/components/transformComponent.hpp
     src/components/playerControllerComponent.cpp
