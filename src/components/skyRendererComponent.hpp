@@ -7,7 +7,7 @@
 class SkyRenderer : public MeshRenderer {
 CLASS_DECLARATION(SkyRenderer)
 public: 
-    SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s);
+    SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m);
 
     static void drawAll();
     void setupBufferData();
@@ -16,7 +16,6 @@ public:
 
 private: 
     static inline std::vector<SkyRenderer *> renderers;
-    static std::shared_ptr<MeshData> mesh;
     
     GLuint VertexArrayID;
     GLuint vertexbuffer;

@@ -43,15 +43,7 @@ void ObjectRenderer::draw() {
     // FIX: if this returns false, there was an error, we can skip the object and render all errored objects last with the same shader 
     material->Activate(transform->getMatrix());
     bindBufferData();
-    std::cout << "drawing elements" << std::endl;
-    std::cout << mesh->indices.size() << std::endl;
-    for (auto && layer : mesh->layers) {
-        std::cout << layer.getElementSize() << std::endl;
-        std::cout << layer.data.size() << std::endl;
-        std::cout << layer.getSize() << std::endl;
-    }
     glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
-    std::cout << "drawing elements: done" << std::endl;
 }
 
 void ObjectRenderer::setBounds(glm::vec3 a, glm::vec3 b) { bounds = {a, b}; }

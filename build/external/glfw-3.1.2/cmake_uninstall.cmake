@@ -1,9 +1,9 @@
 
-if (NOT EXISTS "/home/dawn/repos/dove/build/external/glfw-3.1.2/install_manifest.txt")
-  message(FATAL_ERROR "Cannot find install manifest: \"/home/dawn/repos/dove/build/external/glfw-3.1.2/install_manifest.txt\"")
+if (NOT EXISTS "/home/dawn-admin/repos/dove/build/external/glfw-3.1.2/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: \"/home/dawn-admin/repos/dove/build/external/glfw-3.1.2/install_manifest.txt\"")
 endif()
 
-file(READ "/home/dawn/repos/dove/build/external/glfw-3.1.2/install_manifest.txt" files)
+file(READ "/home/dawn-admin/repos/dove/build/external/glfw-3.1.2/install_manifest.txt" files)
 string(REGEX REPLACE "\n" ";" files "${files}")
 
 foreach (file ${files})

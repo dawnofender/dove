@@ -7,15 +7,12 @@ Material::Material(std::shared_ptr<Shader> s, std::vector<std::shared_ptr<Textur
 
 bool Material::Activate(glm::mat4 modelMatrix) {
 
-    std::cout << "material test" << std::endl;
     if (!shader) {
         std::cout << "shader not found" << std::endl;
         return false;
     }
-    std::cout << "material test1" << std::endl;
     
     shader->Activate();
-    std::cout << "material test2" << std::endl;
     std::shared_ptr<Texture> texture;
     for (int i = 0; i < textures.size(); i++) {
         texture = textures[i];

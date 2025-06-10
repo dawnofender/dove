@@ -29,7 +29,7 @@ struct MeshData {
     //     indices = source.indices;
     // }
     template<class LayerType, typename... Args>
-    LayerType& addComponent(Args&&... args);
+    LayerType& addLayer(Args&&... args);
 
     void clear() {
         layers.clear();
@@ -38,7 +38,8 @@ struct MeshData {
 };
 
 template< class LayerType, typename... Args >
-LayerType& MeshData::addComponent(Args&&... args) {
+LayerType& MeshData::addLayer(Args&&... args) {
+    std::cout << "test0" << std::endl;
     auto layer = std::make_unique<LayerType>(std::forward<Args>(args)...);
     LayerType& ref = *layer;
     layers.emplace_back(std::move(layer));
@@ -68,12 +69,16 @@ public:
         std::memcpy(data.data(), inputData.data(), inputData.size() * sizeof(T));
     }
 
-    std::size_t getSize() {
+    virtual std::size_t getSize() {
         return sizeof(unsigned) * data.size();
+    }
+    
+    virtual void* getData() {
+        return &data[0];
     }
 
     virtual unsigned getElementSize() const {
-        return elementSize;
+        return 0;
     }
 };
 
@@ -84,6 +89,14 @@ public:
 
     IndexLayer(const std::vector<unsigned>& inputData) {
         data = std::vector<unsigned>(inputData);
+    }
+
+    virtual std::size_t getSize() override {
+        return sizeof(unsigned) * data.size();
+    }
+
+    virtual void* getData() override {
+        return &data[0];
     }
 
     virtual unsigned getElementSize() const override {
@@ -100,8 +113,12 @@ public:
         data = std::vector<glm::vec2>(inputData);
     }
 
-    std::size_t getSize() {
+    virtual std::size_t getSize() override {
         return sizeof(glm::vec2) * data.size();
+    }
+
+    virtual void* getData() override {
+        return &data[0];
     }
 
     virtual unsigned getElementSize() const override {
@@ -118,8 +135,12 @@ public:
         data = std::vector<glm::vec3>(inputData);
     }
 
-    std::size_t getSize() {
+    virtual std::size_t getSize() override {
         return sizeof(glm::vec3) * data.size();
+    }
+
+    virtual void* getData() override {
+        return &data[0];
     }
 
     virtual unsigned getElementSize() const override {
@@ -136,10 +157,10 @@ public:
         data = std::vector<glm::vec4>(inputData);
     }
 
-    std::size_t getSize() {
+    virtual std::size_t getSize() override {
         return sizeof(glm::vec4) * data.size();
     }
-
+    
     virtual unsigned getElementSize() const override {
         return elementSize;
     }

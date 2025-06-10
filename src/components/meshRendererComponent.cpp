@@ -36,14 +36,7 @@ void MeshRenderer::setupBufferData() {
     for (int i = 0; i < mesh->layers.size(); i++ ) {
         glGenBuffers(1, &buffers[i]);
         glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-        glBufferData(GL_ARRAY_BUFFER, mesh->layers[i]->getSize(), &mesh->layers[i]->data[0], GL_STATIC_DRAW);
-        //                            NOTE: could be optimized if we know the size of the data type
-        // glBufferData(GL_ARRAY_BUFFER, mesh->layers[i].data.size() * sizeof(glm::vec3), &mesh->layers[i].data[0], GL_STATIC_DRAW);
-
-        // } else {
-        // glBufferData(GL_ARRAY_BUFFER, mesh->layers[i].data.size() * sizeof(glm::vec2), &mesh->layers[i].data[0], GL_STATIC_DRAW);
-
-        // }
+        glBufferData(GL_ARRAY_BUFFER, mesh->layers[i]->getSize(), mesh->layers[i]->getData(), GL_STATIC_DRAW);
     }    
 
     // EBO
@@ -61,16 +54,12 @@ void MeshRenderer::bindBufferData() {
     glBindVertexArray(VertexArrayID);
 
     for (int i = 0; i < mesh->layers.size(); i++ ) {
-        std::cout << "binding mesh layer " << i << " to buffer" << std::endl;
         glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
         glVertexAttribPointer(i, mesh->layers[i]->getElementSize(), GL_FLOAT, GL_FALSE, 0, (void *)0);
         glEnableVertexAttribArray(i);
-        std::cout << "binding mesh layer " << i << " to buffer: done" << std::endl;
     }    
 
-    std::cout << "binding element array buffer" << std::endl;
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
-    std::cout << "binding element array buffer: done" << std::endl;
 }
 
 void MeshRenderer::unbindBufferData() {
@@ -85,7 +74,7 @@ void MeshRenderer::regenerate() {
     for (int i = 0; i < mesh->layers.size(); i++ ) {
         glGenBuffers(1, &buffers[i]);
         glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof( mesh->layers[i]->data ), &mesh->layers[i]->data[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, mesh->layers[i]->getSize(), mesh->layers[i]->getData(), GL_STATIC_DRAW);
         //                            NOTE: could be optimized if we know the size of the data type
     }    
 
