@@ -60,6 +60,8 @@ add_executable(reality
     src/dasset/material.cpp
     src/dasset/material.hpp
 
+    src/thingy/thing.cpp
+    src/thingy/thing.hpp
     src/thingy/thingy.cpp
     src/thingy/thingy.hpp
     src/components/component.cpp

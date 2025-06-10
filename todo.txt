@@ -44,7 +44,7 @@ ideas:
     - 'Expression' for control
     - 'Perception' for graphics, audio, haptics, etc.
 - instead of rigidbody component / similar components, have a special type of transform component that contains any physics features you need
-- 
+- components are actually thingies. so you can grab them and develop things with them, in-world
 
 high priority: 
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused

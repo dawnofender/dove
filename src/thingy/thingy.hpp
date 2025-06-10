@@ -18,7 +18,7 @@
 #include <sstream>
 
 class Thingy : public std::enable_shared_from_this<Thingy> {
-private: 
+protected:
     std::string name;
     std::weak_ptr<Thingy> parent;
 
@@ -30,8 +30,8 @@ public:
     Thingy(std::string n) : name(n) {}
     Thingy(Metadata *m);
     virtual ~Thingy();
-    Thingy(const Thingy&) = delete;
-    Thingy& operator=(const Thingy&) = delete;
+    // Thingy(const Thingy&) = delete;
+    // Thingy& operator=(const Thingy&) = delete;
 
 public:
     template<class ComponentType, typename... Args>
@@ -39,14 +39,35 @@ public:
 
     template<class ComponentType>
     ComponentType& getComponent();
+    
+    // not implemented yet
+    template< class ComponentType >
+    std::vector<ComponentType*> getComponents();
 
-    // template< class ComponentType >
-    // std::vector<ComponentType*> getComponents();
-    Thingy& createChild(std::string childName);
-
+    template<class ThingyType, typename... Args>
+    ThingyType& addChild(Args&&... args);
+    
     void addChild(std::shared_ptr<Thingy> thingy);
+    Thingy& addChild(std::string childName);
+    
+    template<class ThingyType>
+    ThingyType& getChild();
+    
+    Thingy& getChild(std::string childName);
+    
+    // not implemented yet (2)
+    template<class ThingyType>
+    std::vector<ThingyType*> getChildren();
+    std::vector<std::shared_ptr<Thingy>> getChildren(std::string childName);
+   
+
     void removeChild(std::shared_ptr<Thingy> child);
     void removeChild(Thingy* child);
+
+    // not implemented yet (2)
+    void removeChild(std::string childName);
+    void removeChildren(std::string childName);
+
     void setParent(std::shared_ptr<Thingy> thingy);
     void setName(std::string newName);
     std::string getName();
@@ -73,6 +94,14 @@ ComponentType& Thingy::getComponent() {
             return *static_cast<ComponentType*>(component.get());
     }
     return *std::unique_ptr<ComponentType>(nullptr);
+}
+
+template< class ThingyType, typename... Args >
+ThingyType& Thingy::addChild(Args&&... args) {
+    auto child = std::make_shared<ThingyType>(std::forward<Args>(args)...);
+    ThingyType& ref = *child;
+    components.emplace_back(child);
+    return ref;
 }
 
 

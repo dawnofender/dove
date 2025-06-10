@@ -292,22 +292,22 @@ int main() {
     Thingy universe("universe");
     Physics physics = universe.addComponent<Physics>("Laws Of Physics");
 
-    Thingy *player = &universe.createChild("it's you!");
-    // Thingy *sight = &universe.createChild("perception");
+    Thingy *player = &universe.addChild("it's you!");
+    // Thingy *sight = &universe.addChild("perception");
     Transform *playerTransform = &player->addComponent<Transform>("Transform");
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
     player->addComponent<RigidBody>("RigidBody", &physics, player, 0.f, true, true);
 
     // # Basic scene
     // environment:
-    Thingy *sky = &universe.createChild("Sky");
+    Thingy *sky = &universe.addChild("Sky");
     sky->addComponent<Transform>("Transform");
     std::cout << "test0" << std::endl;
     sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial, cube);
     std::cout << "test1" << std::endl;
     
     // ground:
-    Thingy *ground = &universe.createChild("Ground");
+    Thingy *ground = &universe.addChild("Ground");
     Transform *groundTransform = &ground->addComponent<Transform>("Transform");
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
@@ -317,7 +317,7 @@ int main() {
     ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
   
     std::cout << "test1" << std::endl;
-    Thingy *testCube = &universe.createChild("Cube");
+    Thingy *testCube = &universe.addChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
@@ -325,7 +325,7 @@ int main() {
     testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1.f);
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
-    Thingy *testCube2 = &universe.createChild("Cube");
+    Thingy *testCube2 = &universe.addChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform");
     cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
@@ -341,7 +341,7 @@ int main() {
 
     // # GAIA
     
-    // Thingy *gaia = &universe.createChild("gaia");
+    // Thingy *gaia = &universe.addChild("gaia");
     // gaia->addComponent<Gaia>("Gaia", gaia, player);
 
     // put player on serface (temporary)

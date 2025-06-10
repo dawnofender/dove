@@ -136,7 +136,7 @@ Thingy::Thingy(Metadata *metadata)
     std::cout << "Object deserialized successfully." << std::endl;
 }
 
-Thingy& Thingy::createChild(std::string n) {
+Thingy& Thingy::addChild(std::string n) {
     auto child = std::make_shared<Thingy>(n);
     addChild(child);
     return *child;
