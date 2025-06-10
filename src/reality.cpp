@@ -37,7 +37,7 @@
 #include <src/components/boxColliderComponent.hpp>
 #include <src/components/rigidBodyComponent.hpp>
 // #include <src/components/gaiaComponent.hpp>
-#include <src/components/meshRendererComponent.hpp>
+#include <src/components/objectRendererComponent.hpp>
 #include <src/components/skyRendererComponent.hpp>
 #include <src/components/transformComponent.hpp>
 
@@ -115,7 +115,7 @@ int main() {
     // # ASSETS #   
     // ##########   
     
-    std::vector<glm::vec3> cubeVertices = {
+    Vec3Layer cubeVertices({
         // +x
         glm::vec3(.5f, .5f, .5f),
         glm::vec3(.5f, -.5f, .5f),
@@ -146,9 +146,9 @@ int main() {
         glm::vec3(.5f, -.5f, -.5f),
         glm::vec3(-.5f, -.5f, -.5f),
         glm::vec3(-.5f, .5f, -.5f),
-    };
+    });
     
-    std::vector<glm::vec2> cubeUVs =  {
+    Vec2Layer cubeUVs({
         // +x
         glm::vec2(0, 1),
         glm::vec2(0, 0),
@@ -179,10 +179,10 @@ int main() {
         glm::vec2(0, 0),
         glm::vec2(1, 0),
         glm::vec2(1, 1),
-    };
+    });
     
     // normals:
-    std::vector<glm::vec3> cubeNormals = {
+    Vec3Layer cubeNormals({
         // +x
         glm::vec3(1, 0, 0),
         glm::vec3(1, 0, 0),
@@ -213,10 +213,10 @@ int main() {
         glm::vec3(0, 0, -1),
         glm::vec3(0, 0, -1),
         glm::vec3(0, 0, -1),
-    };
+    });
     
     // colors:
-    std::vector<glm::vec3> cubeColors = {
+    Vec3Layer cubeColors({
         // +x
         glm::vec3(0, 0, 0),
         glm::vec3(0, 0, 0),
@@ -247,7 +247,7 @@ int main() {
         glm::vec3(0, 0, 0),
         glm::vec3(0, 0, 0),
         glm::vec3(0, 0, 0),
-    };
+    });
     
     // indices:
     std::vector<unsigned int> cubeIndices = {
@@ -258,56 +258,25 @@ int main() {
         16, 17, 18, 16, 18, 19, //+z
         20, 21, 22, 20, 22, 23  //-z
     };
+
+    std::vector<std::unique_ptr<MeshLayer>> cubeLayers = {
+        std::make_unique<MeshLayer>(cubeVertices),
+        std::make_unique<MeshLayer>(cubeColors),
+        std::make_unique<MeshLayer>(cubeUVs),
+        std::make_unique<MeshLayer>(cubeNormals)
+    };
     
-    std::shared_ptr<MeshData> cube = std::make_shared<MeshData>(
-        cubeVertices,
-        cubeColors,
-        cubeUVs,
-        cubeNormals,
-        cubeIndices
-    ); 
+    std::shared_ptr<MeshData> cube;
+    cube->indices = cubeIndices;
+    cube->layers.push_back(std::make_unique<MeshLayer>(cubeVertices));
+    cube->layers.push_back(std::make_unique<MeshLayer>(cubeColors));
+    cube->layers.push_back(std::make_unique<MeshLayer>(cubeUVs)); 
+    cube->layers.push_back(std::make_unique<MeshLayer>(cubeNormals));
+
     
     
-    // std::shared_ptr<MeshData> quad = std::make_shared<MeshData> (
-    //     // vertices:
-    //     std::vector<glm::vec3> = {
-    //         quad->vertices = {
-    //         glm::vec3(0, 1, 0),
-    //         glm::vec3(0, 0, 0),
-    //         glm::vec3(1, 0, 0),
-    //         glm::vec3(1, 1, 0),
-    //     },
-    // 
-    //     // uvs:
-    //     std::vector<glm::vec2> = {
-    //         glm::vec2(0, 1),
-    //         glm::vec2(0, 0),
-    //         glm::vec2(1, 0),
-    //         glm::vec2(1, 1),
-    //     },
     
-    //     //normals:
-    //     std::vector<glm::vec3> = {
-    //         glm::vec3(0, 0, 1),
-    //         glm::vec3(0, 0, 1),
-    //         glm::vec3(0, 0, 1),
-    //         glm::vec3(0, 0, 1),
-    //     }, 
-    
-    //     // colors:
-    //     std::vector<glm::vec3> = {
-    //         glm::vec3(0, 0, 0),
-    //         glm::vec3(1, 0, 0),
-    //         glm::vec3(0, 1, 0),
-    //         glm::vec3(0, 0, 1),
-    //     },
-    
-    //     // indices:
-    //     std::vector<unsigned int> = {
-    //         0, 1, 2, 0, 2, 3
-    //     }
-    // ); 
-    
+
     
     std::shared_ptr<Shader> testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
     std::shared_ptr<Shader> testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
@@ -327,7 +296,8 @@ int main() {
     // ###############
     // # world setup #
     // ###############
-
+    
+    std::cout << "setting up world" << std::endl;
     // essential thingies
     Thingy universe("universe");
     Physics physics = universe.addComponent<Physics>("Laws Of Physics");
@@ -342,7 +312,9 @@ int main() {
     // environment:
     Thingy *sky = &universe.createChild("Sky");
     sky->addComponent<Transform>("Transform");
+    std::cout << "test0" << std::endl;
     sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial);
+    std::cout << "test1" << std::endl;
     
     // ground:
     Thingy *ground = &universe.createChild("Ground");
@@ -371,6 +343,7 @@ int main() {
     testCube2->addComponent<ObjectRenderer>("ObjectRenderer", testCube2, testMaterial2, cube);
     
 
+    std::cout << "setting up world: done" << std::endl;
     // ###############
     // # other tests #
     // ###############
@@ -507,8 +480,11 @@ int main() {
         Component::updateAll();
 
         // # rendering stuff
+        std::cout << "drawing objects.." << std::endl;
         ObjectRenderer::drawAll();
-        SkyRenderer::drawAll();
+        // std::cout << "drawing sky.." << std::endl;
+        // SkyRenderer::drawAll();
+        std::cout << "done drawing" << std::endl;
         mydebugdrawer.SetMatrices(viewMatrix, projectionMatrix);
         physics.dynamicsWorld->debugDrawWorld();
         glfwSwapBuffers(window);

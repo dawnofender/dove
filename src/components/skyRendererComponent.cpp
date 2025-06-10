@@ -4,24 +4,9 @@ CLASS_DEFINITION(MeshRenderer, SkyRenderer)
 
 
 SkyRenderer::SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s)
-    : MeshRenderer(std::move(initialValue), s) {
-
-    // setupBufferData();
+    : MeshRenderer(std::move(initialValue), s, mesh) {
 
     renderers.push_back(this);
-}
-
-
-void SkyRenderer::setupBufferData() {
-  // VAO
-  glGenVertexArrays(1, &VertexArrayID);
-  glBindVertexArray(VertexArrayID);
-  
-  // VBOs
-  glGenBuffers(1, &vertexbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * sizeof(glm::vec3),
-               &mesh->vertices[0], GL_STATIC_DRAW);
 }
 
 
@@ -30,17 +15,15 @@ void SkyRenderer::drawAll() {
     // NOTE: could move depth mask toggle into material
     glDepthMask(GL_FALSE);
 
-    //     std::cout << "test0" << std::endl;
-    // for (auto &renderer : renderers) {
-    //     renderer->draw();
-    // }
+    for (auto &renderer : renderers) {
+        renderer->draw();
+    }
 
     glDepthMask(GL_TRUE);
     unbindBufferData();
 }
 
 void SkyRenderer::draw() {
-        std::cout << "test1" << std::endl;
     // later, this could instead use a material object to deal with uniforms
     // so, thingy->meshrenderer->material->shader
 
@@ -200,11 +183,12 @@ void SkyRenderer::draw() {
         16, 18, 17, 16, 19, 18, //+z
         20, 22, 21, 20, 23, 22, //-z
     };
-
-    std::shared_ptr<MeshData> SkyRenderer::mesh = std::make_shared<MeshData>(
-        cubeVertices,
-        cubeColors,
-        cubeUVs,
-        cubeNormals,
-        cubeIndices
-    ); 
+    
+    std::shared_ptr<MeshData> mesh;
+    std::shared_ptr<MeshData> SkyRenderer::mesh;
+    mesh.layers.push_back(std::make_unique<MeshLayer>(Vec3Layer(cubeVertices)));
+    mesh.layers.push_back(std::make_unique<MeshLayer>(Vec3Layer(cubeColors))); 
+    mesh.layers.push_back(std::make_unique<MeshLayer>(Vec2Layer(cubeUVs)));    
+    mesh.layers.push_back(std::make_unique<MeshLayer>(Vec3Layer(cubeNormals)));
+    mesh.indices = cubeIndices;
+    std::shared_ptr<MeshData> SkyRenderer::mesh = mesh;

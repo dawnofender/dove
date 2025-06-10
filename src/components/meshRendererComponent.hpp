@@ -22,7 +22,7 @@
 
 class MeshRenderer : public Component {
 CLASS_DECLARATION(MeshRenderer)
-private:
+protected:
 
     // maybe make this a vector so people can layer materials? probably not great for performance but could be interesting...
     std::shared_ptr<Material> material;
@@ -31,37 +31,11 @@ private:
     GLuint VertexArrayID;
     std::vector<GLuint> buffers;
     GLuint elementBuffer;
-    glm::mat4 MVP;
-    
-protected:
-    uint8_t state = 1;
 
 public:
-    MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr)
-        : Component(std::move(initialValue)), material(s), mesh(m) {
-        
-        setupBufferData();
+    MeshRenderer(std::string && initialValue, std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr);
 
-
-        renderers.push_back(this);
-    }
-
-    MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s = nullptr)
-        : Component(std::move(initialValue)), material(s) {
-        setupBufferData();
-    }
-  
-    ~MeshRenderer() {
-        glDeleteVertexArrays(1, &VertexArrayID);
-        for (auto& buffer : buffers) {
-            glDeleteBuffers(1, &buffer);
-        }
-
-    }
-
-    // void unserialize(std::istream& in) {
-    //     in >> value;
-    // }
+    virtual ~MeshRenderer();
 
     void setupBufferData();
     void bindBufferData();
@@ -71,6 +45,7 @@ public:
     void setMesh(std::shared_ptr<MeshData>);
     void setMaterial(std::shared_ptr<Material>);
     std::shared_ptr<MeshData> getMesh();
+    void deleteBuffers();
 
     static void drawAll();
     static void deleteAll();

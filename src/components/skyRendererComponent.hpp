@@ -15,7 +15,6 @@ public:
 
 
 private: 
-    std::shared_ptr<Material> material;
     static inline std::vector<SkyRenderer *> renderers;
     static std::shared_ptr<MeshData> mesh;
     

@@ -7,11 +7,22 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <typeinfo>
 
 #include <lib/controls.hpp>
 
 CLASS_DEFINITION(Component, MeshRenderer)
 
+
+MeshRenderer::MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m)
+    : Component(std::move(initialValue)), material(s), mesh(m) {
+    
+    setupBufferData();
+}
+
+MeshRenderer::~MeshRenderer() {
+    deleteBuffers();
+}
 
 void MeshRenderer::setupBufferData() {
 
@@ -25,14 +36,20 @@ void MeshRenderer::setupBufferData() {
     for (int i = 0; i < mesh->layers.size(); i++ ) {
         glGenBuffers(1, &buffers[i]);
         glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof( mesh->layers[i].data ), &mesh->layers[i].data[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, mesh->layers[i]->getSize(), &mesh->layers[i]->data[0], GL_STATIC_DRAW);
         //                            NOTE: could be optimized if we know the size of the data type
+        // glBufferData(GL_ARRAY_BUFFER, mesh->layers[i].data.size() * sizeof(glm::vec3), &mesh->layers[i].data[0], GL_STATIC_DRAW);
+
+        // } else {
+        // glBufferData(GL_ARRAY_BUFFER, mesh->layers[i].data.size() * sizeof(glm::vec2), &mesh->layers[i].data[0], GL_STATIC_DRAW);
+
+        // }
     }    
 
     // EBO
     glGenBuffers(1, &elementBuffer);
-    glBindBuffer(GL_ELEMENT_BUFFER, elementBuffer);
-    glBufferData(GL_ELEMENT_BUFFER, sizeof(GLuint) * mesh->indices.size(), &mesh->layers[0].data[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * mesh->indices.size(), &mesh->indices[0], GL_STATIC_DRAW);
     //                            NOTE: could be optimized if the layer knows the size of its data type
 
     // unbind buffers to prevent accidentally modifying them
@@ -44,26 +61,31 @@ void MeshRenderer::bindBufferData() {
     glBindVertexArray(VertexArrayID);
 
     for (int i = 0; i < mesh->layers.size(); i++ ) {
+        std::cout << "binding mesh layer " << i << " to buffer" << std::endl;
         glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-        glVertexAttribPointer(i, mesh->layers[i].size, GL_FLOAT, GL_FALSE, 0, (void *)0);
+        glVertexAttribPointer(i, mesh->layers[i]->getElementSize(), GL_FLOAT, GL_FALSE, 0, (void *)0);
         glEnableVertexAttribArray(i);
+        std::cout << "binding mesh layer " << i << " to buffer: done" << std::endl;
     }    
 
+    std::cout << "binding element array buffer" << std::endl;
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+    std::cout << "binding element array buffer: done" << std::endl;
 }
 
 void MeshRenderer::unbindBufferData() {
-	glBindVertexArray(0);
+	  glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void MeshRenderer::regenerate() {
+    buffers.resize(mesh->layers.size());
 
     for (int i = 0; i < mesh->layers.size(); i++ ) {
         glGenBuffers(1, &buffers[i]);
         glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof( mesh->layers[i].data ), &mesh->layers[i].data[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof( mesh->layers[i]->data ), &mesh->layers[i]->data[0], GL_STATIC_DRAW);
         //                            NOTE: could be optimized if we know the size of the data type
     }    
 
@@ -73,20 +95,18 @@ void MeshRenderer::regenerate() {
 }
 
 void MeshRenderer::draw() {
-    material->Activate(glm::vec4(0));
-  
-
+    material->Activate(glm::mat4(0)); // NOTE: if this returns false, there was an error - later, we can make it skip the object and render all errored objects last with an error shader 
     bindBufferData();
-
     glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }
-
 void MeshRenderer::deleteBuffers() {
-}
+    glDeleteVertexArrays(1, &VertexArrayID);
+    for (auto& buffer : buffers) {
+        glDeleteBuffers(1, &buffer);
+    }
 
+}
 void MeshRenderer::setMaterial(std::shared_ptr<Material> m) {
     material = m;
 }
-
-void MeshRenderer::setBounds(glm::vec3 a, glm::vec3 b) { bounds = {a, b}; }
 

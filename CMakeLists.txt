@@ -76,6 +76,8 @@ add_executable(reality
     src/components/boxColliderComponent.hpp
     src/components/meshRendererComponent.cpp
     src/components/meshRendererComponent.hpp
+    src/components/objectRendererComponent.cpp
+    src/components/objectRendererComponent.hpp
     src/components/skyRendererComponent.cpp
     src/components/skyRendererComponent.hpp
     src/components/transformComponent.cpp

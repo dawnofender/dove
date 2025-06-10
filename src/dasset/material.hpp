@@ -27,10 +27,7 @@ private:
     GLuint LightID;        
 
 public:
-
-
-    Material();
-    Material(std::shared_ptr<Shader> s, std::vector<std::shared_ptr<Texture>> t);
+    Material(std::shared_ptr<Shader> s = nullptr, std::vector<std::shared_ptr<Texture>> t = {nullptr});
     
     bool Activate(glm::mat4 modelMatrix);
     void setTexture(int i, std::shared_ptr<Texture> t);
