@@ -296,7 +296,7 @@ int main() {
     // Thingy *sight = &universe.addChild("perception");
     Transform *playerTransform = &player->addComponent<Transform>("Transform");
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    player->addComponent<RigidBody>("RigidBody", &physics, player, 0.f, true, true);
+    player->addComponent<RigidBody>("RigidBody", &physics, player, 50.f, true, true);
 
     // # Basic scene
     // environment:

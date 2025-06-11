@@ -13,7 +13,7 @@ private:
     Transform* transformComp;
 
 public: 
-    PlayerController(std::string && initialValue, Thingy* h)
+    PlayerController(std::string && initialValue = "PlayerController", Thingy* h = nullptr)
         : Component(std::move(initialValue)), host(h) {
         
         // FIX: breaks if transform doesn't exist

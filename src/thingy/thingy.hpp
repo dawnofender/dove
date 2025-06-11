@@ -17,17 +17,17 @@
 #include <iomanip>
 #include <sstream>
 
-class Thingy : public std::enable_shared_from_this<Thingy> {
+class Thingy : public Thing {
+CLASS_DECLARATION(Thingy)
 protected:
     std::string name;
     std::weak_ptr<Thingy> parent;
-
 public: 
     std::vector<std::unique_ptr<Component>> components;
     std::vector<std::shared_ptr<Thingy>> children;
 
 public:
-    Thingy(std::string n) : name(n) {}
+    Thingy(std::string n = "") : name(n) {}
     Thingy(Metadata *m);
     virtual ~Thingy();
     // Thingy(const Thingy&) = delete;

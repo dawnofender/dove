@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 
+CLASS_DEFINITION(Thing, Thingy)
 
 
 Thingy::~Thingy() {
@@ -28,113 +29,113 @@ struct SerializedThingy {
 };
 
 // Serialize thingy from metadata
-Thingy::Thingy(Metadata *metadata)
-    : Thingy("") {
-
-    std::ifstream file(metadata->filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Error: Failed to open file for reading." << std::endl;
-    }
-    
-    // # metadata contains 2 things: thingy hierarchy info, and component data.
-    // 1) build ID maps
-    
-    // keep track of relationships by mapping thingies to the IDs of their children and components.
-    // thingies -> child IDs
-    // thingies -> component IDs
-    
-    unsigned totalThingies;
-    unsigned totalComponents;
-    file >> totalThingies;
-    file >> totalComponents;
-     
-    // discover thingies and add them to maps
-    std::unordered_map<std::shared_ptr<Thingy>, SerializedThingy> thingyDataMap;
-    std::map<unsigned, std::shared_ptr<Thingy>> IDThingyMap;
-    std::map<unsigned, Component*> IDComponentMap;
-    std::cout << "total thingies to deserialize: " << totalThingies << std::endl;
-    for (int i = 0; i < totalThingies; i++) {
-        SerializedThingy thingyData;
-        
-        // read values from metadata file
-        file >> 
-            thingyData.ID >> 
-            std::quoted(thingyData.name) >>
-            thingyData.componentCount >> 
-            thingyData.childCount;
-        
-
-        // discover components and add them to map
-        for (int i = 0; i < thingyData.componentCount; i++) {
-            std::size_t componentType;
-            thingyData.componentIDs.push(0);
-            
-            // read values from metadata file
-            file >> thingyData.componentIDs.top() >> componentType;
-
-            // there may be many types of components that inherit from the base component class,
-            // so we will make use of ComponentFactory to instantiate components of any type.
-            // NOTE: this could be improved in serialization by hashing the component types at the start of the metadata file.
-            auto component = ComponentFactory::instance().create(componentType).get();
-            if (!ComponentFactory::instance().create(componentType)) {
-                std::cout << "error creating component type: " << componentType << std::endl;
-            }
-            IDComponentMap[thingyData.componentIDs.top()] = component;
-        }
-        
-        // discover children and add them to map
-        for (int i = 0; i < thingyData.childCount; i++) {
-            thingyData.childIDs.push(0);
-            file >> thingyData.childIDs.top();
-        }
-
-        // create a thingy for each ID, with null relationships for now.
-        std::shared_ptr<Thingy> thingy = std::make_shared<Thingy>(thingyData.name);
-        thingy->children.resize(thingyData.childCount);
-        thingy->components.resize(thingyData.componentCount);
-        
-        thingyDataMap[thingy] = thingyData;
-        IDThingyMap[thingyData.ID] = thingy;
-
-        std::cout << thingyData.name << " : " << thingyData.ID << std::endl <<
-            "| " << thingyData.componentCount << " components"  << std::endl << 
-            "| " << thingyData.childCount     << " children"    << std::endl;
-    }
-    
-    // 2) build hierarchy
-    //    - connect children to parents
-    //    - connect components to host thingy
-    for (auto& [thingy, thingyData] : thingyDataMap) {
-        std::cout << thingyData.name << std::endl;
-        for (int i = thingyData.childCount-1; i >= 0; i--) {
-            auto& child = IDThingyMap[thingyData.childIDs.top()]; thingyData.childIDs.pop();
-            thingy->children[i] = child;
-        }
-
-        for (int i = thingyData.componentCount-1; i >= 0; i--) {
-            auto& component = IDComponentMap[thingyData.componentIDs.top()]; 
-            thingyData.componentIDs.pop();
-            thingy->components[i].reset(component);
-        }
-    }
-    std::cout << "test0" << std::endl;
-    
-    // 3) load component data
-    unsigned id;
-    for (int i = 0; i < totalComponents; i++) {
-        std::cout << i << std::endl;
-        file >> id;
-        std::cout << id << std::endl;
-        auto&& component = IDComponentMap[id];
-        if (!component) continue;
-        std::cout << "test1" << std::endl;
-        component->unserialize(file); //FIX: 
-        std::cout << "test2" << std::endl;
-    }
-    
-    file.close();
-    std::cout << "Object deserialized successfully." << std::endl;
-}
+// Thingy::Thingy(Metadata *metadata)
+//     : Thingy("") {
+//
+//     std::ifstream file(metadata->filename, std::ios::binary);
+//     if (!file.is_open()) {
+//         std::cerr << "Error: Failed to open file for reading." << std::endl;
+//     }
+//     
+//     // # metadata contains 2 things: thingy hierarchy info, and component data.
+//     // 1) build ID maps
+//     
+//     // keep track of relationships by mapping thingies to the IDs of their children and components.
+//     // thingies -> child IDs
+//     // thingies -> component IDs
+//     
+//     unsigned totalThingies;
+//     unsigned totalComponents;
+//     file >> totalThingies;
+//     file >> totalComponents;
+//      
+//     // discover thingies and add them to maps
+//     std::unordered_map<std::shared_ptr<Thingy>, SerializedThingy> thingyDataMap;
+//     std::map<unsigned, std::shared_ptr<Thingy>> IDThingyMap;
+//     std::map<unsigned, Component*> IDComponentMap;
+//     std::cout << "total thingies to deserialize: " << totalThingies << std::endl;
+//     for (int i = 0; i < totalThingies; i++) {
+//         SerializedThingy thingyData;
+//         
+//         // read values from metadata file
+//         file >> 
+//             thingyData.ID >> 
+//             std::quoted(thingyData.name) >>
+//             thingyData.componentCount >> 
+//             thingyData.childCount;
+//         
+//
+//         // discover components and add them to map
+//         for (int i = 0; i < thingyData.componentCount; i++) {
+//             std::size_t componentType;
+//             thingyData.componentIDs.push(0);
+//             
+//             // read values from metadata file
+//             file >> thingyData.componentIDs.top() >> componentType;
+//
+//             // there may be many types of components that inherit from the base component class,
+//             // so we will make use of ComponentFactory to instantiate components of any type.
+//             // NOTE: this could be improved in serialization by hashing the component types at the start of the metadata file.
+//             auto component = ComponentFactory::instance().create(componentType).get();
+//             if (!ComponentFactory::instance().create(componentType)) {
+//                 std::cout << "error creating component type: " << componentType << std::endl;
+//             }
+//             IDComponentMap[thingyData.componentIDs.top()] = component;
+//         }
+//         
+//         // discover children and add them to map
+//         for (int i = 0; i < thingyData.childCount; i++) {
+//             thingyData.childIDs.push(0);
+//             file >> thingyData.childIDs.top();
+//         }
+//
+//         // create a thingy for each ID, with null relationships for now.
+//         std::shared_ptr<Thingy> thingy = std::make_shared<Thingy>(thingyData.name);
+//         thingy->children.resize(thingyData.childCount);
+//         thingy->components.resize(thingyData.componentCount);
+//         
+//         thingyDataMap[thingy] = thingyData;
+//         IDThingyMap[thingyData.ID] = thingy;
+//
+//         std::cout << thingyData.name << " : " << thingyData.ID << std::endl <<
+//             "| " << thingyData.componentCount << " components"  << std::endl << 
+//             "| " << thingyData.childCount     << " children"    << std::endl;
+//     }
+//     
+//     // 2) build hierarchy
+//     //    - connect children to parents
+//     //    - connect components to host thingy
+//     for (auto& [thingy, thingyData] : thingyDataMap) {
+//         std::cout << thingyData.name << std::endl;
+//         for (int i = thingyData.childCount-1; i >= 0; i--) {
+//             auto& child = IDThingyMap[thingyData.childIDs.top()]; thingyData.childIDs.pop();
+//             thingy->children[i] = child;
+//         }
+//
+//         for (int i = thingyData.componentCount-1; i >= 0; i--) {
+//             auto& component = IDComponentMap[thingyData.componentIDs.top()]; 
+//             thingyData.componentIDs.pop();
+//             thingy->components[i].reset(component);
+//         }
+//     }
+//     std::cout << "test0" << std::endl;
+//     
+//     // 3) load component data
+//     unsigned id;
+//     for (int i = 0; i < totalComponents; i++) {
+//         std::cout << i << std::endl;
+//         file >> id;
+//         std::cout << id << std::endl;
+//         auto&& component = IDComponentMap[id];
+//         if (!component) continue;
+//         std::cout << "test1" << std::endl;
+//         component->unserialize(file); //FIX: 
+//         std::cout << "test2" << std::endl;
+//     }
+//     
+//     file.close();
+//     std::cout << "Object deserialized successfully." << std::endl;
+// }
 
 Thingy& Thingy::addChild(std::string n) {
     auto child = std::make_shared<Thingy>(n);
@@ -147,7 +148,7 @@ void Thingy::addChild(std::shared_ptr<Thingy> child) {
     
     // if our thing doesn't have a shared ptr to it, shared_from_this will fail
     if (!weak_from_this().expired()) {
-        child->parent = shared_from_this();
+        child->parent = new_shared_from_this();
     } else {
         //handle it differently idk
     }
@@ -165,7 +166,7 @@ void Thingy::removeChild(Thingy* thingy) {
 }
 
 void Thingy::setParent(std::shared_ptr<Thingy> newParent) {
-    newParent->addChild(shared_from_this());
+    newParent->addChild(new_shared_from_this());
 }
 
 void Thingy::setName(std::string n) {

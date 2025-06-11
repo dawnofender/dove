@@ -29,7 +29,7 @@ public:
     float mass;
 
 public:
-    RigidBody(std::string && initialValue, Physics *physicsComponent, Thingy *h, float m = 0, bool k = false, bool s = false);
+    RigidBody(std::string && initialValue = "RigidBody", Physics *physicsComponent = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
 
     void syncFromTransform();
     void syncToTransform();

@@ -10,7 +10,7 @@ CLASS_DECLARATION(BoxCollider)
 private:
     Thingy* host;
 public: 
-    BoxCollider(std::string &&initialValue, Thingy *h, glm::vec3 d = {0.5, 0.5, 0.5});
+    BoxCollider(std::string &&initialValue = "BoxCollider", Thingy *h = nullptr, glm::vec3 d = {0.5, 0.5, 0.5});
 };
 
 #endif

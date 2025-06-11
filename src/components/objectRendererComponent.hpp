@@ -37,7 +37,7 @@ protected:
     uint8_t state = 1;
 
 public:
-    ObjectRenderer(std::string &&initialValue, Thingy *h = nullptr, std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr);
+    ObjectRenderer(std::string &&initialValue = "ObjectRenderer", Thingy *h = nullptr, std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr);
 
     ~ObjectRenderer();
     void draw();

@@ -1,4 +1,3 @@
-
 #ifndef DTHING_HPP
 #define DTHING_HPP
 
@@ -13,24 +12,41 @@
 // The purpose of Thing is to be an abstract class that all interactible objects inherit from.
 // Each derived class will have a type, hashed as a size_t, that can be used to identify it.
 // This way, all components, thingies, assets, etc. can exist within the same world hierarchy.
-// This allows users to interact with thingies and components as tangible objects within their world.
+// Later, this class will also make it easier to serialize/deserialize things, by assigning each thing an ID.
 
 // The base Thing class has just the bare minimum functionality, and is not meant to be interacted with in-world.
 // There is no tree structure - derived classes must implement these.
+
+// NOTE: every thing-derived class must be constructable with no passed arguments.
+//  - this is for serialization: create all the things, then give them the data.
+//    the cause of this is in the way ThingFactory registers new thing types.
+//      - this could be made less annoying with some small edits to the declaration macro and ThingFactory class,
+//        however, that would likely lead to issues with serialization down the line. 
 
 // type system & macros borrowed from:
 // https://stackoverflow.com/questions/44105058/implementing-component-system-from-unity-in-c
 
 
-class Thing {
-protected:
+
+struct new_enable_shared_from_this :
+    public std::enable_shared_from_this<new_enable_shared_from_this> {
+    
+    template <typename Self>
+    auto new_shared_from_this(this Self& self) {
+        return std::static_pointer_cast<Self>(self.shared_from_this());
+    }
+};
+
+class Thing : public new_enable_shared_from_this {
+protected:    
     static const std::size_t Type;
+
 public: 
 
-    Thing() {}
-    virtual ~Thing() = default;
-    Thing(const Thing&) = delete;
-    Thing& operator=(const Thing&) = delete;
+    Thing() = default;
+    // virtual ~Thing() = default;
+    // Thing(const Thing&) = delete;
+    // Thing& operator=(const Thing&) = delete;
 
     virtual bool IsClassType( const std::size_t classType ) const { 
         return classType == Type;
@@ -40,7 +56,6 @@ public:
         return Type; 
     }
 };
-
 
 class ThingFactory
 {
@@ -81,6 +96,7 @@ private:
 };
 
 
+
 #define TO_STRING( x ) #x
 
 //****************
@@ -91,7 +107,6 @@ private:
 //****************
 #define CLASS_DECLARATION( classname )                                                      \
 public:                                                                                     \
-    classname() = default;                                                                  \
     static const std::size_t Type;                                                          \
     virtual bool IsClassType( const std::size_t classType ) const override;                 \
     virtual std::size_t getType() const override;                                           \
@@ -111,7 +126,7 @@ public:                                                                         
 // - useful for unserialization while reading component data from file.
 #define CLASS_DEFINITION( parentclass, childclass )                                     \
     const std::size_t childclass::Type =                                                \
-        std::hash<std::string>()(TO_STRING(childclass));                                \
+        std::hash< std::string >()( TO_STRING( childclass ) );                          \
                                                                                         \
     bool childclass::IsClassType(const std::size_t classType) const {                   \
         if (classType == childclass::Type)                                              \
@@ -124,13 +139,13 @@ public:                                                                         
     /* Static registration at load‐time: */                                             \
     namespace {                                                                         \
         static const bool _registered_##childclass =                                    \
-            ThingFactory::instance().registerType(                                  \
+            ThingFactory::instance().registerType(                                      \
                 childclass::Type,                                                       \
-                []() -> std::unique_ptr<Thing> {                                    \
+                []() -> std::unique_ptr<Thing> {                                        \
                     return std::make_unique<childclass>();                              \
                 }                                                                       \
             );                                                                          \
-    }
+    }                                                                                   \
 
 
 #endif
