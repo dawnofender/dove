@@ -64,6 +64,8 @@ add_executable(reality
     src/thingy/thing.hpp
     src/thingy/thingy.cpp
     src/thingy/thingy.hpp
+    src/thingy/glyph/glyphThingy.cpp
+    src/thingy/glyph/glyphThingy.hpp
     src/components/component.cpp
     src/components/component.hpp
     src/components/physicsComponent.cpp

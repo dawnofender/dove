@@ -1,7 +1,6 @@
 #include "glyphThingy.hpp"
-#include <algorithm>
-#include <vector>
 
+CLASS_DEFINITION(Thingy, Glyph)
 
 Glyph::Glyph(std::string n) 
     : Thingy(n) {}

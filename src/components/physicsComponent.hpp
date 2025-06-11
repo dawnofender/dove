@@ -7,6 +7,13 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+struct RayCastInfo {
+    bool hasHit;
+    Thingy* thingy;
+    glm::vec3 position;
+    glm::vec3 normal;
+};
+
 class Physics : public Component {
 CLASS_DECLARATION(Physics)
 private:
@@ -24,7 +31,7 @@ public:
 public:
     Physics(std::string &&initialValue = "Physics");
     
-    Thingy* rayCast(glm::vec3 position, glm::vec3 direction, float distance);
+    RayCastInfo rayCast(glm::vec3 position, glm::vec3 direction, float distance);
 };
 
 

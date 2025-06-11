@@ -22,10 +22,6 @@ void dov::genisis(Thingy *world, Thingy *you) {
 
     // set up physics and graphics etc.
     
-    entropy();
-}
-
-void dov::entropy() {
     do {
         // update components, 
         // render frame, 
@@ -33,6 +29,7 @@ void dov::entropy() {
         // etc.
     } while ( world != nullptr );
 }
+
 
 ideas: 
 - maybe instead of the universe being a thingy with a physics component, it would be simpler to have a universe class that extends thingy and comes with physics by default.
@@ -45,6 +42,7 @@ ideas:
     - 'Perception' for graphics, audio, haptics, etc.
 - instead of rigidbody component / similar components, have a special type of transform component that contains any physics features you need
 - components are actually thingies. so you can grab them and develop things with them, in-world
+- memory-optimized way to get any component's host using a static unordered component->host map
 
 high priority: 
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
@@ -57,7 +55,7 @@ do sometime:
     - store these in universe object?
 - setInternalTickCallback in physics 
 - namespace for dov
-
+- use two threads, one for polling events and one for rendering. use glfwWaitEvents to block the event thread until events are available
 
 eventually: 
 - octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain

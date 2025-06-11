@@ -1,5 +1,4 @@
 // Include GLFW
-#include <iostream>
 #include <GLFW/glfw3.h>
 extern GLFWwindow* window; // The "extern" keyword here is to access the variable "window" declared in tutorialXXX.cpp. This is a hack to keep the tutorials simple. Please avoid this.
 
@@ -32,9 +31,9 @@ void computeMatricesFromInputs(glm::vec3 &position, float &horizontalAngle, floa
 
 	  // Get mouse position
 	  double xpos, ypos;
-	  glfwGetCursorPos(window, &xpos, &ypos);
     int width, height;
     glfwGetWindowSize(window, &width, &height);
+	  glfwGetCursorPos(window, &xpos, &ypos);
 
 	  // Reset mouse position for next frame
 	glfwSetCursorPos(window, width/2, height/2);
@@ -86,16 +85,15 @@ void computeMatricesFromInputs(glm::vec3 &position, float &horizontalAngle, floa
 	  }
 
 	  float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
-    
-    std::cout << width << ", " << height << std::endl;
-	  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+
+	  // Projection matrix : 45° Field of View, width:heaight ratio, display range : 0.1 unit <-> 100 units
 	  ProjectionMatrix = glm::perspective(glm::radians(FoV), (float)width/(float)height, near, far);
-	  // Camera matrix
-	  ViewMatrix       = glm::lookAt(
-	      position,           // Camera is here
-	      position+direction, // and looks here : at the same position, plus "direction"
-        up                  // Head is up (set to 0,-1,0 to look upside-down)
-    );
+	      // Camera matrix
+	      ViewMatrix       = glm::lookAt(
+	          position,           // Camera is here
+	          position+direction, // and looks here : at the same position, plus "direction"
+            up                  // Head is up (set to 0,-1,0 to look upside-down)
+        );
 	  // For the next frame, the "last time" will be "now"
 	  lastTime = currentTime;
 }

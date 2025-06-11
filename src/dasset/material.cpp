@@ -29,7 +29,6 @@ bool Material::Activate(glm::mat4 modelMatrix) {
     ViewMatrixID = glGetUniformLocation(shader->ID, "V");                         
     ModelMatrixID = glGetUniformLocation(shader->ID, "M");
     LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
-    glm::vec3 lightPos = glm::vec3(0, 10000, 0);
 
     // FIX: store in perception component once that exists
     glm::mat4 projectionMatrix = getProjectionMatrix();
@@ -40,6 +39,7 @@ bool Material::Activate(glm::mat4 modelMatrix) {
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
     glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
     
+    glm::vec3 lightPos = glm::vec3(0, 10000, 0);
     glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
 
     return true;

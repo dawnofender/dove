@@ -56,7 +56,7 @@ int main() {
     if (!glfwInit()) {
       fprintf(stderr, "Failed to initialize GLFW\n");
       return -1;
-    }
+}
 
     // glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -70,18 +70,17 @@ int main() {
 
     window = glfwCreateWindow(1024, 768, "dream", NULL, NULL);
     if (window == NULL) {
-      fprintf(stderr,
-              "Failed to open GLFW window. If you have an Intel GPU, they are "
-              "not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
-      glfwTerminate();
-      return -1;
+        // If you have an Intel GPU, they are not 3.3 compatible. 
+        fprintf(stderr, "Failed to open GLFW window.\n" );
+        glfwTerminate();
+        return -1;
     }
 
     glfwMakeContextCurrent(window);
     glewExperimental = true;
     if (glewInit() != GLEW_OK) {
-      fprintf(stderr, "Failed to initialize GLEW\n");
-      return -1;
+        fprintf(stderr, "Failed to initialize GLEW\n");
+        return -1;
     }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -294,21 +293,21 @@ int main() {
 
     Thingy *player = &universe.addChild("it's you!");
     // Thingy *sight = &universe.addChild("perception");
-    Transform *playerTransform = &player->addComponent<Transform>("Transform");
+    Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
     player->addComponent<RigidBody>("RigidBody", &physics, player, 50.f, true, true);
 
     // # Basic scene
     // environment:
     Thingy *sky = &universe.addChild("Sky");
-    sky->addComponent<Transform>("Transform");
+    sky->addComponent<Transform>("Transform", sky);
     std::cout << "test0" << std::endl;
     sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial, cube);
     std::cout << "test1" << std::endl;
     
     // ground:
     Thingy *ground = &universe.addChild("Ground");
-    Transform *groundTransform = &ground->addComponent<Transform>("Transform");
+    Transform *groundTransform = &ground->addComponent<Transform>("Transform", ground);
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
@@ -318,7 +317,7 @@ int main() {
   
     std::cout << "test1" << std::endl;
     Thingy *testCube = &universe.addChild("Cube");
-    Transform *cubeTransform = &testCube->addComponent<Transform>("Transform");
+    Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
     // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
@@ -326,7 +325,7 @@ int main() {
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
     Thingy *testCube2 = &universe.addChild("Cube");
-    Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform");
+    Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform", testCube2);
     cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", &physics, testCube2, 1.f);
@@ -361,10 +360,13 @@ int main() {
     // # main loop #
     // #############
     
-    int screenWidth = 1024; // could be defined & updated globally later
-    int screenHeight = 768;
-    int mouseX = 512;
-    int mouseY = 384;
+    // NOTE: a few parts of this loop should be moved into their own class, such as:
+    //  - window info (size etc)
+    //  - rendering 
+    //  - input (mouse pos, keyboard, click raycasting)
+
+    int screenWidth, screenHeight;
+    double mouseX, mouseY;
 		
     BulletDebugDrawer_DeprecatedOpenGL mydebugdrawer;     // also temporary - move into physics component later on
     physics.dynamicsWorld->setDebugDrawer(&mydebugdrawer);
@@ -394,53 +396,33 @@ int main() {
         // # prepare frame #
         // #################
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-
         
-
+        // 
         // ##############
         // # world loop #
         // ##############
-
-        // testing serialization
-        // if (frame == 100) {
-        //     Thingy::serializeHierarchy(&universe, "universe.metadata");
-        // }
-
-        // if (frame == 101) {
-        //     Metadata metadata = {"universe.metadata"};
-        //     Thingy* universe2 = new Thingy(&metadata);
-        //     std::cout << universe2->getName() << std::endl;
-        // }
-
-        // # physics - should be one function in physics component
-        deltaTime = time - lastTime;
-        RigidBody::syncFromTransforms();
-        physics.dynamicsWorld->stepSimulation(deltaTime);
-        // physics.dynamicsWorld->updateAabbs();
-        // physics.dynamicsWorld->computeOverlappingPairs();
-        // physics.dynamicsWorld->performDiscreteCollisionDetection();
-        RigidBody::syncToTransforms();
-
+        
+        glfwGetWindowSize(window, &screenWidth, &screenHeight);
+	      glfwGetCursorPos(window, &mouseX, &mouseY);
         // # Player controls
         // these should be moved into components later (input, camera)
         glm::vec3 position = playerTransform->getPosition();
         computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
                                   initialFoV, speed, mouseSpeed, near, far);
         playerTransform->setPosition(position);
+        glViewport(0, 0, screenWidth, screenHeight);
         // raycasting for clicking:
         // The ray Start and End positions, in Normalized Device Coordinates 
         glm::vec4 lRayStart_NDC(
-            ((float)mouseX/(float)screenWidth  - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
-        	  ((float)mouseY/(float)screenHeight - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
+            (mouseX - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
+        	  (mouseY - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
         	  -1.0, // The near plane maps to Z=-1 in Normalized Device Coordinates
         	  1.0f
         );
 
         glm::vec4 lRayEnd_NDC(
-        	  ((float)mouseX/(float)screenWidth  - 0.5f) * 2.0f,
-        	  ((float)mouseY/(float)screenHeight - 0.5f) * 2.0f,
+        	  (mouseX - 0.5f) * 2.0f,
+        	  (mouseY - 0.5f) * 2.0f,
         	  0.0,
         	  1.0f
         );
@@ -454,17 +436,28 @@ int main() {
         glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
         lRayDir_world = glm::normalize(lRayDir_world);
         
-        Thingy* hoverObject = physics.rayCast(playerTransform->getPosition(), lRayDir_world, 1000);
+        // auto rayCastInfo = physics.rayCast(playerTransform->getPosition(), lRayDir_world, 1000);
+        // Thingy* hoverObject = 
         
         // on click, do something to hovered object 
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)){
-            if (hoverObject && hoverObject == testCube) {
-                Transform *hObjectTransform = &hoverObject->getComponent<Transform>();
-                std::cout << hObjectTransform->getPosition().y << std::endl;
-                hObjectTransform->translate(glm::vec3(0, -1, 0));
-                std::cout << hObjectTransform->getPosition().y << std::endl;
-            }
-        }
+        // if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
+            // std::shared_ptr<
+            // if (hoverObject->getComponent<Interact>())
+            // Transform *hObjectTransform = &hoverObject->getComponent<Transform>();
+            // std::cout << hObjectTransform->getPosition().y << std::endl;
+            // hObjectTransform->translate(glm::vec3(0, -1, 0));
+            // std::cout << hObjectTransform->getPosition().y << std::endl;
+        // }
+
+        // # physics - should be one function in physics component
+        deltaTime = time - lastTime;
+        RigidBody::syncFromTransforms();
+        physics.dynamicsWorld->stepSimulation(deltaTime);
+        // physics.dynamicsWorld->updateAabbs();
+        // physics.dynamicsWorld->computeOverlappingPairs();
+        // physics.dynamicsWorld->performDiscreteCollisionDetection();
+        RigidBody::syncToTransforms();
+
         
         // # updating components
         Component::updateAll();
@@ -475,9 +468,9 @@ int main() {
         SkyRenderer::drawAll();
         mydebugdrawer.SetMatrices(viewMatrix, projectionMatrix);
         physics.dynamicsWorld->debugDrawWorld();
+
         glfwSwapBuffers(window);
         glfwPollEvents();
-
         frame++;
 
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
