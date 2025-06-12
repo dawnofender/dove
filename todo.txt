@@ -32,23 +32,24 @@ void dov::genisis(Thingy *world, Thingy *you) {
 
 
 ideas: 
-- maybe instead of the universe being a thingy with a physics component, it would be simpler to have a universe class that extends thingy and comes with physics by default.
-    - probably not doing this tho
-- spacetime component that knows about every transform, handles deltatime, timers, etc.
+- spacetime component that knows about every transform, maybe sorting them into zones for fast transform gets, handles deltatime, timers, etc.
 - more thingy types, or template, with specific features & amount of children
     - useful for octree & similar data structures 
 - 'player controller' is boring. lets fix that
     - 'Expression' for control
     - 'Perception' for graphics, audio, haptics, etc.
 - instead of rigidbody component / similar components, have a special type of transform component that contains any physics features you need
-- components are actually thingies. so you can grab them and develop things with them, in-world
 - memory-optimized way to get any component's host using a static unordered component->host map
+- GetComponent optimization by moving frequent gets to the top
+    - trying to make up for how transform is used constantly but may not be at the top of the list
 
 high priority: 
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
 - virtual component members for project data
     - template data member (whats actually saved to a file)
     - load and save functions (called for every component)
+- input listener
+    - initialize with a callback function
 
 do sometime: 
 - some variables may need global access for complicated systems, like the camera
