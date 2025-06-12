@@ -1,9 +1,9 @@
 #ifndef MESHRENDERERCOMPONENT_HPP
 #define MESHRENDERERCOMPONENT_HPP
 
-#include "component.hpp"
-#include "../thingy/thingy.hpp"
-#include "transformComponent.hpp"
+#include "../component.hpp"
+#include "../../thingy/thingy.hpp"
+#include "../transformComponent.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <algorithm>

@@ -66,32 +66,38 @@ add_executable(reality
     src/thingy/thingy.hpp
     src/thingy/glyph/glyphThingy.cpp
     src/thingy/glyph/glyphThingy.hpp
+    
     src/components/component.cpp
     src/components/component.hpp
-    src/components/physicsComponent.cpp
-    src/components/physicsComponent.hpp
-    src/components/colliderComponent.cpp
-    src/components/colliderComponent.hpp
-    src/components/rigidBodyComponent.cpp
-    src/components/rigidBodyComponent.hpp
-    src/components/sphereColliderComponent.cpp
-    src/components/sphereColliderComponent.hpp
-    src/components/boxColliderComponent.cpp
-    src/components/boxColliderComponent.hpp
-    src/components/meshRendererComponent.cpp
-    src/components/meshRendererComponent.hpp
-    src/components/objectRendererComponent.cpp
-    src/components/objectRendererComponent.hpp
-    src/components/skyRendererComponent.cpp
-    src/components/skyRendererComponent.hpp
     src/components/transformComponent.cpp
     src/components/transformComponent.hpp
     src/components/playerControllerComponent.cpp
     src/components/playerControllerComponent.hpp
-    src/components/cameraComponent.cpp
-    src/components/cameraComponent.hpp
+    src/components/updatableComponent.cpp
+    src/components/updatableComponent.hpp
     # src/components/gaiaComponent.cpp
     # src/components/gaiaComponent.hpp
+
+    src/components/physics/physicsComponent.cpp
+    src/components/physics/physicsComponent.hpp
+    src/components/physics/colliderComponent.cpp
+    src/components/physics/colliderComponent.hpp
+    src/components/physics/rigidBodyComponent.cpp
+    src/components/physics/rigidBodyComponent.hpp
+    src/components/physics/sphereColliderComponent.cpp
+    src/components/physics/sphereColliderComponent.hpp
+    src/components/physics/boxColliderComponent.cpp
+    src/components/physics/boxColliderComponent.hpp
+
+    src/components/rendering/meshRendererComponent.cpp
+    src/components/rendering/meshRendererComponent.hpp
+    src/components/rendering/objectRendererComponent.cpp
+    src/components/rendering/objectRendererComponent.hpp
+    src/components/rendering/skyRendererComponent.cpp
+    src/components/rendering/skyRendererComponent.hpp
+    src/components/rendering/cameraComponent.cpp
+    src/components/rendering/cameraComponent.hpp
+
 
     lib/shaderLoader.cpp
     lib/shaderLoader.hpp

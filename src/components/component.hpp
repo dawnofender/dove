@@ -38,14 +38,8 @@ public:
 private: 
   static inline std::vector<Component *> dynamicComponents;
 
-public: 
-    static void updateAll(); // calls update() on every dynamic component
-    virtual void update();
-    void registerDynamic();
-    void unregisterDynamic();
-
 // public: 
-// virtual weak ptr to host ?
+// weak ptr to host ?
 };
 
 

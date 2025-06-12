@@ -2,7 +2,7 @@
 #define DSPRITERENDERERCOMPONENT_HPP
 
 #include "meshRendererComponent.hpp"
-#include "component.hpp"
+#include "../component.hpp"
 
 class SpriteRenderer : public MeshRenderer {
   CLASS_DECLARATION(SpriteRenderer)

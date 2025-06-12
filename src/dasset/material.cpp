@@ -1,5 +1,5 @@
 #include "material.hpp"
-#include <src/components/cameraComponent.hpp>
+#include <src/components/rendering/cameraComponent.hpp>
 
 
 

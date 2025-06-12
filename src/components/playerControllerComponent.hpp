@@ -1,33 +1,25 @@
 #ifndef PLAYERCONTROLLERCOMPONENT_HPP
 #define PLAYERCONTROLLERCOMPONENT_HPP
 
-#include "component.hpp"
+#include "updatableComponent.hpp"
 #include "transformComponent.hpp"
 #include <src/thingy/thingy.hpp>
 #include <glm/glm.hpp>
 
-class PlayerController: public Component {
+class PlayerController: public UpdatableComponent {
 CLASS_DECLARATION(PlayerController)
 private: 
     Thingy* host;
-    Transform* transformComp;
+    Thingy* camera;
+    Transform* playerTransform;
+    Transform* cameraTransform;
 
 public: 
-    PlayerController(std::string && initialValue = "PlayerController", Thingy* h = nullptr)
-        : Component(std::move(initialValue)), host(h) {
-        
-        // FIX: breaks if transform doesn't exist
-        transformComp = &host->getComponent<Transform>();
-    }
+    PlayerController(std::string && initialValue = "PlayerController", Thingy* h = nullptr, Thingy* c = nullptr, float s = 4);
+    
+    void update();
 
-    void teleport(glm::vec3 pos) {
-        transformComp->getPosition() = pos;
-    }
-
-    glm::vec3 getPosition() {
-        return transformComp->getPosition();
-    }
-
+    float speed;
 };
 
 

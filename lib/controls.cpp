@@ -87,7 +87,6 @@ void computeMatricesFromInputs(glm::vec3 &position, float &horizontalAngle, floa
 
 	  float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
     
-    std::cout << width << ", " << height << std::endl;
 	  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 	  ProjectionMatrix = glm::perspective(glm::radians(FoV), (float)width/(float)height, near, far);
 	  // Camera matrix

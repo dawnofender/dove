@@ -1,12 +1,12 @@
 #ifndef RIGIDBODYCOMPONENT_HPP
 #define RIGIDBODYCOMPONENT_HPP
 
-#include "component.hpp"
-#include "colliderComponent.hpp"
-#include "transformComponent.hpp"
+#include "../component.hpp"
+#include "../transformComponent.hpp"
 #include "physicsComponent.hpp"
+#include "colliderComponent.hpp"
 #include "btBulletDynamicsCommon.h"
-#include "../thingy/thingy.hpp"
+#include "../../thingy/thingy.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>

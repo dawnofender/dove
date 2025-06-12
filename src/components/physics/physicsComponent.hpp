@@ -1,11 +1,11 @@
 #ifndef PHYSICSCOMPONENT_HPP
 #define PHYSICSCOMPONENT_HPP
 
-#include "component.hpp"
-#include "../thingy/thingy.hpp"
+#include "../component.hpp"
+#include "../../thingy/thingy.hpp"
 #include <vector>
 #include <glm/glm.hpp>
-#include "cameraComponent.hpp"
+#include "../rendering/cameraComponent.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <lib/bulletDebugDrawer.hpp>
 

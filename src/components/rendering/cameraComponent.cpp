@@ -1,7 +1,7 @@
 #include "cameraComponent.hpp"
 #include "skyRendererComponent.hpp"
 #include "objectRendererComponent.hpp"
-#include "physicsComponent.hpp"
+#include "../physics/physicsComponent.hpp"
 
 CLASS_DEFINITION(Component, Camera)
 
@@ -32,6 +32,7 @@ void Camera::see() {
         transform = &host->addComponent<Transform>();
     }
 
+    activeWindow = window;
 	  projectionMatrix = glm::perspective(glm::radians(FoV), (float)width/(float)height, near, far);
     viewMatrix = transform->getGlobalMatrix();
 

@@ -1,7 +1,7 @@
 #ifndef COLLIDERCOMPONENT_HPP
 #define COLLIDERCOMPONENT_HPP
 
-#include "component.hpp"
+#include "../component.hpp"
 #include "btBulletDynamicsCommon.h"
 
 class Collider : public Component {

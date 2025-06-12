@@ -1,8 +1,8 @@
 #ifndef CAMERACOMPONENT_HPP
 #define CAMERACOMPONENT_HPP
 
-#include "component.hpp"
-#include "transformComponent.hpp"
+#include "../component.hpp"
+#include "../transformComponent.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <src/thingy/thingy.hpp>
@@ -18,12 +18,12 @@ public:
     static void renderAll();
     void see();
 
+    static inline GLFWwindow* activeWindow = nullptr;
 private: 
     Thingy* host;
-    GLFWwindow* window;
+    GLFWwindow* window; //NOTE: windows should be handled somewhere else, maybe a 'render target' object would be better?
     static inline glm::mat4 projectionMatrix = glm::mat4(0);
     static inline glm::mat4 viewMatrix = glm::mat4(0);
-
 	  float FoV;
     int width;
     int height;

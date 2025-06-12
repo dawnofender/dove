@@ -1,5 +1,5 @@
 #include "boxColliderComponent.hpp"
-#include "transformComponent.hpp"
+#include "../transformComponent.hpp"
 CLASS_DEFINITION(Collider, BoxCollider)
         
 BoxCollider::BoxCollider(std::string &&initialValue, Thingy *h, glm::vec3 d) 

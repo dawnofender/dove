@@ -32,15 +32,16 @@
 #include <src/dasset/mesh.hpp>
 
 #include <src/thingy/thingy.hpp>
-#include <src/components/cameraComponent.hpp>
-#include <src/components/physicsComponent.hpp>
-#include <src/components/sphereColliderComponent.hpp>
-#include <src/components/boxColliderComponent.hpp>
-#include <src/components/rigidBodyComponent.hpp>
-// #include <src/components/gaiaComponent.hpp>
-#include <src/components/objectRendererComponent.hpp>
-#include <src/components/skyRendererComponent.hpp>
 #include <src/components/transformComponent.hpp>
+#include <src/components/playerControllerComponent.hpp>
+#include <src/components/physics/physicsComponent.hpp>
+#include <src/components/physics/sphereColliderComponent.hpp>
+#include <src/components/physics/boxColliderComponent.hpp>
+#include <src/components/physics/rigidBodyComponent.hpp>
+// #include <src/components/gaiaComponent.hpp>
+#include <src/components/rendering/objectRendererComponent.hpp>
+#include <src/components/rendering/skyRendererComponent.hpp>
+#include <src/components/rendering/cameraComponent.hpp>
 
 
 GLFWwindow *window;
@@ -301,6 +302,7 @@ int main() {
     Transform *perceptionTransform = &perception->addComponent<Transform>("Transform", perception);
     perception->addComponent<Camera>("Camera", perception, window);
     
+    player->addComponent<PlayerController>("PlayerController", player, perception, 4);
     // # Basic scene
     // environment:
     Thingy *sky = &universe.addChild("Sky");
@@ -463,7 +465,7 @@ int main() {
 
         
         // # updating components
-        Component::updateAll();
+        UpdatableComponent::updateAll();
 
         // # rendering stuff
         Camera::renderAll();
