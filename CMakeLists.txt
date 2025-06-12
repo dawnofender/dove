@@ -88,6 +88,8 @@ add_executable(reality
     src/components/transformComponent.hpp
     src/components/playerControllerComponent.cpp
     src/components/playerControllerComponent.hpp
+    src/components/cameraComponent.cpp
+    src/components/cameraComponent.hpp
     # src/components/gaiaComponent.cpp
     # src/components/gaiaComponent.hpp
 

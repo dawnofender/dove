@@ -1,5 +1,6 @@
 #include "physicsComponent.hpp"
 
+
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -28,6 +29,26 @@ Physics::Physics(std::string &&initialValue)
     // The world.
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher,broadphase,solver,collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -9.81f, 0));
+    
+    // Debug drawer
+    dynamicsWorld->setDebugDrawer(&mydebugdrawer);
+
+    dynamicsWorlds.push_back(dynamicsWorld);
+}
+
+Physics::~Physics() {
+    dynamicsWorlds.erase(std::remove(dynamicsWorlds.begin(), dynamicsWorlds.end(), dynamicsWorld), dynamicsWorlds.end());
+}
+
+void Physics::debugDrawWorld() {
+    mydebugdrawer.SetMatrices(Camera::getViewMatrix(), Camera::getProjectionMatrix());
+    dynamicsWorld->debugDrawWorld();
+}
+void Physics::debugDrawAll() {
+    mydebugdrawer.SetMatrices(Camera::getViewMatrix(), Camera::getProjectionMatrix());
+    for (auto && world : dynamicsWorlds) {
+        world->debugDrawWorld();
+    }
 }
 
 RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distance) {

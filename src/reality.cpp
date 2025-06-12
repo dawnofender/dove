@@ -32,6 +32,7 @@
 #include <src/dasset/mesh.hpp>
 
 #include <src/thingy/thingy.hpp>
+#include <src/components/cameraComponent.hpp>
 #include <src/components/physicsComponent.hpp>
 #include <src/components/sphereColliderComponent.hpp>
 #include <src/components/boxColliderComponent.hpp>
@@ -40,8 +41,6 @@
 #include <src/components/objectRendererComponent.hpp>
 #include <src/components/skyRendererComponent.hpp>
 #include <src/components/transformComponent.hpp>
-
-#include <lib/bulletDebugDrawer.hpp>
 
 
 GLFWwindow *window;
@@ -296,7 +295,12 @@ int main() {
     Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
     player->addComponent<RigidBody>("RigidBody", &physics, player, 50.f, true, true);
-
+    
+    // main camera
+    Thingy *perception = &player->addChild("Perception");
+    Transform *perceptionTransform = &perception->addComponent<Transform>("Transform", perception);
+    perception->addComponent<Camera>("Camera", perception, window);
+    
     // # Basic scene
     // environment:
     Thingy *sky = &universe.addChild("Sky");
@@ -368,8 +372,6 @@ int main() {
     int screenWidth, screenHeight;
     double mouseX, mouseY;
 		
-    BulletDebugDrawer_DeprecatedOpenGL mydebugdrawer;     // also temporary - move into physics component later on
-    physics.dynamicsWorld->setDebugDrawer(&mydebugdrawer);
     double deltaTime;
     double lastTime;
     double time;
@@ -395,7 +397,6 @@ int main() {
         // #################
         // # prepare frame #
         // #################
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // 
         // ##############
@@ -410,6 +411,8 @@ int main() {
         computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
                                   initialFoV, speed, mouseSpeed, near, far);
         playerTransform->setPosition(position);
+        perceptionTransform->setGlobalMatrix(getViewMatrix());
+
         glViewport(0, 0, screenWidth, screenHeight);
         // raycasting for clicking:
         // The ray Start and End positions, in Normalized Device Coordinates 
@@ -463,14 +466,7 @@ int main() {
         Component::updateAll();
 
         // # rendering stuff
-        ObjectRenderer::drawAll();
-        // std::cout << "drawing sky.." << std::endl;
-        SkyRenderer::drawAll();
-        mydebugdrawer.SetMatrices(viewMatrix, projectionMatrix);
-        physics.dynamicsWorld->debugDrawWorld();
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        Camera::renderAll();
         frame++;
 
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&

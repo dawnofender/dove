@@ -3,9 +3,11 @@
 
 #include "component.hpp"
 #include "../thingy/thingy.hpp"
-#include <btBulletDynamicsCommon.h>
 #include <vector>
 #include <glm/glm.hpp>
+#include "cameraComponent.hpp"
+#include <btBulletDynamicsCommon.h>
+#include <lib/bulletDebugDrawer.hpp>
 
 struct RayCastInfo {
     bool hasHit;
@@ -16,7 +18,19 @@ struct RayCastInfo {
 
 class Physics : public Component {
 CLASS_DECLARATION(Physics)
+public: 
+    btDiscreteDynamicsWorld* dynamicsWorld;
+
+public:
+    Physics(std::string &&initialValue = "Physics");
+    ~Physics();
+
+    RayCastInfo rayCast(glm::vec3 position, glm::vec3 direction, float distance);
+    void debugDrawWorld();
+    static void debugDrawAll();
+
 private:
+    static inline std::vector<btDiscreteDynamicsWorld *> dynamicsWorlds;
     // btOverlapFilterCallback* filterCallback;
 	// btOverlappingPairCache* pairCache;
     btBroadphaseInterface* broadphase;
@@ -24,21 +38,9 @@ private:
     btCollisionDispatcher* dispatcher;
     btSequentialImpulseConstraintSolver* solver;
 
+    static inline BulletDebugDrawer_DeprecatedOpenGL mydebugdrawer;     
 
-public: 
-    btDiscreteDynamicsWorld* dynamicsWorld;
-
-public:
-    Physics(std::string &&initialValue = "Physics");
-    
-    RayCastInfo rayCast(glm::vec3 position, glm::vec3 direction, float distance);
 };
 
-
-// ComponentType& Thingy::addComponent(Args&&... args) {
-//     auto component = std::make_unique<ComponentType>(std::forward<Args>(args)...);
-//     ComponentType& ref = *component;
-//     components.emplace_back(std::move(component));
-//     return ref;
 
 #endif

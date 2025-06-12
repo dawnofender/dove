@@ -1,4 +1,5 @@
 #include "material.hpp"
+#include <src/components/cameraComponent.hpp>
 
 
 
@@ -31,8 +32,8 @@ bool Material::Activate(glm::mat4 modelMatrix) {
     LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
 
     // FIX: store in perception component once that exists
-    glm::mat4 projectionMatrix = getProjectionMatrix();
-    glm::mat4 viewMatrix = getViewMatrix();
+    glm::mat4 projectionMatrix = Camera::getProjectionMatrix();
+    glm::mat4 viewMatrix = Camera::getViewMatrix();
     glm::mat4 MVP = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);

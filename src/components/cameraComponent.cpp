@@ -1,0 +1,50 @@
+#include "cameraComponent.hpp"
+#include "skyRendererComponent.hpp"
+#include "objectRendererComponent.hpp"
+#include "physicsComponent.hpp"
+
+CLASS_DEFINITION(Component, Camera)
+
+
+Camera::Camera(std::string && initialValue, Thingy* h, GLFWwindow *w, float fov, int dw, int dh, float n, float f) 
+    : Component(std::move(initialValue)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {
+    cameras.push_back(this);
+}
+
+Camera::~Camera() {
+    cameras.erase(std::remove(cameras.begin(), cameras.end(), this), cameras.end());
+}
+
+
+glm::mat4 Camera::getProjectionMatrix() {
+    return projectionMatrix;
+}
+
+glm::mat4 Camera::getViewMatrix() {
+    return viewMatrix;
+}
+
+void Camera::see() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    Transform* transform = &host->getComponent<Transform>();
+    if (!transform) {
+        transform = &host->addComponent<Transform>();
+    }
+
+	  projectionMatrix = glm::perspective(glm::radians(FoV), (float)width/(float)height, near, far);
+    viewMatrix = transform->getGlobalMatrix();
+
+    ObjectRenderer::drawAll();
+    // SkyRenderer::drawAll();
+    Physics::debugDrawAll();
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+}
+
+void Camera::renderAll() {
+    for (auto && camera : cameras) {
+        camera->see();
+    }
+}
