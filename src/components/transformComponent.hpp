@@ -25,25 +25,26 @@ public:
     void setMatrix(glm::mat4 newTransform);
     void setPosition(glm::vec3 newPos);
     void setScale(glm::vec3 newScale);
-    void setRotation(glm::quat newRotation);
+    void setOrientation(glm::quat newRotation);
+    void setOrigin(glm::mat4 newOrigin);
     void translate(glm::vec3 translation);
     
     // TEST: we don't know if any this global stuff works yet, except for the matrix
     void setGlobalMatrix(glm::mat4 newTransform);
     void setGlobalPosition(glm::vec3 newPos);
     void setGlobalScale(glm::vec3 newScale);
-    void setGlobalRotation(glm::quat newRotation);
+    void setGlobalOrientation(glm::quat newRotation);
 
     glm::mat4& getMatrix();
     glm::vec3 getPosition();
     glm::vec3 getScale();
-    glm::quat getRotation();
+    glm::quat getOrientation();
 
     // TEST: we don't know if any this global stuff works yet, except for the matrix
     glm::mat4 getGlobalMatrix();
     glm::vec3 getGlobalPosition();
     glm::vec3 getGlobalScale();
-    glm::quat getGlobalRotation();
+    glm::quat getGlobalOrientation();
 private:
     glm::mat4 origin;
     void updateChildTransforms();

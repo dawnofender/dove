@@ -11,6 +11,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+// NOTE: bullet has serialization functions for rigidbodies, use them
+
 class RigidBody : public Component {
 CLASS_DECLARATION(RigidBody)
 friend class Physics;
@@ -35,6 +37,9 @@ public:
     void syncToTransform();
     static void syncFromTransforms();
     static void syncToTransforms();
+
+    void addForce(glm::vec3 force);
+    void addForce(glm::vec3 force, glm::vec3 offset);
 };
 
 

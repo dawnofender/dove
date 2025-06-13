@@ -44,6 +44,15 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
     rigidBodies.push_back(this);
 }
 
+void RigidBody::addForce(glm::vec3 force) {
+    std::cout << force.x << force.y << force.z << std::endl;
+    bulletRigidBody->applyCentralForce(btVector3(force.x, force.y, force.z));
+}
+
+void RigidBody::addForce(glm::vec3 force, glm::vec3 offset) {
+    bulletRigidBody->applyForce(btVector3(force.x, force.y, force.z), btVector3(offset.x, offset.y, offset.z));
+}
+
 void RigidBody::syncFromTransform() {
     float bulletTransformMatrix[16];
     // get transform matrix from transform component, but with reset scale
@@ -59,8 +68,7 @@ void RigidBody::syncToTransform() {
     bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
     glm::mat4 oglTransformMatrix = glm::make_mat4(bulletTransformMatrix);
     transform->setPosition(glm::vec3(oglTransformMatrix[3]));
-    transform->setRotation(glm::quat_cast(oglTransformMatrix));
-    // transform->setScale(lastScale);
+    transform->setOrientation(glm::quat_cast(oglTransformMatrix));
 }
 
 void RigidBody::syncFromTransforms() {

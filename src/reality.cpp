@@ -289,20 +289,22 @@ int main() {
     std::cout << "setting up world" << std::endl;
     // essential thingies
     Thingy universe("universe");
-    Physics physics = universe.addComponent<Physics>("Laws Of Physics");
+    Physics *physics = &universe.addComponent<Physics>("Laws Of Physics");
 
     Thingy *player = &universe.addChild("it's you!");
     // Thingy *sight = &universe.addChild("perception");
     Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    player->addComponent<RigidBody>("RigidBody", &physics, player, 50.f, true, true);
+    RigidBody *playerRigidBody = &player->addComponent<RigidBody>("RigidBody", physics, player, 50.f, false, false);
     
     // main camera
     Thingy *perception = &player->addChild("Perception");
     Transform *perceptionTransform = &perception->addComponent<Transform>("Transform", perception);
     perception->addComponent<Camera>("Camera", perception, window);
     
-    player->addComponent<PlayerController>("PlayerController", player, perception, 4);
+    // player controller
+    player->addComponent<PlayerController>("PlayerController", physics, player, perception, playerRigidBody, perceptionTransform, 4);
+    
     // # Basic scene
     // environment:
     Thingy *sky = &universe.addChild("Sky");
@@ -317,7 +319,7 @@ int main() {
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
-    ground->addComponent<RigidBody>("RigidBody", &physics, ground, 0.f, false, true);
+    ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
     std::cout << "test0" << std::endl;
     ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
   
@@ -327,14 +329,14 @@ int main() {
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
     // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    testCube->addComponent<RigidBody>("RigidBody", &physics, testCube, 1.f);
+    testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 1.f);
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
     Thingy *testCube2 = &universe.addChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform", testCube2);
     cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
-    testCube2->addComponent<RigidBody>("RigidBody", &physics, testCube2, 1.f);
+    testCube2->addComponent<RigidBody>("RigidBody", physics, testCube2, 1.f);
     testCube2->addComponent<ObjectRenderer>("ObjectRenderer", testCube2, testMaterial2, cube);
     
 
@@ -457,10 +459,10 @@ int main() {
         // # physics - should be one function in physics component
         deltaTime = time - lastTime;
         RigidBody::syncFromTransforms();
-        physics.dynamicsWorld->stepSimulation(deltaTime);
-        // physics.dynamicsWorld->updateAabbs();
-        // physics.dynamicsWorld->computeOverlappingPairs();
-        // physics.dynamicsWorld->performDiscreteCollisionDetection();
+        physics->dynamicsWorld->stepSimulation(deltaTime);
+        // physics->dynamicsWorld->updateAabbs();
+        // physics->dynamicsWorld->computeOverlappingPairs();
+        // physics->dynamicsWorld->performDiscreteCollisionDetection();
         RigidBody::syncToTransforms();
 
         

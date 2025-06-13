@@ -3,6 +3,7 @@
 
 #include "updatableComponent.hpp"
 #include "transformComponent.hpp"
+#include "physics/rigidBodyComponent.hpp"
 #include <src/thingy/thingy.hpp>
 #include <glm/glm.hpp>
 
@@ -11,11 +12,13 @@ CLASS_DECLARATION(PlayerController)
 private: 
     Thingy* host;
     Thingy* camera;
-    Transform* playerTransform;
+    RigidBody* playerRigidBody;
     Transform* cameraTransform;
+    Physics* physicsComponent;
+    bool grounded;
 
 public: 
-    PlayerController(std::string && initialValue = "PlayerController", Thingy* h = nullptr, Thingy* c = nullptr, float s = 4);
+    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 4);
     
     void update();
 
