@@ -15,14 +15,15 @@ private:
     RigidBody* playerRigidBody;
     Transform* cameraTransform;
     Physics* physicsComponent;
-    bool grounded;
+    int jumpTimer = 0;
 
 public: 
-    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 4);
+    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 1000, float j = 1000);
     
     void update();
 
     float speed;
+    float jumpStrength;
 };
 
 

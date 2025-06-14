@@ -56,7 +56,7 @@ int main() {
     if (!glfwInit()) {
       fprintf(stderr, "Failed to initialize GLFW\n");
       return -1;
-}
+    }
 
     // glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -295,7 +295,7 @@ int main() {
     // Thingy *sight = &universe.addChild("perception");
     Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    RigidBody *playerRigidBody = &player->addComponent<RigidBody>("RigidBody", physics, player, 50.f, false, false);
+    RigidBody *playerRigidBody = &player->addComponent<RigidBody>("RigidBody", physics, player, 5.f, false, false);
     
     // main camera
     Thingy *perception = &player->addChild("Perception");
@@ -303,7 +303,7 @@ int main() {
     perception->addComponent<Camera>("Camera", perception, window);
     
     // player controller
-    player->addComponent<PlayerController>("PlayerController", physics, player, perception, playerRigidBody, perceptionTransform, 4);
+    player->addComponent<PlayerController>("PlayerController", physics, player, perception, playerRigidBody, perceptionTransform, 100);
     
     // # Basic scene
     // environment:
@@ -414,7 +414,7 @@ int main() {
         glm::vec3 position = playerTransform->getPosition();
         computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
                                   initialFoV, speed, mouseSpeed, near, far);
-        playerTransform->setPosition(position);
+        // playerTransform->setPosition(position);
         perceptionTransform->setGlobalMatrix(getViewMatrix());
 
         glViewport(0, 0, screenWidth, screenHeight);
@@ -458,11 +458,10 @@ int main() {
 
         // # physics - should be one function in physics component
         deltaTime = time - lastTime;
-        RigidBody::syncFromTransforms();
         physics->dynamicsWorld->stepSimulation(deltaTime);
-        // physics->dynamicsWorld->updateAabbs();
-        // physics->dynamicsWorld->computeOverlappingPairs();
-        // physics->dynamicsWorld->performDiscreteCollisionDetection();
+        physics->dynamicsWorld->updateAabbs();
+        physics->dynamicsWorld->computeOverlappingPairs();
+        physics->dynamicsWorld->performDiscreteCollisionDetection();
         RigidBody::syncToTransforms();
 
         
@@ -470,6 +469,8 @@ int main() {
         UpdatableComponent::updateAll();
 
         // # rendering stuff
+        // rigidbodies are synced before rendering so the debug rendering lines up better (it still doesnt lol)
+        RigidBody::syncFromTransforms();
         Camera::renderAll();
         frame++;
 

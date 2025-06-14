@@ -8,7 +8,7 @@ ninja &&
 cd .. &&
 
 # should be unnecessary but were doing this for now
-mv build/reality src &&
+mv build/dove src &&
 cd src &&
 
-./reality
+./dove

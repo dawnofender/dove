@@ -82,3 +82,22 @@ void RigidBody::syncToTransforms() {
         rigidBody->syncToTransform();
     }
 }
+
+glm::vec3 RigidBody::getLinearVelocity() {
+	  btVector3 v = bulletRigidBody->getLinearVelocity();
+    return glm::vec3(v.x(), v.y(), v.z()); 
+}
+
+glm::vec3 RigidBody::getAngularVelocity() {
+	  btVector3 v = bulletRigidBody->getAngularVelocity();
+	  return glm::vec3(v.x(), v.y(), v.z());
+}
+
+void RigidBody::setLinearVelocity(glm::vec3 v) {
+    bulletRigidBody->setLinearVelocity(btVector3(v.x, v.y, v.z));
+}
+
+void RigidBody::setAngularVelocity(glm::vec3 v) {
+    bulletRigidBody->setAngularVelocity(btVector3(v.x, v.y, v.z));
+}
+

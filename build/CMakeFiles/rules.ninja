@@ -14,7 +14,7 @@
 #############################################
 # Rule for generating CXX dependencies.
 
-rule CXX_SCAN__reality_
+rule CXX_SCAN__dove_
   depfile = $DEP_FILE
   command = /usr/bin/c++ $DEFINES $INCLUDES $FLAGS -E -x c++ $in -MT $DYNDEP_INTERMEDIATE_FILE -MD -MF $DEP_FILE -fmodules-ts -fdeps-file=$DYNDEP_INTERMEDIATE_FILE -fdeps-target=$OBJ_FILE -fdeps-format=p1689r5 -o $PREPROCESSED_OUTPUT_FILE
   description = Scanning $in for CXX dependencies
@@ -23,8 +23,8 @@ rule CXX_SCAN__reality_
 #############################################
 # Rule to generate ninja dyndep files for CXX.
 
-rule CXX_DYNDEP__reality_
-  command = /usr/bin/cmake -E cmake_ninja_dyndep --tdi=CMakeFiles/reality.dir/CXXDependInfo.json --lang=CXX --modmapfmt=gcc --dd=$out @$out.rsp
+rule CXX_DYNDEP__dove_
+  command = /usr/bin/cmake -E cmake_ninja_dyndep --tdi=CMakeFiles/dove.dir/CXXDependInfo.json --lang=CXX --modmapfmt=gcc --dd=$out @$out.rsp
   description = Generating CXX dyndep file $out
   rspfile = $out.rsp
   rspfile_content = $in
@@ -34,7 +34,7 @@ rule CXX_DYNDEP__reality_
 #############################################
 # Rule for compiling CXX files.
 
-rule CXX_COMPILER__reality_scanned_
+rule CXX_COMPILER__dove_scanned_
   depfile = $DEP_FILE
   deps = gcc
   command = ${LAUNCHER}${CODE_CHECK}/usr/bin/c++ $DEFINES $INCLUDES $FLAGS -MD -MT $out -MF $DEP_FILE -fmodules-ts -fmodule-mapper=$DYNDEP_MODULE_MAP_FILE -MD -fdeps-format=p1689r5 -x c++ -o $out -c $in
@@ -44,7 +44,7 @@ rule CXX_COMPILER__reality_scanned_
 #############################################
 # Rule for compiling CXX files.
 
-rule CXX_COMPILER__reality_unscanned_
+rule CXX_COMPILER__dove_unscanned_
   depfile = $DEP_FILE
   deps = gcc
   command = ${LAUNCHER}${CODE_CHECK}/usr/bin/c++ $DEFINES $INCLUDES $FLAGS -MD -MT $out -MF $DEP_FILE -o $out -c $in
@@ -54,7 +54,7 @@ rule CXX_COMPILER__reality_unscanned_
 #############################################
 # Rule for linking CXX executable.
 
-rule CXX_EXECUTABLE_LINKER__reality_
+rule CXX_EXECUTABLE_LINKER__dove_
   depfile = $DEP_FILE
   deps = gcc
   command = $PRE_LINK && /usr/bin/c++ $FLAGS $LINK_FLAGS $in -o $TARGET_FILE $LINK_PATH $LINK_LIBRARIES && $POST_BUILD
@@ -801,7 +801,7 @@ rule CXX_STATIC_LIBRARY_LINKER__LinearMath_
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /usr/bin/cmake --regenerate-during-build -S/home/dawn-admin/repos/dove -B/home/dawn-admin/repos/dove/build
+  command = /usr/bin/cmake --regenerate-during-build -S/home/dawn/repos/dove -B/home/dawn/repos/dove/build
   description = Re-running CMake...
   generator = 1
 
@@ -810,7 +810,7 @@ rule RERUN_CMAKE
 # Rule for cleaning all built files.
 
 rule CLEAN
-  command = /usr/bin/ninja-build $FILE_ARG -t clean $TARGETS
+  command = /usr/bin/ninja $FILE_ARG -t clean $TARGETS
   description = Cleaning all built files...
 
 
@@ -818,6 +818,6 @@ rule CLEAN
 # Rule for printing all primary targets available.
 
 rule HELP
-  command = /usr/bin/ninja-build -t targets
+  command = /usr/bin/ninja -t targets
   description = All primary targets available:
 

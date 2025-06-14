@@ -42,8 +42,8 @@ add_definitions(
 	-D_CRT_SECURE_NO_WARNINGS
 )
 
-add_executable(reality
-    src/reality.cpp
+add_executable(dove
+    src/dove.cpp
     src/TransformVertexShader.vertexshader
     src/TextureFragmentShader.fragmentshader
     src/worldgen/doctree.cpp
@@ -116,4 +116,4 @@ add_executable(reality
     lib/stb_image.h
 )
 
-target_link_libraries(reality ${ALL_LIBS})
+target_link_libraries(dove ${ALL_LIBS})

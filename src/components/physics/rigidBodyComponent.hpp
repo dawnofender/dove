@@ -37,6 +37,10 @@ public:
     void syncToTransform();
     static void syncFromTransforms();
     static void syncToTransforms();
+    glm::vec3 getLinearVelocity();
+    glm::vec3 getAngularVelocity();
+    void setLinearVelocity(glm::vec3 newVelocity);
+    void setAngularVelocity(glm::vec3 newVelocity);
 
     void addForce(glm::vec3 force);
     void addForce(glm::vec3 force, glm::vec3 offset);
