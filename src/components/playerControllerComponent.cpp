@@ -57,29 +57,48 @@ void PlayerController::update() {
 
     
     Transform* playerTransform = &host->getComponent<Transform>();
-    if (
-            playerTransform &&
-            // has it been a bit since the last jump?
-            jumpTimer >= 0 &&
-            // are we pressing space?
-            glfwGetKey( Camera::activeWindow, GLFW_KEY_SPACE ) == GLFW_PRESS &&
-            // are we touching the ground?
-            physicsComponent->rayCast( playerTransform->getPosition(), glm::vec3(0, -1, 0), 0.501 ).hasHit
-    ) {
-        RayCastInfo rayCastInfo = physicsComponent->rayCast( playerTransform->getPosition(), glm::vec3(0, -1, 0), 0.501 );
-        if (rayCastInfo.hasHit) {
-            force += glm::vec3(0, jumpStrength, 0);
-            jumpTimer = 200;
-            // apply force to the thing we jumped off of
-            RigidBody *platformRigidBody = &rayCastInfo.thingy->getComponent<RigidBody>();
-            if (platformRigidBody) {
-                platformRigidBody->addForce(glm::vec3(0, -jumpStrength, 0));
-            }
-        }
-    } else if (jumpTimer > 0) 
-        jumpTimer--;
+    
+    // jump logic
+    // if (
+    //     playerTransform &&
+    //     // has it been a bit since the last jump?
+    //     jumpTimer >= 0 &&
+    //     // are we pressing space?
+    //     glfwGetKey( Camera::activeWindow, GLFW_KEY_SPACE ) == GLFW_PRESS &&
+    // ) {
+    //     // are we grounded? 
+    //     // whats the ground? 
+    //     // physicsComponent->rayCast( playerTransform->getPosition(), glm::vec3(0, -1, 0), 0.501 ).hasHit;
+    //     // RayCastInfo rayCastInfo = physicsComponent->rayCast( playerTransform->getPosition(), glm::vec3(0, -1, 0), 0.501 );
+    //     // // apply force to the thing we jumped off of
+    //     // RigidBody *platformRigidBody = &rayCastInfo.thingy->getComponent<RigidBody>();
+    //     // Transform *platformTransform = &rayCastInfo.thingy->getComponent<Transform>();
 
-    playerRigidBody->addForce(force);
+    //     // glm::distance(physicsComponent->getVelocity() * up, physicsComponent->
+    //     // if (rayCastInfo.hasHit) {
+    //     //     jumpTimer = 200;
+
+    //     // if (platformRigidBody && platformTransform) {
+    //     //     glm::vec3 forceOffset = playerTransform->getGlobalPosition() - platformTransform->getGlobalPosition();
+    //     //     float platformMass = platformRigidBody->getMass();
+    //     //     float playerMass = playerRigidBody->getMass();
+    //     //     // if either mass is 0, the object is static. we'll just pretend its 1 as to not divide by 0
+    //     //     float forceRatio;
+    //     //     if (platformMass == 0) forceRatio = 1;
+    //     //     else forceRatio = playerMass / platformMass / (playerMass + platformMass);
+
+    //     //     platformRigidBody->addForce( (1-forceRatio) * -jumpStrength * up, forceOffset);
+    //     //     force += up * forceRatio * jumpStrength;
+    //     // } else {
+    //     //     force += up * jumpStrength;
+    //     }
+    // } else if (jumpTimer > 0) 
+    //     jumpTimer--;
+
+    if (force.x || force.y || force.z) {
+        playerRigidBody->addForce(force);
+    }
+
     playerRigidBody->setAngularVelocity(glm::vec3(0, 0, 0));
 
 

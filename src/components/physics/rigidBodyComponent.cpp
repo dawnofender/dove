@@ -45,7 +45,6 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
 }
 
 void RigidBody::addForce(glm::vec3 force) {
-    std::cout << force.x << force.y << force.z << std::endl;
     bulletRigidBody->applyCentralForce(btVector3(force.x, force.y, force.z));
 }
 
@@ -93,6 +92,39 @@ glm::vec3 RigidBody::getAngularVelocity() {
 	  return glm::vec3(v.x(), v.y(), v.z());
 }
 
+float RigidBody::getMass() {
+    return bulletRigidBody->getMass();
+}
+
+void RigidBody::setMass(float newMass) {
+    // bulletRigidBody->setMass(newMass);
+}
+
+float RigidBody::getFriction() {
+    return bulletRigidBody->getFriction();
+}
+
+float RigidBody::getRollingFriction() {
+    return bulletRigidBody->getRollingFriction();
+}
+
+float RigidBody::getSpinningFriction() {
+    return bulletRigidBody->getSpinningFriction();
+}
+
+void RigidBody::setFriction(float newFriction) {
+    bulletRigidBody->setFriction(newFriction);
+}
+
+void RigidBody::setRollingFriction(float newRollingFriction) {
+    bulletRigidBody->setRollingFriction(newRollingFriction);
+}
+
+void RigidBody::setSpinningFriction(float newSpinningFriction) {
+    bulletRigidBody->setSpinningFriction(newSpinningFriction);
+}
+
+
 void RigidBody::setLinearVelocity(glm::vec3 v) {
     bulletRigidBody->setLinearVelocity(btVector3(v.x, v.y, v.z));
 }
@@ -100,4 +132,5 @@ void RigidBody::setLinearVelocity(glm::vec3 v) {
 void RigidBody::setAngularVelocity(glm::vec3 v) {
     bulletRigidBody->setAngularVelocity(btVector3(v.x, v.y, v.z));
 }
+
 

@@ -30,14 +30,58 @@ Physics::Physics(std::string &&initialValue)
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher,broadphase,solver,collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -9.81f, 0));
     
+    // tick callback 
+    //  - this is where bullet3 tells us info like: 
+    //      - how many collisions occured?
+    //      - what collided with what? 
+    dynamicsWorld->SetInternalTickCallback(OnSimulationTick)
+
     // Debug drawer
     dynamicsWorld->setDebugDrawer(&mydebugdrawer);
 
-    dynamicsWorlds.push_back(dynamicsWorld);
+    physicsWorlds.push_back(this);
 }
 
 Physics::~Physics() {
-    dynamicsWorlds.erase(std::remove(dynamicsWorlds.begin(), dynamicsWorlds.end(), dynamicsWorld), dynamicsWorlds.end());
+    physicsWorlds.erase(std::remove(physicsWorlds.begin(), physicsWorlds.end(), this), physicsWorlds.end());
+}
+void Physics::OnSimulationTick(btDynamicsWorld *world, btScalar timeStep) { 
+    collisionMap.clear();
+    for (auto p : collisions) delete p; // memory management
+    collisions.clear();
+
+    int numManifolds = world->getDispatcher()->getNumManifolds();
+    for (int i = 0; i < numManifolds; i++) {
+        btPersistentManifold* contactManifold =  world->getDispatcher()->getManifoldByIndexInternal(i);
+        const btCollisionObject* objectA = static_cast<btCollisionObject*>(contactManifold->getBody0());
+        const btCollisionObject* objectB = static_cast<btCollisionObject*>(contactManifold->getBody1());
+        
+        const Thingy* thingyA = static_cast<Thingy*>(objectA->getUserPointer());
+        const Thingy* thingyB = static_cast<Thingy*>(objectB->getUserPointer());
+        
+        const int numContacts = contactManifold->getNumContacts();
+        std::vector<CollisionInfo*> collisionInfoObjects;
+
+        for (int j = 0; j < numContacts; j++) {
+            btManifoldPoint& point = contactManifold->getContactPoint(j);
+
+            if (point.getDistance() < 0.0f ) {
+                const btVector3& bulletPointA = point.getPositionWorldOnA();
+                const btVector3& bulletPointB = point.getPositionWorldOnB();
+                const btVector3& bulletNormalOnB = point.m_normalWorldOnB;
+                
+                const glm::vec3 pointA(bulletPointA.x(), bulletPointA.y(), bulletPointA.z());
+                const glm::vec3 pointB;
+                const glm::vec3 normalOnB;
+                CollisionInfo* collisionInfo = new CollisionInfo{thingyA, thingyB, pointA, pointB, normalOnB};
+                collisions.push_back(collisionInfo);
+                collisionInfoObjects.push_back(collisionInfo);
+            }
+        }
+
+        collisionMap.insert({thingyA, collisionInfoObjects});
+        collisionMap.insert({thingyB, collisionInfoObjects});
+    }
 }
 
 void Physics::debugDrawWorld() {
@@ -46,7 +90,7 @@ void Physics::debugDrawWorld() {
 }
 void Physics::debugDrawAll() {
     mydebugdrawer.SetMatrices(Camera::getViewMatrix(), Camera::getProjectionMatrix());
-    for (auto && world : dynamicsWorlds) {
+    for (auto && world : physicsWorlds) {
         world->debugDrawWorld();
     }
 }
@@ -82,7 +126,21 @@ RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distan
             RayCallback.m_hitNormalWorld.z()
         );
     }
-
     return rayCastInfo;
-    
+}
+
+void Physics::simulateAll() {
+    for (auto && world : physicsWorlds) {
+        world->simulate();
+    }
+}
+
+void Physics::simulate() {
+
+    time = glfwGetTime();
+    deltaTime = time - lastTime;
+    lastTime = time;
+
+    dynamicsWorld->stepSimulation(deltaTime);
+    dynamicsWorld->performDiscreteCollisionDetection();
 }

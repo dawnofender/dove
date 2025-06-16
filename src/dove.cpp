@@ -296,6 +296,9 @@ int main() {
     Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
     RigidBody *playerRigidBody = &player->addComponent<RigidBody>("RigidBody", physics, player, 5.f, false, false);
+    playerRigidBody->setFriction(0.9f);
+    playerRigidBody->setRollingFriction(0.9f);
+    playerRigidBody->setSpinningFriction(0.9f);
     
     // main camera
     Thingy *perception = &player->addChild("Perception");
@@ -458,10 +461,7 @@ int main() {
 
         // # physics - should be one function in physics component
         deltaTime = time - lastTime;
-        physics->dynamicsWorld->stepSimulation(deltaTime);
-        physics->dynamicsWorld->updateAabbs();
-        physics->dynamicsWorld->computeOverlappingPairs();
-        physics->dynamicsWorld->performDiscreteCollisionDetection();
+        Physics::simulateAll();
         RigidBody::syncToTransforms();
 
         

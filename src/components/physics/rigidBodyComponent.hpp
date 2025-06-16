@@ -37,10 +37,20 @@ public:
     void syncToTransform();
     static void syncFromTransforms();
     static void syncToTransforms();
+
+    float getFriction();
+    float getRollingFriction();
+    float getSpinningFriction();
     glm::vec3 getLinearVelocity();
     glm::vec3 getAngularVelocity();
+    float getMass();
+
+    void setFriction(float newFriction);
+    void setRollingFriction(float newRollingFriction);
+    void setSpinningFriction(float newRollingFriction);
     void setLinearVelocity(glm::vec3 newVelocity);
     void setAngularVelocity(glm::vec3 newVelocity);
+    void setMass(float newMass);
 
     void addForce(glm::vec3 force);
     void addForce(glm::vec3 force, glm::vec3 offset);
