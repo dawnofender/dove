@@ -36,7 +36,8 @@ void Camera::see() {
 
     activeWindow = window;
 	  projectionMatrix = glm::perspective(glm::radians(FoV), (float)width/(float)height, near, far);
-    viewMatrix = transform->getGlobalMatrix();
+    // view matrix in the inverse of the camera's transformation matrix
+    viewMatrix = glm::inverse(transform->getGlobalMatrix());
 
     ObjectRenderer::drawAll();
     SkyRenderer::drawAll();

@@ -27,7 +27,11 @@ public:
     void setScale(glm::vec3 newScale);
     void setOrientation(glm::quat newRotation);
     void setOrigin(glm::mat4 newOrigin);
+
     void translate(glm::vec3 translation);
+    // TODO: implement this function
+    //  - use glm::rotate( mat4, angle, x, y, z );
+    void rotate(float angle, glm::vec3 axis);
     
     // TEST: we don't know if any this global stuff works yet, except for the matrix
     void setGlobalMatrix(glm::mat4 newTransform);

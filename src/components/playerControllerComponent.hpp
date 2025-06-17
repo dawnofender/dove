@@ -18,11 +18,13 @@ private:
     int jumpTimer = 0;
 
 public: 
-    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 1000, float j = 1500, float m = 1.5f);
+    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 1000, float j = 1500, float m = 1.5f, float ms = 0.01);
     
     void update();
-
-    float speed;
+    
+    
+    float mouseSensitivity;
+    float walkSpeed;
     float jumpStrength;
     float maxIncline;
 };

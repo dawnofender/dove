@@ -413,11 +413,11 @@ int main() {
 	      glfwGetCursorPos(window, &mouseX, &mouseY);
         // # Player controls
         // these should be moved into components later (input, camera)
-        glm::vec3 position = playerTransform->getPosition();
-        computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
-                                  initialFoV, speed, mouseSpeed, near, far);
-        // playerTransform->setPosition(position);
-        perceptionTransform->setGlobalMatrix(getViewMatrix());
+        // glm::vec3 position = playerTransform->getPosition();
+        // computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
+        //                           initialFoV, speed, mouseSpeed, near, far);
+        // // playerTransform->setPosition(position);
+        // perceptionTransform->setGlobalMatrix(getViewMatrix());
 
         // raycasting for clicking:
         // The ray Start and End positions, in Normalized Device Coordinates 
@@ -444,18 +444,30 @@ int main() {
         glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
         lRayDir_world = glm::normalize(lRayDir_world);
         
-        // auto rayCastInfo = physics.rayCast(playerTransform->getPosition(), lRayDir_world, 1000);
-        // Thingy* hoverObject = 
+        auto rayCastInfo = physics->rayCast(playerTransform->getPosition(), lRayDir_world, 1000);
+        Thingy* hoverObject = rayCastInfo.thingy;
         
         // on click, do something to hovered object 
-        // if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
             // std::shared_ptr<
             // if (hoverObject->getComponent<Interact>())
             // Transform *hObjectTransform = &hoverObject->getComponent<Transform>();
             // std::cout << hObjectTransform->getPosition().y << std::endl;
             // hObjectTransform->translate(glm::vec3(0, -1, 0));
             // std::cout << hObjectTransform->getPosition().y << std::endl;
-        // }
+            Thingy *testCube = &universe->addChild("Cube");
+            Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
+            cubeTransform->setPosition({0, 16.f, 0});
+            testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
+            // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
+            testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 1.f);
+            testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
+        }
+        
+        // if we fall into the void, go back to spawn
+        if (playerTransform->getPosition().y < -128) {
+            playerTransform->setMatrix(glm::mat4(1));
+        }
 
         // # physics - should be one function in physics component
         Physics::simulateAll();
@@ -471,8 +483,9 @@ int main() {
         Camera::renderAll();
         frame++;
 
-    } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-             glfwWindowShouldClose(window) == 0);
+    // } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+    //          glfwWindowShouldClose(window) == 0);
+    } while (glfwWindowShouldClose(window) == 0);
 
     std::cout << "cleaning up..." << std::endl;
     delete universe;

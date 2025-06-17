@@ -38,7 +38,7 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
     bulletRigidBody->setUserPointer((void*)host);
     if (b_kinematic) bulletRigidBody->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
     if (b_static)    bulletRigidBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-    
+    bulletRigidBody->setActivationState(DISABLE_DEACTIVATION); // make this toggleable too 
     physicsComponent->dynamicsWorld->addRigidBody(bulletRigidBody);
 
     rigidBodies.push_back(this);

@@ -31,8 +31,8 @@ void computeMatricesFromInputs(glm::vec3 &position, float &horizontalAngle, floa
 	float deltaTime = float(currentTime - lastTime);
 
 	// Get mouse position
-	double xpos, ypos;
-	glfwGetCursorPos(window, &xpos, &ypos);
+	  double xpos, ypos;
+	  glfwGetCursorPos(window, &xpos, &ypos);
     int width, height;
     glfwGetWindowSize(window, &width, &height);
 

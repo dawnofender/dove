@@ -5,11 +5,35 @@
 CLASS_DEFINITION(Component, PlayerController)
 
 
-PlayerController::PlayerController(std::string && initialValue, Physics* p, Thingy* h, Thingy* c, RigidBody* r, Transform* t, float s, float j, float m) 
-    : UpdatableComponent(std::move(initialValue)), physicsComponent(p), host(h), camera(c), playerRigidBody(r), cameraTransform(t), speed(s), jumpStrength(j), maxIncline(m) {}
+PlayerController::PlayerController(
+    std::string && initialValue, 
+    Physics* p, 
+    Thingy* h, 
+    Thingy* c, 
+    RigidBody* r, 
+    Transform* t, 
+    float s, 
+    float j, 
+    float m, 
+    float ms
+) 
+    : UpdatableComponent(
+    std::move(initialValue)), 
+    physicsComponent(p), 
+    host(h), 
+    camera(c), 
+    playerRigidBody(r), 
+    cameraTransform(t), 
+    walkSpeed(s), 
+    jumpStrength(j), 
+    maxIncline(m), 
+    mouseSensitivity(ms) 
+{}
+
 
 
 void PlayerController::update() {
+
     if (!physicsComponent) return;
     if (!Camera::activeWindow) return;
     if (!playerRigidBody) {
@@ -24,18 +48,60 @@ void PlayerController::update() {
         return;
     }
 
-    glm::mat4 viewMatrix = Camera::getViewMatrix();
-    glm::mat4 invView = glm::inverse(viewMatrix);
-    glm::vec3 forward = -glm::vec3(invView[2]);
+
+    // getting forward, up, and right vectors for motion and head turning
+    glm::mat4 cameraMatrix = cameraTransform->getGlobalMatrix();
+    glm::vec3 forward = -glm::vec3(cameraMatrix[2]);
     glm::vec3 up(0, 1, 0);
     glm::vec3 right = glm::cross(forward, up);
 
-    // glm::extractEulerAngleXYZ(viewMatrix, angle.x, angle.y, angle.z);
-    glm::vec3 force;
-
-    // glm::vec3 forward(sin(angle.y), 0, cos(angle.y));
+    // # Mouse movement -> turn head
+    // TODO: Move handle this input, especially reseting cursorpos, in a separate component
     
-    // get direction from key inputs
+    // Get mouse movement vector
+    glm::vec2 mouseMovement; 
+    {
+        double mousePosX, mousePosY;
+        int width, height;
+	      glfwGetCursorPos(Camera::activeWindow, &mousePosX, &mousePosY);
+        glfwGetWindowSize(Camera::activeWindow, &width, &height);
+
+        mouseMovement = glm::vec2(
+            mouseSensitivity * float(width/2 - mousePosX ),
+            mouseSensitivity * float(height/2 - mousePosY )
+        );
+
+	      // Reset mouse position before next frame
+	      glfwSetCursorPos(Camera::activeWindow, width/2, height/2);
+    }
+    
+    // get current camera angles
+    float yaw = atan2(forward.x, forward.z);
+    float pitch = asin(-forward.y);
+    
+	  yaw += mouseMovement.x;
+	  pitch += mouseMovement.y;
+    
+    std::cout << mouseMovement.x << ", " << mouseMovement.y << std::endl <<
+                 "pitch: " << pitch << ", yaw: " << yaw << std::endl;
+
+	  glm::vec3 lookDirection(
+	  	  cos(pitch) * sin(yaw), 
+	  	  sin(pitch),
+	  	  cos(pitch) * cos(yaw)
+	  );
+
+    // using lookAt to make sure the camera is always aligned with the horizon,
+    // referencing an up vector
+    cameraTransform->setOrientation(
+        glm::quat_cast(glm::lookAt(
+	          glm::vec3(0),
+	          lookDirection, //lookDirection, // look at this
+            up                                              // up vector
+    )));
+
+
+    // get direction to move in from key inputs [W, A, S, D]
     glm::vec3 input = {0, 0, 0};
     if (glfwGetKey( Camera::activeWindow, GLFW_KEY_W ) == GLFW_PRESS)
         input += forward;
@@ -52,10 +118,10 @@ void PlayerController::update() {
         input = glm::normalize(input * glm::vec3(1, 0, 1));
     }
     
-    force = speed * input;
+    // create a force in the input direction
+    glm::vec3 force = walkSpeed * input;
 
     
-    Transform* playerTransform = &host->getComponent<Transform>();
     
     // jump logic
 
@@ -69,6 +135,11 @@ void PlayerController::update() {
         // whats the ground? 
         auto collisions = physicsComponent->getCollisionInfo(host);
         Thingy* platform;
+        
+        // the player's position will be needed to calculate angles and apply force.
+        // Idealy, this would be handled differently - we could use the center of mass instead.
+        glm::vec3 playerPosition = host->getComponent<Transform>().getGlobalPosition();
+
         // check each collision and compare to find a valid incline
         float bestIncline = maxIncline;
         for (auto&& collisionInfo : collisions) {
@@ -80,16 +151,16 @@ void PlayerController::update() {
             
 
             // find the best angle 
-            glm::vec3 collisionDir = collisionInfo->pointA - playerTransform->getPosition();
-            bool validPlatform = false;
+            glm::vec3 collisionDir = glm::normalize(collisionInfo->pointA - playerPosition);
             float normalAngle = glm::acos(glm::dot(up, collisionInfo->normalOnB));
             float directionAngle = glm::acos(glm::dot(-up, collisionDir));
-            float platformAngle = (normalAngle + directionAngle)/2;
-                // std::max(normalAngle, directionAngle);
+            float platformIncline = std::max(normalAngle, directionAngle);
             
-            std::cout << platformAngle << std::endl;
-            if (platformAngle < bestIncline && collisionInfo->thingyA) {
-                bestIncline = platformAngle;
+            bool validPlatform = false;
+
+            std::cout << platformIncline << std::endl;
+            if (platformIncline < bestIncline && collisionInfo->thingyA) {
+                bestIncline = platformIncline;
                 Thingy* thingyA = (Thingy*)collisionInfo->thingyA;
                 Thingy* thingyB = (Thingy*)collisionInfo->thingyB;
 
@@ -110,7 +181,8 @@ void PlayerController::update() {
             
             // apply force to the thing we jumped off of
             if (platformRigidBody && platformTransform) {
-                glm::vec3 forceOffset = playerTransform->getGlobalPosition() - platformTransform->getGlobalPosition();
+                // FIX: use center of mass instead
+                glm::vec3 forceOffset = playerPosition - platformTransform->getGlobalPosition();
                 float platformMass = platformRigidBody->getMass();
                 float playerMass = playerRigidBody->getMass();
                 // if either mass is 0, the object is static. we'll just pretend its 1 as to not divide by 0
