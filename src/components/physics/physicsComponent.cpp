@@ -34,33 +34,37 @@ Physics::Physics(std::string &&initialValue)
     //  - this is where bullet3 tells us info like: 
     //      - how many collisions occured?
     //      - what collided with what? 
-    dynamicsWorld->SetInternalTickCallback(OnSimulationTick)
+    dynamicsWorld->setInternalTickCallback(OnSimulationTick);
 
     // Debug drawer
     dynamicsWorld->setDebugDrawer(&mydebugdrawer);
 
     physicsWorlds.push_back(this);
+
+    // there is absolutely a better way to do this, but the tick callback has to be static for whatever reason, but I also want it to know which physics component is active, sooo we're using an unordered map to get that information for now
+    worldMap.insert(std::make_pair(dynamicsWorld, this));
 }
 
 Physics::~Physics() {
     physicsWorlds.erase(std::remove(physicsWorlds.begin(), physicsWorlds.end(), this), physicsWorlds.end());
 }
+
 void Physics::OnSimulationTick(btDynamicsWorld *world, btScalar timeStep) { 
-    collisionMap.clear();
-    for (auto p : collisions) delete p; // memory management
-    collisions.clear();
+    Physics* physicsComponent = worldMap.at((btDiscreteDynamicsWorld*)world);
+    physicsComponent->collisionMap.clear();
+    physicsComponent->collisions.clear();
 
     int numManifolds = world->getDispatcher()->getNumManifolds();
     for (int i = 0; i < numManifolds; i++) {
         btPersistentManifold* contactManifold =  world->getDispatcher()->getManifoldByIndexInternal(i);
-        const btCollisionObject* objectA = static_cast<btCollisionObject*>(contactManifold->getBody0());
-        const btCollisionObject* objectB = static_cast<btCollisionObject*>(contactManifold->getBody1());
+        const btCollisionObject* objectA = contactManifold->getBody0();
+        const btCollisionObject* objectB = contactManifold->getBody1();
         
-        const Thingy* thingyA = static_cast<Thingy*>(objectA->getUserPointer());
-        const Thingy* thingyB = static_cast<Thingy*>(objectB->getUserPointer());
+        Thingy* thingyA = static_cast<Thingy*>(objectA->getUserPointer());
+        Thingy* thingyB = static_cast<Thingy*>(objectB->getUserPointer());
         
         const int numContacts = contactManifold->getNumContacts();
-        std::vector<CollisionInfo*> collisionInfoObjects;
+        std::vector<std::shared_ptr<CollisionInfo>> collisionInfoObjects;
 
         for (int j = 0; j < numContacts; j++) {
             btManifoldPoint& point = contactManifold->getContactPoint(j);
@@ -73,14 +77,14 @@ void Physics::OnSimulationTick(btDynamicsWorld *world, btScalar timeStep) {
                 const glm::vec3 pointA(bulletPointA.x(), bulletPointA.y(), bulletPointA.z());
                 const glm::vec3 pointB;
                 const glm::vec3 normalOnB;
-                CollisionInfo* collisionInfo = new CollisionInfo{thingyA, thingyB, pointA, pointB, normalOnB};
-                collisions.push_back(collisionInfo);
+                std::shared_ptr<CollisionInfo> collisionInfo = std::make_shared<CollisionInfo>(thingyA, thingyB, pointA, pointB, normalOnB);
+                physicsComponent->collisions.push_back(collisionInfo);
                 collisionInfoObjects.push_back(collisionInfo);
             }
         }
 
-        collisionMap.insert({thingyA, collisionInfoObjects});
-        collisionMap.insert({thingyB, collisionInfoObjects});
+        physicsComponent->collisionMap.insert(std::make_pair(thingyA, collisionInfoObjects));
+        physicsComponent->collisionMap.insert(std::make_pair(thingyB, collisionInfoObjects));
     }
 }
 
@@ -93,6 +97,14 @@ void Physics::debugDrawAll() {
     for (auto && world : physicsWorlds) {
         world->debugDrawWorld();
     }
+}
+
+std::vector<std::shared_ptr<CollisionInfo>> Physics::getCollisionInfo(Thingy* thingy) {
+  	// Searching for element with key
+    if (collisionMap.find(thingy) == collisionMap.end())
+        return {nullptr};
+    else
+        return collisionMap.at(thingy);
 }
 
 RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distance) {

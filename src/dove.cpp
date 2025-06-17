@@ -288,11 +288,11 @@ int main() {
     
     std::cout << "setting up world" << std::endl;
     // essential thingies
-    Thingy universe("universe");
-    Physics *physics = &universe.addComponent<Physics>("Laws Of Physics");
+    Thingy *universe = new Thingy("universe");
+    Physics *physics = &universe->addComponent<Physics>("Laws Of Physics");
 
-    Thingy *player = &universe.addChild("it's you!");
-    // Thingy *sight = &universe.addChild("perception");
+    Thingy *player = &universe->addChild("it's you!");
+    // Thingy *sight = &universe->addChild("perception");
     Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
     RigidBody *playerRigidBody = &player->addComponent<RigidBody>("RigidBody", physics, player, 5.f, false, false);
@@ -310,14 +310,14 @@ int main() {
     
     // # Basic scene
     // environment:
-    Thingy *sky = &universe.addChild("Sky");
+    Thingy *sky = &universe->addChild("Sky");
     sky->addComponent<Transform>("Transform", sky);
     std::cout << "test0" << std::endl;
     sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial, cube);
     std::cout << "test1" << std::endl;
     
     // ground:
-    Thingy *ground = &universe.addChild("Ground");
+    Thingy *ground = &universe->addChild("Ground");
     Transform *groundTransform = &ground->addComponent<Transform>("Transform", ground);
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
@@ -327,7 +327,7 @@ int main() {
     ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
   
     std::cout << "test1" << std::endl;
-    Thingy *testCube = &universe.addChild("Cube");
+    Thingy *testCube = &universe->addChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
@@ -335,7 +335,7 @@ int main() {
     testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 1.f);
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
-    Thingy *testCube2 = &universe.addChild("Cube");
+    Thingy *testCube2 = &universe->addChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform", testCube2);
     cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
@@ -351,7 +351,7 @@ int main() {
 
     // # GAIA
     
-    // Thingy *gaia = &universe.addChild("gaia");
+    // Thingy *gaia = &universe->addChild("gaia");
     // gaia->addComponent<Gaia>("Gaia", gaia, player);
 
     // put player on serface (temporary)
@@ -379,7 +379,6 @@ int main() {
     int screenWidth, screenHeight;
     double mouseX, mouseY;
 		
-    double deltaTime;
     double lastTime;
     double time;
     
@@ -420,7 +419,6 @@ int main() {
         // playerTransform->setPosition(position);
         perceptionTransform->setGlobalMatrix(getViewMatrix());
 
-        glViewport(0, 0, screenWidth, screenHeight);
         // raycasting for clicking:
         // The ray Start and End positions, in Normalized Device Coordinates 
         glm::vec4 lRayStart_NDC(
@@ -460,7 +458,6 @@ int main() {
         // }
 
         // # physics - should be one function in physics component
-        deltaTime = time - lastTime;
         Physics::simulateAll();
         RigidBody::syncToTransforms();
 
@@ -478,10 +475,8 @@ int main() {
              glfwWindowShouldClose(window) == 0);
 
     std::cout << "cleaning up..." << std::endl;
-    // ObjectRenderer::deleteAll(); 
-
-    // glDeleteTextures(1, &Texture);
-
+    delete universe;
+    
     glfwTerminate();
     std::cout << "bye bye!" << std::endl;
 

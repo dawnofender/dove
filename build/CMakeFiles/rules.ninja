@@ -801,7 +801,7 @@ rule CXX_STATIC_LIBRARY_LINKER__LinearMath_
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /usr/bin/cmake --regenerate-during-build -S/home/dawn/repos/dove -B/home/dawn/repos/dove/build
+  command = /usr/bin/cmake --regenerate-during-build -S/home/dawn-admin/repos/dove -B/home/dawn-admin/repos/dove/build
   description = Re-running CMake...
   generator = 1
 
@@ -810,7 +810,7 @@ rule RERUN_CMAKE
 # Rule for cleaning all built files.
 
 rule CLEAN
-  command = /usr/bin/ninja $FILE_ARG -t clean $TARGETS
+  command = /usr/bin/ninja-build $FILE_ARG -t clean $TARGETS
   description = Cleaning all built files...
 
 
@@ -818,6 +818,6 @@ rule CLEAN
 # Rule for printing all primary targets available.
 
 rule HELP
-  command = /usr/bin/ninja -t targets
+  command = /usr/bin/ninja-build -t targets
   description = All primary targets available:
 

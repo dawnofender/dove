@@ -45,8 +45,8 @@ public:
     double deltaTime;
     double lastTime;
     double time;
-    std::vector<CollisionInfo*> collisions;
-    std::unordered_map<Thingy*, std::vector<CollisionInfo*>> collisionMap;
+    std::vector<std::shared_ptr<CollisionInfo>> collisions;
+    std::unordered_map<Thingy*, std::vector<std::shared_ptr<CollisionInfo>>> collisionMap;
 
 public:
     Physics(std::string &&initialValue = "Physics");
@@ -54,6 +54,8 @@ public:
 
     RayCastInfo rayCast(glm::vec3 position, glm::vec3 direction, float distance);
     RayCastInfo sphereCast(glm::vec3 position, float distance); // not implemented yet
+    std::vector<std::shared_ptr<CollisionInfo>> getCollisionInfo(Thingy* thingy);
+
     void debugDrawWorld();
     static void debugDrawAll();
     static void simulateAll();
@@ -61,7 +63,8 @@ public:
 
 private:
     static inline std::vector<btDiscreteDynamicsWorld *> dynamicsWorlds;
-    void OnSimulationTick(btDynamicsWorld *world, btScalar timeStep);
+    static inline std::unordered_map<btDiscreteDynamicsWorld*, Physics*> worldMap;
+    static void OnSimulationTick(btDynamicsWorld *world, btScalar timeStep);
     
     // btOverlapFilterCallback* filterCallback;
 	// btOverlappingPairCache* pairCache;
