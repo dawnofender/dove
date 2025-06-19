@@ -47,6 +47,8 @@ GLFWwindow *window;
 int main() {
     std::cout << "hi!" << std::endl;
 
+    Camera::setActiveWindow(window);
+
     // ################
     // # OpenGL setup #
     // ################
@@ -380,6 +382,7 @@ int main() {
     
     int frame = 0;
     do {
+        std::cout << "testa" << std::endl;
         // #######
         // # fps #
         // #######
@@ -396,9 +399,7 @@ int main() {
             lastFrameTime += 1.0;
         }
 
-        // #################
-        // # prepare frame #
-        // #################
+        std::cout << "testb" << std::endl;
         
         // ##############
         // # world loop #
@@ -407,7 +408,8 @@ int main() {
         // TODO: move click-raycasting into player controller component
         
         // handle raycasting for player clicking on objects 
-	    glfwGetCursorPos(window, &mouseX, &mouseY);
+        std::cout << "testc" << std::endl;
+	      glfwGetCursorPos(Camera::getActiveWindow(), &mouseX, &mouseY);
         glm::vec4 lRayStart_NDC(
             (mouseX - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
         	  (mouseY - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
@@ -435,7 +437,7 @@ int main() {
         Thingy* hoverObject = rayCastInfo.thingy;
         
         // on click, do something to hovered object 
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
+        if (glfwGetMouseButton(Camera::getActiveWindow(), GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
             Thingy *testCube = &universe->addChild("Cube");
             Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
             cubeTransform->setPosition({0, 16.f, 0});
@@ -446,15 +448,14 @@ int main() {
         }
         
         // if we fall into the void, go back to spawn
-        // if (playerTransform->getPosition().y < -128) {
-        //     playerTransform->setMatrix(glm::mat4(1));
-        // }
+        if (playerTransform->getGlobalPosition().y < -128) {
+            playerTransform->setGlobalMatrix(glm::mat4(1));
+        }
 
         // # physics - should be one function in physics component
         RigidBody::syncFromTransforms();
         Physics::simulateAll();
         RigidBody::syncToTransforms();
-
         
         // # updating components
         UpdatableComponent::updateAll();
@@ -464,7 +465,7 @@ int main() {
         Camera::renderAll();
         frame++;
 
-    // } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+    // } while (glfwGetKey(Camera::getActiveWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
     //          glfwWindowShouldClose(window) == 0);
     } while (glfwWindowShouldClose(window) == 0);
 

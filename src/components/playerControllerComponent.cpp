@@ -36,33 +36,25 @@ PlayerController::PlayerController(
 
 
 void PlayerController::update() {
-
-    if (!physicsComponent) return;
-    if (!Camera::activeWindow) return;
-    if (!playerRigidBody) {
-        if (!host) return;
-        playerRigidBody = &host->getComponent<RigidBody>();
-        return;
-    }
+    
+    // handle head rotation
+    
+    // TODO: add error messages
+    if (!Camera::getActiveWindow()) return;
     if (!cameraTransform) {
         if (!camera) return;
         if (!(cameraTransform = &camera->getComponent<Transform>()))
             cameraTransform = &camera->addComponent<Transform>("Transform", camera);
         return;
     }
-
-    Transform *playerTransform  = &host->getComponent<Transform>();
-
-    // # Mouse movement -> turn head
-    // TODO: Move handle this input, especially reseting cursorpos, in a separate component
     
     // Get mouse movement vector
     glm::vec2 mouseMovement; 
     {
         double mousePosX, mousePosY;
         int width, height;
-	    glfwGetCursorPos(Camera::activeWindow, &mousePosX, &mousePosY);
-        glfwGetWindowSize(Camera::activeWindow, &width, &height);
+	    glfwGetCursorPos(Camera::getActiveWindow(), &mousePosX, &mousePosY);
+        glfwGetWindowSize(Camera::getActiveWindow(), &width, &height);
 
         mouseMovement = glm::vec2(
             mouseSensitivity * float(width/2 - mousePosX),
@@ -70,7 +62,7 @@ void PlayerController::update() {
         );
 
 	    // Reset mouse position before next frame
-	    glfwSetCursorPos(Camera::activeWindow, width/2, height/2);
+	    glfwSetCursorPos(Camera::getActiveWindow(), width/2, height/2);
     }
 
     
@@ -105,6 +97,22 @@ void PlayerController::update() {
             target,
             up
     )));
+
+
+    // handle locomotion
+    
+    if (!physicsComponent) return;
+    if (!playerRigidBody) {
+        if (!host) return;
+        playerRigidBody = &host->getComponent<RigidBody>();
+        return;
+    }
+
+    Transform *playerTransform  = &host->getComponent<Transform>();
+
+    // # Mouse movement -> turn head
+    // TODO: Move handle this input, especially reseting cursorpos, in a separate component
+    
     
     // this just keeps the player thingy upright. 
     // later, this could be replaced with a position lock constraint, or even applying force to accomplish this.
@@ -120,13 +128,13 @@ void PlayerController::update() {
     
     // get direction to move in from key inputs [W, A, S, D]
     glm::vec3 input = {0, 0, 0};
-    if (glfwGetKey( Camera::activeWindow, GLFW_KEY_W ) == GLFW_PRESS)
+    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_W ) == GLFW_PRESS)
         input += forward;
-    if (glfwGetKey( Camera::activeWindow, GLFW_KEY_S ) == GLFW_PRESS)
+    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_S ) == GLFW_PRESS)
         input -= forward;
-    if (glfwGetKey( Camera::activeWindow, GLFW_KEY_D ) == GLFW_PRESS) 
+    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_D ) == GLFW_PRESS) 
         input += right;
-    if (glfwGetKey( Camera::activeWindow, GLFW_KEY_A ) == GLFW_PRESS)
+    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_A ) == GLFW_PRESS)
         input -= right;
 
     // normalize causes NAN if the length is zero, lets avoid this
@@ -144,7 +152,7 @@ void PlayerController::update() {
 
     if (
         // are we pressing space?
-        glfwGetKey( Camera::activeWindow, GLFW_KEY_SPACE ) == GLFW_PRESS &&
+        glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_SPACE ) == GLFW_PRESS &&
         // has it been a bit since the last jump?
         jumpTimer >= 0
     ) {

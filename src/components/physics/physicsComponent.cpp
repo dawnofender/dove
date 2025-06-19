@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include "rigidBodyComponent.hpp"
 
 CLASS_DEFINITION(Component, Physics)
 
@@ -142,9 +143,12 @@ RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distan
 }
 
 void Physics::simulateAll() {
+    RigidBody::syncFromTransforms();
     for (auto && world : physicsWorlds) {
+
         world->simulate();
     }
+    RigidBody::syncToTransforms();
 }
 
 void Physics::simulate() {
