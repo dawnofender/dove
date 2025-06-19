@@ -29,9 +29,9 @@ public:
     void setOrigin(glm::mat4 newOrigin);
 
     void translate(glm::vec3 translation);
-    // TODO: implement this function
-    //  - use glm::rotate( mat4, angle, x, y, z );
     void rotate(float angle, glm::vec3 axis);
+    void rotate(glm::quat rotation);
+    void rotate(glm::mat4 rotation);
     
     // TEST: we don't know if any this global stuff works yet, except for the matrix
     void setGlobalMatrix(glm::mat4 newTransform);
@@ -50,7 +50,7 @@ public:
     glm::vec3 getGlobalScale();
     glm::quat getGlobalOrientation();
 private:
-    glm::mat4 origin;
+    glm::mat4 parentTransform;
     void updateChildTransforms();
 };
 

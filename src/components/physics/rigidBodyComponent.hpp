@@ -11,7 +11,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-// NOTE: bullet has serialization functions for rigidbodies, use them
+// TODO: 
+// - if physicsComponent isn't given, it should just use the host and climb up through the hierarchy looking for a thingy with a physics component
+// - bullet has serialization functions for rigidbodies, use them
 
 class RigidBody : public Component {
 CLASS_DECLARATION(RigidBody)

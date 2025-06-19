@@ -14,14 +14,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
-#include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <string>
 
-#include <lib/controls.hpp>
 #include <lib/texture.hpp>
 #include <lib/vboindexer.hpp>
 
@@ -86,7 +84,6 @@ int main() {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwPollEvents();
-    glfwSetCursorPos(window, 1024 / 2, 768 / 2);
     glClearColor(0.6f, 0.7f, 0.9f, 0.0f);
     glEnable(GL_DEPTH_TEST); // Enable depth test
     glDepthFunc(GL_LESS);   // Accept fragment if it closer to the camera than the
@@ -376,7 +373,6 @@ int main() {
     //  - rendering 
     //  - input (mouse pos, keyboard, click raycasting)
 
-    int screenWidth, screenHeight;
     double mouseX, mouseY;
 		
     double lastTime;
@@ -404,23 +400,14 @@ int main() {
         // # prepare frame #
         // #################
         
-        // 
         // ##############
         // # world loop #
         // ##############
         
-        glfwGetWindowSize(window, &screenWidth, &screenHeight);
-	      glfwGetCursorPos(window, &mouseX, &mouseY);
-        // # Player controls
-        // these should be moved into components later (input, camera)
-        // glm::vec3 position = playerTransform->getPosition();
-        // computeMatricesFromInputs(position, horizontalAngle, verticalAngle,
-        //                           initialFoV, speed, mouseSpeed, near, far);
-        // // playerTransform->setPosition(position);
-        // perceptionTransform->setGlobalMatrix(getViewMatrix());
-
-        // raycasting for clicking:
-        // The ray Start and End positions, in Normalized Device Coordinates 
+        // TODO: move click-raycasting into player controller component
+        
+        // handle raycasting for player clicking on objects 
+	    glfwGetCursorPos(window, &mouseX, &mouseY);
         glm::vec4 lRayStart_NDC(
             (mouseX - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
         	  (mouseY - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
@@ -449,12 +436,6 @@ int main() {
         
         // on click, do something to hovered object 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
-            // std::shared_ptr<
-            // if (hoverObject->getComponent<Interact>())
-            // Transform *hObjectTransform = &hoverObject->getComponent<Transform>();
-            // std::cout << hObjectTransform->getPosition().y << std::endl;
-            // hObjectTransform->translate(glm::vec3(0, -1, 0));
-            // std::cout << hObjectTransform->getPosition().y << std::endl;
             Thingy *testCube = &universe->addChild("Cube");
             Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
             cubeTransform->setPosition({0, 16.f, 0});
@@ -465,11 +446,12 @@ int main() {
         }
         
         // if we fall into the void, go back to spawn
-        if (playerTransform->getPosition().y < -128) {
-            playerTransform->setMatrix(glm::mat4(1));
-        }
+        // if (playerTransform->getPosition().y < -128) {
+        //     playerTransform->setMatrix(glm::mat4(1));
+        // }
 
         // # physics - should be one function in physics component
+        RigidBody::syncFromTransforms();
         Physics::simulateAll();
         RigidBody::syncToTransforms();
 
@@ -479,7 +461,6 @@ int main() {
 
         // # rendering stuff
         // rigidbodies are synced before rendering so the debug rendering lines up better (it still doesnt lol)
-        RigidBody::syncFromTransforms();
         Camera::renderAll();
         frame++;
 

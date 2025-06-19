@@ -7,13 +7,9 @@ void Transform::updateChildTransforms() {
     Transform* childTransform;
     for (auto && child : host->children) {
         if ((childTransform = &child->getComponent<Transform>()))
-            childTransform->setOrigin(transform + origin);
+            childTransform->parentTransform = parentTransform * transform;
+            childTransform->updateChildTransforms();
     }
-}
-
-void Transform::setOrigin(glm::mat4 newOrigin) {
-    origin = newOrigin;
-    updateChildTransforms();
 }
 
 void Transform::setMatrix(glm::mat4 newTransform) {
@@ -22,8 +18,7 @@ void Transform::setMatrix(glm::mat4 newTransform) {
 }
 
 void Transform::setGlobalMatrix(glm::mat4 newTransform) {
-    setMatrix(newTransform - origin);
-    updateChildTransforms();
+    setMatrix(newTransform - parentTransform);
 }
 
 void Transform::setPosition(glm::vec3 newPos) {
@@ -32,8 +27,7 @@ void Transform::setPosition(glm::vec3 newPos) {
 }
 
 void Transform::setGlobalPosition(glm::vec3 newPos) {
-    transform[3] = glm::vec4{newPos.x, newPos.y, newPos.z, transform[3].w} - origin[3];
-    updateChildTransforms();
+    setPosition(newPos - getGlobalPosition());
 }
 
 
@@ -42,14 +36,25 @@ void Transform::translate(glm::vec3 translation) {
     updateChildTransforms();
 }
 
+void Transform::rotate(glm::quat rotation) {
+    transform *= glm::mat4_cast(rotation);
+}
+
+void Transform::rotate(glm::mat4 rotation) {
+    transform *= rotation;
+}
+
+void Transform::rotate(float angle, glm::vec3 axis) {
+    transform = glm::rotate(transform, angle, axis);
+}
+
 void Transform::setScale(glm::vec3 newScale) {
     transform = glm::scale(transform, newScale);
     updateChildTransforms();
 }
 
 void Transform::setGlobalScale(glm::vec3 newScale) {
-    transform = glm::scale(transform - origin, newScale);
-    updateChildTransforms();
+    setScale(newScale - getGlobalScale());
 }
 
 void Transform::setOrientation(glm::quat newOrientation) {
@@ -60,8 +65,7 @@ void Transform::setOrientation(glm::quat newOrientation) {
 }
 
 void Transform::setGlobalOrientation(glm::quat newOrientation) {
-    setOrientation(glm::quat_cast(glm::mat4_cast(newOrientation) - origin));
-    updateChildTransforms();
+    setOrientation(glm::quat_cast(glm::mat4_cast(newOrientation) / parentTransform));
 }
 
 
@@ -88,19 +92,19 @@ glm::quat Transform::getOrientation() {
 
 
 glm::mat4 Transform::getGlobalMatrix() {
-    return transform + origin;
+    return parentTransform * transform;
 }
 
 glm::vec3 Transform::getGlobalPosition() {
-    return glm::vec3(origin[3]) + getPosition();
+    return glm::vec3(getGlobalMatrix()[3]);
 }
 
 glm::quat Transform::getGlobalOrientation() {
-    return glm::quat_cast(origin + transform);
+    return glm::quat_cast(getGlobalMatrix());
 }
 
 glm::vec3 Transform::getGlobalScale() {
-    glm::mat3 upper3x3(transform + origin);
+    glm::mat3 upper3x3(getGlobalMatrix());
     return glm::vec3(
         glm::length(upper3x3[0]),
         glm::length(upper3x3[1]),

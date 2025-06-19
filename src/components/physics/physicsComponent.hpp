@@ -12,7 +12,7 @@
 
 // TODO: 
 //  - closest surface / spherecast function
-
+//  - 
 struct RayCastInfo {
     bool hasHit;
     Thingy* thingy;

@@ -1,6 +1,9 @@
 #include "playerControllerComponent.hpp"
 #include "rendering/cameraComponent.hpp"
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+
+
 
 CLASS_DEFINITION(Component, PlayerController)
 
@@ -48,12 +51,7 @@ void PlayerController::update() {
         return;
     }
 
-
-    // getting forward, up, and right vectors for motion and head turning
-    glm::mat4 cameraMatrix = cameraTransform->getGlobalMatrix();
-    glm::vec3 forward = -glm::vec3(cameraMatrix[2]);
-    glm::vec3 up(0, 1, 0);
-    glm::vec3 right = glm::cross(forward, up);
+    Transform *playerTransform  = &host->getComponent<Transform>();
 
     // # Mouse movement -> turn head
     // TODO: Move handle this input, especially reseting cursorpos, in a separate component
@@ -63,44 +61,63 @@ void PlayerController::update() {
     {
         double mousePosX, mousePosY;
         int width, height;
-	      glfwGetCursorPos(Camera::activeWindow, &mousePosX, &mousePosY);
+	    glfwGetCursorPos(Camera::activeWindow, &mousePosX, &mousePosY);
         glfwGetWindowSize(Camera::activeWindow, &width, &height);
 
         mouseMovement = glm::vec2(
-            mouseSensitivity * float(width/2 - mousePosX ),
-            mouseSensitivity * float(height/2 - mousePosY )
+            mouseSensitivity * float(width/2 - mousePosX),
+            mouseSensitivity * float(height/2 - mousePosY)
         );
 
-	      // Reset mouse position before next frame
-	      glfwSetCursorPos(Camera::activeWindow, width/2, height/2);
+	    // Reset mouse position before next frame
+	    glfwSetCursorPos(Camera::activeWindow, width/2, height/2);
     }
-    
-    // get current camera angles
-    float yaw = atan2(forward.x, forward.z);
-    float pitch = asin(-forward.y);
-    
-	  yaw += mouseMovement.x;
-	  pitch += mouseMovement.y;
-    
-    std::cout << mouseMovement.x << ", " << mouseMovement.y << std::endl <<
-                 "pitch: " << pitch << ", yaw: " << yaw << std::endl;
 
-	  glm::vec3 lookDirection(
-	  	  cos(pitch) * sin(yaw), 
-	  	  sin(pitch),
-	  	  cos(pitch) * cos(yaw)
-	  );
+    
+    // getting forward, up, and right vectors needed for head turning and motion
+    glm::mat4 cameraMatrix = cameraTransform->getMatrix();
+    glm::mat4 viewMatrix = glm::inverse(cameraMatrix);
 
-    // using lookAt to make sure the camera is always aligned with the horizon,
-    // referencing an up vector
-    cameraTransform->setOrientation(
-        glm::quat_cast(glm::lookAt(
-	          glm::vec3(0),
-	          lookDirection, //lookDirection, // look at this
-            up                                              // up vector
+    glm::vec3 up(0, 1, 0);
+    glm::vec3 forward = glm::normalize(glm::vec3(viewMatrix[2])) * glm::vec3(1, 1, -1);
+    // glm::vec3 right = glm::normalize(glm::vec3(viewMatrix[0]));
+    glm::vec3 right = glm::cross(forward, up);
+    // when we get the forward vector, we must flip the z axis because in opengl, z is backwards
+    
+    yaw += mouseMovement.x;
+    pitch += mouseMovement.y;
+    
+    const float halfPi = 3.14159265358978f / 2.f;
+    pitch = std::min( std::max( -halfPi, pitch ), halfPi );
+    
+    glm::vec3 direction(
+        cos(pitch) * sin(yaw),
+        sin(pitch),
+        cos(pitch) * cos(yaw)
+    );
+    
+    glm::vec3 cameraPosition = cameraTransform->getPosition();
+    glm::vec3 target = cameraPosition + direction;
+
+    cameraTransform->setMatrix(
+        glm::inverse(glm::lookAt(
+            cameraPosition,
+            target,
+            up
     )));
+    
+    // this just keeps the player thingy upright. 
+    // later, this could be replaced with a position lock constraint, or even applying force to accomplish this.
+    glm::vec3 playerPosition = playerTransform->getPosition();
+    playerTransform->setMatrix(
+        glm::inverse(glm::lookAt(
+            playerPosition,
+            playerPosition + glm::vec3(0, 0, -1),
+            up
+    )));
+    
 
-
+    
     // get direction to move in from key inputs [W, A, S, D]
     glm::vec3 input = {0, 0, 0};
     if (glfwGetKey( Camera::activeWindow, GLFW_KEY_W ) == GLFW_PRESS)
@@ -134,11 +151,10 @@ void PlayerController::update() {
         // are we grounded? 
         // whats the ground? 
         auto collisions = physicsComponent->getCollisionInfo(host);
-        Thingy* platform;
+        Thingy* platform = nullptr;
         
         // the player's position will be needed to calculate angles and apply force.
         // Idealy, this would be handled differently - we could use the center of mass instead.
-        glm::vec3 playerPosition = host->getComponent<Transform>().getGlobalPosition();
 
         // check each collision and compare to find a valid incline
         float bestIncline = maxIncline;
@@ -151,14 +167,18 @@ void PlayerController::update() {
             
 
             // find the best angle 
-            glm::vec3 collisionDir = glm::normalize(collisionInfo->pointA - playerPosition);
-            float normalAngle = glm::acos(glm::dot(up, collisionInfo->normalOnB));
-            float directionAngle = glm::acos(glm::dot(-up, collisionDir));
+            glm::vec3 collisionDir = glm::normalize(collisionInfo->pointB - collisionInfo->pointA);
+            float directionAngle = glm::asin(glm::dot(up, collisionDir));
+            float normalAngle = glm::asin(glm::dot(up, collisionInfo->normalOnB));
             float platformIncline = std::max(normalAngle, directionAngle);
-            
-            bool validPlatform = false;
+            bool validPlatform;
 
-            std::cout << platformIncline << std::endl;
+            std::cout << 
+                "surface normal: " << normalAngle       << std::endl <<
+                "direction:      " << directionAngle    << std::endl <<
+                "incline:        " << platformIncline   << std::endl <<
+            std::endl;
+
             if (platformIncline < bestIncline && collisionInfo->thingyA) {
                 bestIncline = platformIncline;
                 Thingy* thingyA = (Thingy*)collisionInfo->thingyA;
@@ -172,8 +192,9 @@ void PlayerController::update() {
             }
         }
         
+        
         // if platform was found, we're touching the ground, proceed to jump
-        if (platform) {
+        if (platform != nullptr) {
             RigidBody *platformRigidBody = &platform->getComponent<RigidBody>();
             Transform *platformTransform = &platform->getComponent<Transform>();
             

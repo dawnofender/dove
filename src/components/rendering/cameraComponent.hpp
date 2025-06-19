@@ -22,8 +22,8 @@ public:
 private: 
     Thingy* host;
     GLFWwindow* window; //NOTE: windows should be handled somewhere else, maybe a 'render target' object would be better?
-    static inline glm::mat4 projectionMatrix = glm::mat4(0);
-    static inline glm::mat4 viewMatrix = glm::mat4(0);
+    static inline glm::mat4 projectionMatrix;
+    static inline glm::mat4 viewMatrix;
 	  float FoV;
     int width;
     int height;
