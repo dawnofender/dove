@@ -48,6 +48,8 @@ void PlayerController::update() {
         return;
     }
     
+    // # Mouse movement -> turn head
+    // TODO: Move handle this input, especially reseting cursorpos, in a separate component
     // Get mouse movement vector
     glm::vec2 mouseMovement; 
     {
@@ -79,7 +81,7 @@ void PlayerController::update() {
     yaw += mouseMovement.x;
     pitch += mouseMovement.y;
     
-    const float halfPi = 3.14159265358978f / 2.f;
+    const float halfPi = 3.14159265358976f / 2.f;
     pitch = std::min( std::max( -halfPi, pitch ), halfPi );
     
     glm::vec3 direction(
@@ -110,8 +112,6 @@ void PlayerController::update() {
 
     Transform *playerTransform  = &host->getComponent<Transform>();
 
-    // # Mouse movement -> turn head
-    // TODO: Move handle this input, especially reseting cursorpos, in a separate component
     
     
     // this just keeps the player thingy upright. 

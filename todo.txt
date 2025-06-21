@@ -87,3 +87,7 @@ do sometime:
 do eventually:
 - imposters for large cells, generate depth and normals straight from cell data
 
+
+#################################
+# remember why you started this #
+#################################
