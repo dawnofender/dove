@@ -2,7 +2,7 @@
 #define SKYRENDERERCOMPONENT_HPP
 
 #include "meshRendererComponent.hpp"
-// #include <src/dasset/doveAssets.hpp>
+
 
 class SkyRenderer : public MeshRenderer {
 CLASS_DECLARATION(SkyRenderer)
@@ -20,8 +20,5 @@ private:
     GLuint VertexArrayID;
     GLuint vertexbuffer;
 };
-
-// std::shared_ptr<MeshData> SkyRenderer::mesh = doveAssets.cube;
-// SkyRenderer::setMesh(doveAssets.cube);
 
 #endif

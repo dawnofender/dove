@@ -75,30 +75,36 @@ void PlayerController::update() {
     glm::vec3 up(0, 1, 0);
     glm::vec3 forward = glm::normalize(glm::vec3(viewMatrix[2])) * glm::vec3(1, 1, -1);
     // glm::vec3 right = glm::normalize(glm::vec3(viewMatrix[0]));
-    glm::vec3 right = glm::cross(forward, up);
+    glm::vec3 right = glm::normalize(glm::cross(forward, up));
     // when we get the forward vector, we must flip the z axis because in opengl, z is backwards
     
     yaw += mouseMovement.x;
     pitch += mouseMovement.y;
     
-    const float halfPi = 3.14159265358976f / 2.f;
-    pitch = std::min( std::max( -halfPi, pitch ), halfPi );
+    const float piOver2 = 3.141592653589793f / 2.f;
+    pitch = std::min( std::max( -piOver2, pitch ), piOver2 );
     
-    glm::vec3 direction(
-        cos(pitch) * sin(yaw),
-        sin(pitch),
-        cos(pitch) * cos(yaw)
-    );
-    
-    glm::vec3 cameraPosition = cameraTransform->getPosition();
-    glm::vec3 target = cameraPosition + direction;
+    cameraTransform->setOrientation(glm::quat_cast(glm::mat4(1)));
+    cameraTransform->rotate(yaw, up);
+    cameraTransform->rotate(pitch, glm::vec3(1, 0, 0));
 
-    cameraTransform->setMatrix(
-        glm::inverse(glm::lookAt(
-            cameraPosition,
-            target,
-            up
-    )));
+    // old way of handling direction with lookat:
+    //
+    // glm::vec3 direction(
+    //     cos(pitch) * sin(yaw),
+    //     sin(pitch),
+    //     cos(pitch) * cos(yaw)
+    // );
+    // 
+    // glm::vec3 cameraPosition = cameraTransform->getPosition();
+    // glm::vec3 target = cameraPosition + direction;
+    //
+    // cameraTransform->setMatrix(
+    //     glm::inverse(glm::lookAt(
+    //         cameraPosition,
+    //         target,
+    //         up
+    // )));
 
 
     // handle locomotion
@@ -152,9 +158,9 @@ void PlayerController::update() {
 
     if (
         // are we pressing space?
-        glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_SPACE ) == GLFW_PRESS &&
+        glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_SPACE ) == GLFW_PRESS //&&
         // has it been a bit since the last jump?
-        jumpTimer >= 0
+        // jumpTimer >= jumpCooldown
     ) {
         // are we grounded? 
         // whats the ground? 
@@ -166,19 +172,20 @@ void PlayerController::update() {
 
         // check each collision and compare to find a valid incline
         float bestIncline = maxIncline;
+        glm::vec3 playerCenterOfMass = playerRigidBody->getCenterOfMass();
         for (auto&& collisionInfo : collisions) {
             if (!collisionInfo) break;
-            if (collisionInfo->thingyB && collisionInfo) {
-                std::cout << ((Thingy*)collisionInfo->thingyB)->getName() << std::endl;
-
-            }
+            // if (collisionInfo->thingyB && collisionInfo) {
+            //     std::cout << ((Thingy*)collisionInfo->thingyB)->getName() << std::endl;
+            // }
             
 
             // find the best angle 
-            glm::vec3 collisionDir = glm::normalize(collisionInfo->pointB - collisionInfo->pointA);
-            float directionAngle = glm::asin(glm::dot(up, collisionDir));
+            glm::vec3 collisionDir = glm::normalize(playerCenterOfMass - collisionInfo->pointA);
+            float directionAngle = glm::acos(glm::dot(up, collisionDir));
             float normalAngle = glm::asin(glm::dot(up, collisionInfo->normalOnB));
             float platformIncline = std::max(normalAngle, directionAngle);
+            // float platformIncline = normalAngle;
             bool validPlatform;
 
             std::cout << 
@@ -201,41 +208,65 @@ void PlayerController::update() {
         }
         
         
-        // if platform was found, we're touching the ground, proceed to jump
-        if (platform != nullptr) {
+        // if platform was found, and it's at a reasonable incline, we're touching the ground. 
+        bool grounded = bestIncline <= maxIncline;
+        
+        // but we still might not be grounded. what if the platform is moving away from us? 
+        if (platform != nullptr && grounded) {
             RigidBody *platformRigidBody = &platform->getComponent<RigidBody>();
             Transform *platformTransform = &platform->getComponent<Transform>();
             
-            // TODO: - additional check that velocity difference between platform and player isn't too great, or just factor that in when applying force
-            
-            // apply force to the thing we jumped off of
-            if (platformRigidBody && platformTransform) {
-                // FIX: use center of mass instead
-                glm::vec3 forceOffset = playerPosition - platformTransform->getGlobalPosition();
-                float platformMass = platformRigidBody->getMass();
-                float playerMass = playerRigidBody->getMass();
-                // if either mass is 0, the object is static. we'll just pretend its 1 as to not divide by 0
-                float forceRatio;
-                if (platformMass == 0) forceRatio = 1;
-                else forceRatio = playerMass / platformMass / (playerMass + platformMass);
-
-                platformRigidBody->addForce( (1-forceRatio) * -jumpStrength * up, forceOffset);
-            force += up * forceRatio * jumpStrength;
+            if (platformRigidBody) {
+                // compare velocity on the up axis
+                glm::vec3 platformVelocity = platformRigidBody->getLinearVelocity();
+                glm::vec3 playerVelocity = playerRigidBody->getLinearVelocity();
+                glm::vec3 relativeVelocity = platformVelocity - playerVelocity;
+                std::cout << "player velocity: " << glm::length2(playerVelocity) << std::endl;
+                std::cout << "platfm velocity: " << glm::length2(platformVelocity) << std::endl;
                 
+                // if dot product of relative velocity and up is positive, they're in the same directions
+                // if dot product of relative velocity and up is negative, they're in different directions
+
+                std::cout << "dot velocity: " << glm::dot(relativeVelocity, up) << std::endl;
+                std::cout << "velocity amnt: " << glm::length2(relativeVelocity) << std::endl;
+                grounded = (
+                    glm::dot(relativeVelocity, up) >= 0 ||
+                    // for some reason, the player's velocity is just a really small number and i have no idea why so now we just check if it's close to zero
+                    glm::length2(relativeVelocity) <= 0.01f 
+                );
+
+                if (grounded) {
+                    glm::vec3 platformCenterOfMass = platformRigidBody->getCenterOfMass();
+                    glm::vec3 forceOffset = playerCenterOfMass - platformCenterOfMass;
+                    float platformMass = platformRigidBody->getMass();
+                    float playerMass = playerRigidBody->getMass();
+                    // if either mass is 0, the object is static. we'll just pretend its 1 as to not divide by 0
+                    float forceRatio;
+                    if (platformMass == 0) forceRatio = 1;
+                    else forceRatio = playerMass / platformMass / (playerMass + platformMass);
+
+                    platformRigidBody->addForce( (1-forceRatio) * -jumpStrength * up, forceOffset);
+                    force += up * forceRatio * jumpStrength;
+                }
+
             } else {
                 // platform doesnt have required components? that's okay, just apply default force - as if the platform is just a static object
                 force += up * jumpStrength;
             }
-            jumpTimer = 200;
+            
+            std::cout << "grounded: " << grounded << std::endl;
+
+
+            jumpTimer = 0;
+            std::cout << "jump force: " << force.y << std::endl;
         }
-    } else if (jumpTimer > 0) 
-        jumpTimer-= physicsComponent->deltaTime;
 
-    if (force.x || force.y || force.z) {
-        playerRigidBody->addForce(force);
-    }
+    } else if (jumpTimer < jumpCooldown) 
+        jumpTimer += physicsComponent->deltaTime;
+    
+    playerRigidBody->addForce(force, glm::vec3(0));
 
-    playerRigidBody->setAngularVelocity(glm::vec3(0, 0, 0));
+    // playerRigidBody->setAngularVelocity(glm::vec3(0, 0, 0));
 
     // do camera transform = lookat()
 }

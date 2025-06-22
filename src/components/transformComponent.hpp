@@ -9,6 +9,13 @@
 #include <src/thingy/thingy.hpp>
 
 
+// TODO: 
+//  - set in different spaces: world space, local space, etc. 
+//      - I'm like pretty sure this is different from set global because position for example is after orientation
+//        whereas with global position takes priority 
+//      - actually come to think of it my terminology might be way off here im gonna have to look into that lol
+// - make our own matrix and vector classes?
+
 class Transform : public Component {
 CLASS_DECLARATION(Transform)
 public: 
@@ -33,7 +40,6 @@ public:
     void rotate(glm::quat rotation);
     void rotate(glm::mat4 rotation);
     
-    // TEST: we don't know if any this global stuff works yet, except for the matrix
     void setGlobalMatrix(glm::mat4 newTransform);
     void setGlobalPosition(glm::vec3 newPos);
     void setGlobalScale(glm::vec3 newScale);
@@ -44,7 +50,6 @@ public:
     glm::vec3 getScale();
     glm::quat getOrientation();
 
-    // TEST: we don't know if any this global stuff works yet, except for the matrix
     glm::mat4 getGlobalMatrix();
     glm::vec3 getGlobalPosition();
     glm::vec3 getGlobalScale();

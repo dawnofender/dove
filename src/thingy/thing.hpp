@@ -9,19 +9,23 @@
 #include <functional>
 #include <cstddef>
 
-// The purpose of Thing is to be an abstract class that all interactible objects inherit from.
+// The purpose of Thing is to be an abstract class that every object in the hierarchy inherits from.
+// This way, all components, thingies, assets, etc. can be accessible in-world.
 // Each derived class will have a type, hashed as a size_t, that can be used to identify it.
-// This way, all components, thingies, assets, etc. can exist within the same world hierarchy.
-// Later, this class will also make it easier to serialize/deserialize things, by assigning each thing an ID.
+// Later, this class will also make it easier to serialize/deserialize objects, by assigning each thing an ID.
 
 // The base Thing class has just the bare minimum functionality, and is not meant to be interacted with in-world.
-// There is no tree structure - derived classes must implement these.
+// There is no tree structure - derived classes must implement this.
 
 // NOTE: every thing-derived class must be constructable with no passed arguments.
 //  - this is for serialization: create all the things, then give them the data.
-//    the cause of this is in the way ThingFactory registers new thing types.
+//    the error thrown if you forget a constructor comes from the way ThingFactory registers new thing types.
 //      - this could be made less annoying with some small edits to the declaration macro and ThingFactory class,
 //        however, that would likely lead to issues with serialization down the line. 
+
+// TODO: maybe find a more efficient way to accomplish this? 
+// when objects are first constructed with no arguments, it takes extra time to assign them.
+// also its just kind of annoying to make every thing class work this way
 
 // type system & macros borrowed from:
 // https://stackoverflow.com/questions/44105058/implementing-component-system-from-unity-in-c
@@ -42,11 +46,7 @@ protected:
     static const std::size_t Type;
 
 public: 
-
     Thing() = default;
-    // virtual ~Thing() = default;
-    // Thing(const Thing&) = delete;
-    // Thing& operator=(const Thing&) = delete;
 
     virtual bool IsClassType( const std::size_t classType ) const { 
         return classType == Type;
@@ -57,9 +57,9 @@ public:
     }
 };
 
-class ThingFactory
-{
+class ThingFactory {
 public:
+
     // singleton accessor
     static ThingFactory& instance()
     {

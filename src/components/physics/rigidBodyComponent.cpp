@@ -9,12 +9,7 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
     // get transform information
     transform = &host->getComponent<Transform>();
 
-    glm::vec3 position = transform->getPosition();
-    // glm::vec4 rotation = transform->getRotation();
-
-    //     btQuaternion(rotation.x, rotation.y, rotation.z, rotation.w), 
-    //     btVector3(position.x, position.y, position.z)
-    // );
+    glm::vec3 position = transform->getGlobalPosition();
     bulletTransform.setIdentity();
     bulletTransform.setOrigin(btVector3(position.x, position.y, position.z));
 
@@ -45,17 +40,19 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
 }
 
 void RigidBody::addForce(glm::vec3 force) {
+    bulletRigidBody->setActivationState(ACTIVE_TAG); 
     bulletRigidBody->applyCentralForce(btVector3(force.x, force.y, force.z));
 }
 
 void RigidBody::addForce(glm::vec3 force, glm::vec3 offset) {
+    bulletRigidBody->setActivationState(ACTIVE_TAG); 
     bulletRigidBody->applyForce(btVector3(force.x, force.y, force.z), btVector3(offset.x, offset.y, offset.z));
 }
 
 void RigidBody::syncFromTransform() {
     float bulletTransformMatrix[16];
     // get transform matrix from transform component, but with reset scale
-    glm::mat4 oglTransformMatrix = glm::scale(transform->getMatrix(), glm::vec3(1) / transform->getScale());
+    glm::mat4 oglTransformMatrix = glm::scale(transform->getGlobalMatrix(), glm::vec3(1) / transform->getGlobalScale());
     memcpy(bulletTransformMatrix, (void*)glm::value_ptr(oglTransformMatrix), 16*sizeof(GLfloat));
     
     bulletTransform.setFromOpenGLMatrix(bulletTransformMatrix);
@@ -66,8 +63,8 @@ void RigidBody::syncToTransform() {
     float bulletTransformMatrix[16];
     bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
     glm::mat4 oglTransformMatrix = glm::make_mat4(bulletTransformMatrix);
-    transform->setPosition(glm::vec3(oglTransformMatrix[3]));
-    transform->setOrientation(glm::quat_cast(oglTransformMatrix));
+    transform->setGlobalPosition(glm::vec3(oglTransformMatrix[3]));
+    transform->setGlobalOrientation(glm::quat_cast(oglTransformMatrix));
 }
 
 void RigidBody::syncFromTransforms() {
@@ -94,6 +91,17 @@ glm::vec3 RigidBody::getAngularVelocity() {
 
 float RigidBody::getMass() {
     return bulletRigidBody->getMass();
+}
+
+glm::mat4 RigidBody::getCenterOfMassTransform() {
+    float bulletTransformMatrix[16];
+    bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
+    return glm::make_mat4(bulletTransformMatrix);
+}
+
+glm::vec3 RigidBody::getCenterOfMass() {
+    btVector3 c = bulletRigidBody->getCenterOfMassPosition();
+	return glm::vec3(c.x(), c.y(), c.z());
 }
 
 void RigidBody::setMass(float newMass) {

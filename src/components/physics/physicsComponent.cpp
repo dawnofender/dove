@@ -154,7 +154,8 @@ void Physics::simulateAll() {
 void Physics::simulate() {
 
     time = glfwGetTime();
-    deltaTime = time - lastTime;
+    // deltaTime = time - lastTime;
+    deltaTime = 0.01f;
     lastTime = time;
 
     dynamicsWorld->stepSimulation(deltaTime);

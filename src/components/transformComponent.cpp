@@ -18,7 +18,7 @@ void Transform::setMatrix(glm::mat4 newTransform) {
 }
 
 void Transform::setGlobalMatrix(glm::mat4 newTransform) {
-    setMatrix(newTransform - parentTransform);
+    setMatrix(newTransform / parentTransform);
 }
 
 void Transform::setPosition(glm::vec3 newPos) {
@@ -27,7 +27,9 @@ void Transform::setPosition(glm::vec3 newPos) {
 }
 
 void Transform::setGlobalPosition(glm::vec3 newPos) {
-    setPosition(newPos - getGlobalPosition());
+    glm::mat4 newGlobalMatrix = getGlobalMatrix();
+    newGlobalMatrix[3] = glm::vec4(newPos.x, newPos.y, newPos.z, newGlobalMatrix[3].w);
+    setGlobalMatrix(newGlobalMatrix);
 }
 
 

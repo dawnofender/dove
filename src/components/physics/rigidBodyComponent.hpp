@@ -46,6 +46,8 @@ public:
     glm::vec3 getLinearVelocity();
     glm::vec3 getAngularVelocity();
     float getMass();
+    glm::vec3 getCenterOfMass();
+    glm::mat4 getCenterOfMassTransform();
 
     void setFriction(float newFriction);
     void setRollingFriction(float newRollingFriction);

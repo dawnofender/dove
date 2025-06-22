@@ -4,8 +4,29 @@ todo
 # DOVE #
 ########
 
+Dove is a virtual environment where creation and experience live in the same world.
+Very few of these exist in 3D environments - even fewer exist in VR. 
+One very good example of a world like this is Minecraft - a world made of blocks, where the tools to create are so simple that a young child could pick it up.
+Dove strives to achieve this path of creation, this simplicity and freedom, without limiting those who want to push further.
+However, this must be done without taking away from the experience itself. 
+
+how?
+maybe limitations are necessary. it's easier to approach a limited environment, and even fun to try and push those limits. 
+- separate clients?
+    - a light client for just experiencing a specific world
+    - a light client for experiencing, but with added freedom to explore
+    - a medium client for exploration and personal expression (avatars, props, other forms of media can be used, but not created)
+        - eg. VRChat
+    - a creator client which gives full freedom
+
+current design philosophies VERY SUBJECT TO CHANGE i am still learning and this may be stupid :)
+- avoid having systems controlled globally by say, one static member. this stuff limits our ability to exist between worlds
+    - eg. physics system could just be one static bullet3 dynamicsworld. but 
+
+example of ideal code flow
+
 int main() {
-    Thingy universe( "hello world!" );
+    Thingy *universe = new Thingy( "hello world!" );
     
     Thingy *you = &universe.createChild( "despite everything, it's still you." );
     
@@ -15,10 +36,10 @@ int main() {
 }
     
 void dov::genisis(Thingy *world, Thingy *you) {
-    world->addComponent< Physics >();
+    world->addComponent< Physics >();      
 
-    you->addComponent< Perception >();
-    you->addComponent< Expression >();
+    you->addComponent< Perception >();     // automatically creates camera, audio listener, haptics(?), etc.
+    you->addComponent< Expression >();     // automatically creates player controller, mic output, fbt, etc.
 
     // set up physics and graphics etc.
     
@@ -42,6 +63,28 @@ ideas:
 - memory-optimized way to get any component's host using a static unordered component->host map
 - GetComponent optimization by moving frequent gets to the top
     - trying to make up for how transform is used constantly but may not be at the top of the list
+
+greater plan:
+- roughly in this order, implement rudimentary version of:
+    - shared libraries? plugins? some kind of modular content system
+    - serialization & deserialization
+    - networking
+- having learned about all of those topics, now start refining to make it all work together smoothly
+- reduce base engine just the modular content framework
+- so now, the experience is built on programs depending on each other, maybe like this:
+    - social VR platform 
+        - items, worlds, avatars
+            - thingies and components
+                - dove
+        - networking
+            - serialization / deserialization
+                - dove
+- once this framework is done and solid, make the make some simple games with it on steam
+    - flood escape style game
+    - minecraft style game (see GAIA)
+- 
+
+
 
 high priority: 
 - implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused

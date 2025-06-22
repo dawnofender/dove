@@ -58,7 +58,7 @@ int main() {
       return -1;
     }
 
-    // glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
@@ -92,21 +92,6 @@ int main() {
                             // former one
     glEnable(GL_CULL_FACE); // backface culling
 
-    // Initial horizontal angle : toward -Z
-    float horizontalAngle = 3.14f;
-    // Initial vertical angle : none
-    float verticalAngle = 0.0f;
-    //// Initial Field of View
-    float initialFoV = 90.0f;
-
-    float speed = 32.0f; // 3 units / second
-    float mouseSpeed = 0.005f;
-    float near = 1.00f;
-    float far = 32000000.0f;
-
-    double lastFrameTime = glfwGetTime();
-    double lastGenTime = lastFrameTime;
-    int nbFrames = 0;
 
     
     // ##########   
@@ -258,13 +243,11 @@ int main() {
     };
     
     std::shared_ptr<MeshData> cube = std::make_shared<MeshData>();
-    std::cout << "testa" << std::endl;
     cube->indices = cubeIndices;
     cube->addLayer<Vec3Layer>(cubeVertices);
     cube->addLayer<Vec3Layer>(cubeColors);
     cube->addLayer<Vec2Layer>(cubeUVs);
     cube->addLayer<Vec3Layer>(cubeNormals);
-    std::cout << "testb" << std::endl;
     
     std::shared_ptr<Shader> testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
     std::shared_ptr<Shader> testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
@@ -311,9 +294,7 @@ int main() {
     // environment:
     Thingy *sky = &universe->addChild("Sky");
     sky->addComponent<Transform>("Transform", sky);
-    std::cout << "test0" << std::endl;
     sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial, cube);
-    std::cout << "test1" << std::endl;
     
     // ground:
     Thingy *ground = &universe->addChild("Ground");
@@ -322,16 +303,14 @@ int main() {
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
     ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
-    std::cout << "test0" << std::endl;
     ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
   
-    std::cout << "test1" << std::endl;
     Thingy *testCube = &universe->addChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
     // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
-    testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 1.f);
+    testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 10.f);
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
     Thingy *testCube2 = &universe->addChild("Cube");
@@ -370,10 +349,14 @@ int main() {
     // # main loop #
     // #############
     
-    // NOTE: a few parts of this loop should be moved into their own class, such as:
-    //  - window info (size etc)
-    //  - rendering 
+    // NOTE: any functionality written directly into this loop will later be moved into its own class. 
+    //  - fps tracking
     //  - input (mouse pos, keyboard, click raycasting)
+    //  - this list used to be way longer :)
+
+    double lastFrameTime = glfwGetTime();
+    double lastGenTime = lastFrameTime;
+    int nbFrames = 0;
 
     double mouseX, mouseY;
 		
@@ -382,7 +365,6 @@ int main() {
     
     int frame = 0;
     do {
-        std::cout << "testa" << std::endl;
         // #######
         // # fps #
         // #######
@@ -399,7 +381,6 @@ int main() {
             lastFrameTime += 1.0;
         }
 
-        std::cout << "testb" << std::endl;
         
         // ##############
         // # world loop #
@@ -408,8 +389,7 @@ int main() {
         // TODO: move click-raycasting into player controller component
         
         // handle raycasting for player clicking on objects 
-        std::cout << "testc" << std::endl;
-	      glfwGetCursorPos(Camera::getActiveWindow(), &mouseX, &mouseY);
+	    glfwGetCursorPos(Camera::getActiveWindow(), &mouseX, &mouseY);
         glm::vec4 lRayStart_NDC(
             (mouseX - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
         	  (mouseY - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
@@ -452,28 +432,25 @@ int main() {
             playerTransform->setGlobalMatrix(glm::mat4(1));
         }
 
-        // # physics - should be one function in physics component
-        RigidBody::syncFromTransforms();
-        Physics::simulateAll();
-        RigidBody::syncToTransforms();
         
+        // # physics - should be one function in physics component
+        Physics::simulateAll();
+
         // # updating components
         UpdatableComponent::updateAll();
 
         // # rendering stuff
-        // rigidbodies are synced before rendering so the debug rendering lines up better (it still doesnt lol)
         Camera::renderAll();
         frame++;
 
-    // } while (glfwGetKey(Camera::getActiveWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-    //          glfwWindowShouldClose(window) == 0);
-    } while (glfwWindowShouldClose(window) == 0);
+    } while (glfwGetKey(Camera::getActiveWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+             glfwWindowShouldClose(window) == 0);
+    // } while (glfwWindowShouldClose(window) == 0);
 
     std::cout << "cleaning up..." << std::endl;
     delete universe;
-    
     glfwTerminate();
-    std::cout << "bye bye!" << std::endl;
 
+    std::cout << "bye bye!" << std::endl;
     return 0;
 }

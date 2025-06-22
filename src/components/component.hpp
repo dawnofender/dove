@@ -10,19 +10,13 @@
 #include <cstddef>
 #include <src/thingy/thing.hpp>
 
-// for components i am currently stealing code from:
-// https://stackoverflow.com/questions/44105058/implementing-component-system-from-unity-in-c
 
 
 // Component base class
 class Component : public Thing {
 CLASS_DECLARATION(Component)
 public: 
-    std::string value = "uninitialized";
-    // static const std::size_t Type;
 
-    // virtual ~Component() = default;
-    
     Component( std::string && initialValue = "")
         : value( initialValue ) { 
     }
@@ -35,6 +29,8 @@ public:
         in >> value;
     }
 
+    std::string value = "uninitialized";
+    
 private: 
   static inline std::vector<Component *> dynamicComponents;
 

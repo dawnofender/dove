@@ -34,6 +34,9 @@
 #include <src/thingy/thingy.hpp>
 #include <src/worldgen/doctree.hpp>
 
+// NOTE: Currently unused - come back to this after the engine is more usable
+
+
 // for hashing vec3 (required by threadedcellmap)
 namespace std {
 template <> struct hash<glm::vec3> {
@@ -50,7 +53,7 @@ template <> struct hash<glm::vec3> {
     return seed;
   }
 };
-} // namespace std
+} 
 
 struct CellSampleData {
   std::shared_ptr<OctreeNode> cell;

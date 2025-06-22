@@ -15,7 +15,8 @@ private:
     RigidBody* playerRigidBody;
     Transform* cameraTransform;
     Physics* physicsComponent;
-    int jumpTimer = 0;
+    float jumpTimer = 0;
+    float jumpCooldown = 0.05f; // in seconds
     float pitch;
     float yaw;
 
