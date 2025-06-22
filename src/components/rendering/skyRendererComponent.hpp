@@ -13,7 +13,6 @@ public:
     void setupBufferData();
     void draw();
 
-
 private: 
     static inline std::vector<SkyRenderer *> renderers;
     

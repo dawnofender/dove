@@ -33,7 +33,7 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
     bulletRigidBody->setUserPointer((void*)host);
     if (b_kinematic) bulletRigidBody->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
     if (b_static)    bulletRigidBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-    bulletRigidBody->setActivationState(DISABLE_DEACTIVATION); // make this toggleable too 
+    // bulletRigidBody->setActivationState(DISABLE_DEACTIVATION); // make this toggleable too 
     physicsComponent->dynamicsWorld->addRigidBody(bulletRigidBody);
 
     rigidBodies.push_back(this);
@@ -80,13 +80,14 @@ void RigidBody::syncToTransforms() {
 }
 
 glm::vec3 RigidBody::getLinearVelocity() {
-	  btVector3 v = bulletRigidBody->getLinearVelocity();
+    btVector3 v = bulletRigidBody->getLinearVelocity();
     return glm::vec3(v.x(), v.y(), v.z()); 
 }
 
 glm::vec3 RigidBody::getAngularVelocity() {
-	  btVector3 v = bulletRigidBody->getAngularVelocity();
-	  return glm::vec3(v.x(), v.y(), v.z());
+    bulletRigidBody->setActivationState(ACTIVE_TAG); 
+	btVector3 v = bulletRigidBody->getAngularVelocity();
+	return glm::vec3(v.x(), v.y(), v.z());
 }
 
 float RigidBody::getMass() {

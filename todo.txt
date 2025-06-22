@@ -53,6 +53,7 @@ void dov::genisis(Thingy *world, Thingy *you) {
 
 
 ideas: 
+- if a player's transform becomes NAN, move them under the asset root (reference to TADC)
 - spacetime component that knows about every transform, maybe sorting them into zones for fast transform gets, handles deltatime, timers, etc.
 - more thingy types, or template, with specific features & amount of children
     - useful for octree & similar data structures 

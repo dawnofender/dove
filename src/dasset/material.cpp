@@ -27,23 +27,34 @@ bool Material::Activate(glm::mat4 modelMatrix) {
     
 
     MatrixID = glGetUniformLocation(shader->ID, "MVP");                     
-    ViewMatrixID = glGetUniformLocation(shader->ID, "V");                         
-    ModelMatrixID = glGetUniformLocation(shader->ID, "M");
+    ViewMatrixID = glGetUniformLocation(shader->ID, "view");                         
+    ModelMatrixID = glGetUniformLocation(shader->ID, "model");
+    ProjectionMatrixID = glGetUniformLocation(shader->ID, "projection");
     LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
 
-    // FIX: store in perception component once that exists
     glm::mat4 projectionMatrix = Camera::getProjectionMatrix();
     glm::mat4 viewMatrix = Camera::getViewMatrix();
     glm::mat4 MVP = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
     glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
-    glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
+    glUniformMatrix4fv(ProjectionMatrixID, 1, GL_FALSE, &projectionMatrix[0][0]);
     
     glm::vec3 lightPos = glm::vec3(0, 10000, 0);
     glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+    
+    // TODO: give control of this stuff to the shader 
+    // NOTE: depth test is commented out because it would break sky rendering
+
+    glEnable(GL_DEPTH_TEST); 
+    glDepthFunc(GL_LEQUAL); 
+    glEnable(GL_CULL_FACE); 
 
     return true;
+}
+
+std::shared_ptr<Shader> Material::getShader() {
+    return shader;
 }
 
 

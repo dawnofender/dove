@@ -1,4 +1,5 @@
 #include "skyRendererComponent.hpp"
+#include "cameraComponent.hpp"
 
 CLASS_DEFINITION(MeshRenderer, SkyRenderer)
 
@@ -11,183 +12,32 @@ SkyRenderer::SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s
 
 
 void SkyRenderer::drawAll() {
-    // NOTE: could move depth mask toggle into material?
+
+    // TODO: 
+    //  - just use an inverted cube model instead of disabling backface culling
+    //  - disable depth mask in shader 
     glDepthMask(GL_FALSE);
+    glDisable(GL_CULL_FACE); // backface culling
     for (auto &renderer : renderers) {
         renderer->draw();
     }
     glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE); // backface culling
     unbindBufferData();
 }
 
 void SkyRenderer::draw() {
-    // later, this could instead use a material object to deal with uniforms
-    // so, thingy->meshrenderer->material->shader
-
-    // FIX: if this returns false, there was an error, we can skip the object and render all errored objects last with the same shader 
+    // TODO: if this returns false, there was an error, we can skip the object and render all errored objects last with the same shader 
+    
+    // material->Activate(glm::inverse(glm::mat4(glm::mat3(Camera::getViewMatrix()))));
+    // material->Activate(glm::translate(glm::mat4(1), glm::vec3(glm::inverse(Camera::getViewMatrix())[3])));
     material->Activate(glm::mat4(0));
-  
+
+    GLuint ViewMatrixID = glGetUniformLocation(material->getShader()->ID, "view");                         
+    glm::mat4 viewMatrix = glm::mat4(glm::mat3(Camera::getViewMatrix()));
+    glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &viewMatrix[0][0]);
 
     bindBufferData();
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }
-
-
-// std::shared_ptr<MeshData> SkyRenderer::mesh = doveAssets.cube;
-// void SkyRenderer::setMesh(std::shared_ptr<MeshData> newMesh) {
-//     mesh = newMesh;
-// }
-//
-    // std::vector<glm::vec3> cubeVertices = {
-    //     // +x
-    //     glm::vec3(.5f, .5f, .5f),
-    //     glm::vec3(.5f, -.5f, .5f),
-    //     glm::vec3(.5f, -.5f, -.5f),
-    //     glm::vec3(.5f, .5f, -.5f),
-    //     // -x
-    //     glm::vec3(-.5f, .5f, -.5f),
-    //     glm::vec3(-.5f, -.5f, -.5f),
-    //     glm::vec3(-.5f, -.5f, .5f),
-    //     glm::vec3(-.5f, .5f, .5f),
-    //     // +y
-    //     glm::vec3(-.5f, .5f, -.5f),
-    //     glm::vec3(-.5f, .5f, .5f),
-    //     glm::vec3(.5f, .5f, .5f),
-    //     glm::vec3(.5f, .5f, -.5f),
-    //     // -y
-    //     glm::vec3(-.5f, -.5f, .5f),
-    //     glm::vec3(-.5f, -.5f, -.5f),
-    //     glm::vec3(.5f, -.5f, -.5f),
-    //     glm::vec3(.5f, -.5f, .5f),
-    //     // +z
-    //     glm::vec3(-.5f, .5f, .5f),
-    //     glm::vec3(-.5f, -.5f, .5f),
-    //     glm::vec3(.5f, -.5f, .5f),
-    //     glm::vec3(.5f, .5f, .5f),
-    //     // -z
-    //     glm::vec3(.5f, .5f, -.5f),
-    //     glm::vec3(.5f, -.5f, -.5f),
-    //     glm::vec3(-.5f, -.5f, -.5f),
-    //     glm::vec3(-.5f, .5f, -.5f),
-    // };
-    // 
-    // std::vector<glm::vec2> cubeUVs =  {
-    //     // +x
-    //     glm::vec2(0, 1),
-    //     glm::vec2(0, 0),
-    //     glm::vec2(1, 0),
-    //     glm::vec2(1, 1),
-    //     // -x
-    //     glm::vec2(0, 1),
-    //     glm::vec2(0, 0),
-    //     glm::vec2(1, 0),
-    //     glm::vec2(1, 1),
-    //     // +y
-    //     glm::vec2(0, 1),
-    //     glm::vec2(0, 0),
-    //     glm::vec2(1, 0),
-    //     glm::vec2(1, 1),
-    //     // -y
-    //     glm::vec2(0, 1),
-    //     glm::vec2(0, 0),
-    //     glm::vec2(1, 0),
-    //     glm::vec2(1, 1),
-    //     // +z
-    //     glm::vec2(0, 1),
-    //     glm::vec2(0, 0),
-    //     glm::vec2(1, 0),
-    //     glm::vec2(1, 1),
-    //     // -z
-    //     glm::vec2(0, 1),
-    //     glm::vec2(0, 0),
-    //     glm::vec2(1, 0),
-    //     glm::vec2(1, 1),
-    // };
-    // 
-    // // normals:
-    // std::vector<glm::vec3> cubeNormals = {
-    //     // +x
-    //     glm::vec3(1, 0, 0),
-    //     glm::vec3(1, 0, 0),
-    //     glm::vec3(1, 0, 0),
-    //     glm::vec3(1, 0, 0),
-    //     // -x
-    //     glm::vec3(-1, 0, 0),
-    //     glm::vec3(-1, 0, 0),
-    //     glm::vec3(-1, 0, 0),
-    //     glm::vec3(-1, 0, 0),
-    //     // +y
-    //     glm::vec3(0, 1, 0),
-    //     glm::vec3(0, 1, 0),
-    //     glm::vec3(0, 1, 0),
-    //     glm::vec3(0, 1, 0),
-    //     // -y
-    //     glm::vec3(0, -1, 0),
-    //     glm::vec3(0, -1, 0),
-    //     glm::vec3(0, -1, 0),
-    //     glm::vec3(0, -1, 0),
-    //     // +z
-    //     glm::vec3(0, 0, 1),
-    //     glm::vec3(0, 0, 1),
-    //     glm::vec3(0, 0, 1),
-    //     glm::vec3(0, 0, 1),
-    //     // -z
-    //     glm::vec3(0, 0, -1),
-    //     glm::vec3(0, 0, -1),
-    //     glm::vec3(0, 0, -1),
-    //     glm::vec3(0, 0, -1),
-    // };
-    // 
-    // // colors:
-    // std::vector<glm::vec3> cubeColors = {
-    //     // +x
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     // -x
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     // +y
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     // -y
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     // +z
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     // -z
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    //     glm::vec3(0, 0, 0),
-    // };
-    // 
-    // // indices:
-    // std::vector<unsigned int> cubeIndices = {
-    //     0,  2,  1,  0,  3,  2,  //+x
-    //     4,  6,  5,  4,  7,  6,  //-x
-    //     8,  10, 9,  8,  11, 10, //+y
-    //     12, 14, 13, 12, 15, 14, //-y
-    //     16, 18, 17, 16, 19, 18, //+z
-    //     20, 22, 21, 20, 23, 22, //-z
-    // };
-    // 
-    // std::shared_ptr<MeshData> mesh;
-    // std::shared_ptr<MeshData> SkyRenderer::mesh;
-    // mesh.layers.push_back(std::make_unique<MeshLayer>(Vec3Layer(cubeVertices)));
-    // mesh.layers.push_back(std::make_unique<MeshLayer>(Vec3Layer(cubeColors))); 
-    // mesh.layers.push_back(std::make_unique<MeshLayer>(Vec2Layer(cubeUVs)));    
-    // mesh.layers.push_back(std::make_unique<MeshLayer>(Vec3Layer(cubeNormals)));
-    // mesh.indices = cubeIndices;
-    // std::shared_ptr<MeshData> SkyRenderer::mesh = mesh;

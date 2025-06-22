@@ -86,11 +86,9 @@ int main() {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwPollEvents();
-    glClearColor(0.6f, 0.7f, 0.9f, 0.0f);
-    glEnable(GL_DEPTH_TEST); // Enable depth test
-    glDepthFunc(GL_LESS);   // Accept fragment if it closer to the camera than the
-                            // former one
-    glEnable(GL_CULL_FACE); // backface culling
+    // glClearColor(0.6f, 0.7f, 0.9f, 0.0f);
+    
+    // TODO: handle some of this in the material or shader 
 
 
     
