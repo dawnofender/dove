@@ -26,6 +26,7 @@ protected:
     btTransform bulletTransform;
     btDefaultMotionState* motionstate;
     btRigidBody *bulletRigidBody;
+    std::vector<Collider*> colliders;
     bool b_kinematic;
     bool b_static;
 
@@ -55,6 +56,7 @@ public:
     void setLinearVelocity(glm::vec3 newVelocity);
     void setAngularVelocity(glm::vec3 newVelocity);
     void setMass(float newMass);
+    void setBounciness(float newBounciness);
 
     void addForce(glm::vec3 force);
     void addForce(glm::vec3 force, glm::vec3 offset);

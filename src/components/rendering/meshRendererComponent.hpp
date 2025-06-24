@@ -17,7 +17,6 @@
 
 #include <src/dasset/material.hpp>
 #include <src/dasset/mesh.hpp>
-#include <lib/controls.hpp>
 
 
 class MeshRenderer : public Component {

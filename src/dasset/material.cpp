@@ -25,6 +25,8 @@ bool Material::Activate(glm::mat4 modelMatrix) {
         texture->bind(i);
     }
     
+    // matrix->shader stuff should probably just be handled in the meshrenderer component, 
+    // not sure why i moved it here tbh
 
     MatrixID = glGetUniformLocation(shader->ID, "MVP");                     
     ViewMatrixID = glGetUniformLocation(shader->ID, "view");                         
@@ -58,4 +60,19 @@ std::shared_ptr<Shader> Material::getShader() {
 }
 
 
+void Material::setTexture(int i, std::shared_ptr<Texture> newTexture) {
+    if ( i < 0 || i > textures.size()) {
+        std::cerr << "Material: tried to set texture at index " << i << ", which is not within the range [0, " << textures.size() << "]. " << std::endl;
+        return;
+    }
+    textures[i] = newTexture;
+}
+
+void Material::setCubemap(int i, std::shared_ptr<Texture> newCubemap) {
+    if ( i < 0 || i > cubemaps.size()) {
+        std::cerr << "Material: tried to set cubemap at index " << i << ", which is not within the range [0, " << cubemaps.size() << "]. " << std::endl;
+        return;
+    }
+    cubemaps[i] = newCubemap;
+};
 

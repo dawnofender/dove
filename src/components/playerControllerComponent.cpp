@@ -1,5 +1,6 @@
 #include "playerControllerComponent.hpp"
 #include "rendering/cameraComponent.hpp"
+#include "../thingy/panel/windowThingy.hpp"
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
@@ -37,16 +38,27 @@ PlayerController::PlayerController(
 
 void PlayerController::update() {
     
-    // handle head rotation
-    
     // TODO: add error messages
-    if (!Camera::getActiveWindow()) return;
-    if (!cameraTransform) {
-        if (!camera) return;
-        if (!(cameraTransform = &camera->getComponent<Transform>()))
-            cameraTransform = &camera->addComponent<Transform>("Transform", camera);
+    GLFWwindow* window = &Window::getActiveWindow().getGLFWwindow();
+    if (!window) {
+        std::cerr << value << ": window not found" << std::endl;
         return;
     }
+
+    
+    if (!cameraTransform) {
+        if (!camera) {
+            std::cerr << value << ": camera not found" << std::endl;
+            return;
+        }
+        if (!(cameraTransform = &camera->getComponent<Transform>())) {
+            // this one can be handled easily so no need to error 
+            cameraTransform = &camera->addComponent<Transform>("Transform", camera);
+        }
+        return;
+    }
+
+
     
     // # Mouse movement -> turn head
     // TODO: Move handle this input, especially reseting cursorpos, in a separate component
@@ -55,8 +67,8 @@ void PlayerController::update() {
     {
         double mousePosX, mousePosY;
         int width, height;
-	    glfwGetCursorPos(Camera::getActiveWindow(), &mousePosX, &mousePosY);
-        glfwGetWindowSize(Camera::getActiveWindow(), &width, &height);
+	    glfwGetCursorPos(window, &mousePosX, &mousePosY);
+        glfwGetWindowSize(window, &width, &height);
 
         mouseMovement = glm::vec2(
             mouseSensitivity * float(width/2 - mousePosX),
@@ -64,7 +76,7 @@ void PlayerController::update() {
         );
 
 	    // Reset mouse position before next frame
-	    glfwSetCursorPos(Camera::getActiveWindow(), width/2, height/2);
+	    glfwSetCursorPos(window, width/2, height/2);
     }
 
     
@@ -134,13 +146,13 @@ void PlayerController::update() {
     
     // get direction to move in from key inputs [W, A, S, D]
     glm::vec3 input = {0, 0, 0};
-    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_W ) == GLFW_PRESS)
+    if (glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS)
         input += forward;
-    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_S ) == GLFW_PRESS)
+    if (glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS)
         input -= forward;
-    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_D ) == GLFW_PRESS) 
+    if (glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS) 
         input += right;
-    if (glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_A ) == GLFW_PRESS)
+    if (glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS)
         input -= right;
 
     // normalize causes NAN if the length is zero, lets avoid this
@@ -155,11 +167,13 @@ void PlayerController::update() {
     
     
     // jump logic
+    
+    // reset bounciness (it may have been changed to 1 when jumping off another rigidbody)
 
     if (
         // are we pressing space?
-        glfwGetKey( Camera::getActiveWindow(), GLFW_KEY_SPACE ) == GLFW_PRESS //&&
-        // has it been a bit since the last jump?
+        glfwGetKey( window, GLFW_KEY_SPACE ) == GLFW_PRESS
+        // has it been a bit since the last jump? 
         // jumpTimer >= jumpCooldown
     ) {
         // are we grounded? 
@@ -175,35 +189,31 @@ void PlayerController::update() {
         glm::vec3 playerCenterOfMass = playerRigidBody->getCenterOfMass();
         for (auto&& collisionInfo : collisions) {
             if (!collisionInfo) break;
-            // if (collisionInfo->thingyB && collisionInfo) {
-            //     std::cout << ((Thingy*)collisionInfo->thingyB)->getName() << std::endl;
-            // }
-            
-
-            // find the best angle 
-            glm::vec3 collisionDir = glm::normalize(playerCenterOfMass - collisionInfo->pointA);
-            float directionAngle = glm::acos(glm::dot(up, collisionDir));
-            float normalAngle = glm::asin(glm::dot(up, collisionInfo->normalOnB));
-            float platformIncline = std::max(normalAngle, directionAngle);
-            // float platformIncline = normalAngle;
             bool validPlatform;
 
-            std::cout << 
-                "surface normal: " << normalAngle       << std::endl <<
-                "direction:      " << directionAngle    << std::endl <<
-                "incline:        " << platformIncline   << std::endl <<
-            std::endl;
+            // find the collision with the smallest incline.
+            // the incline can be the normal of the surface we collided with.
+            float normalAngle = glm::asin(glm::dot(up, collisionInfo->normalOnB));
+            
+            // However, this alone would create unexpected behavior when touching a ledge.
+            // so, we also check which direction the collision occured in. 
+            glm::vec3 collisionDir = glm::normalize(playerCenterOfMass - collisionInfo->pointA);
+            float directionAngle = glm::acos(glm::dot(up, collisionDir));
 
-            if (platformIncline < bestIncline && collisionInfo->thingyA) {
+            float platformIncline = std::max(normalAngle, directionAngle);
+            
+            // debugging prints:
+
+            // std::cout << 
+            //     "surface normal: " << normalAngle       << std::endl <<
+            //     "direction:      " << directionAngle    << std::endl <<
+            //     "incline:        " << platformIncline   << std::endl <<
+            // std::endl;
+            
+            // save the best incline, we'll jump off that platform
+            if (platformIncline < bestIncline && collisionInfo->thingyB) {
                 bestIncline = platformIncline;
-                Thingy* thingyA = (Thingy*)collisionInfo->thingyA;
-                Thingy* thingyB = (Thingy*)collisionInfo->thingyB;
-
-                if (thingyA && thingyA != host) {
-                    platform = (Thingy*)collisionInfo->thingyA;
-                } else if (thingyB && thingyB != host) {
-                    platform = (Thingy*)collisionInfo->thingyB;
-                }
+                platform = (Thingy*)collisionInfo->thingyB;
             }
         }
         
@@ -211,58 +221,71 @@ void PlayerController::update() {
         // if platform was found, and it's at a reasonable incline, we're touching the ground. 
         bool grounded = bestIncline <= maxIncline;
         
-        // but we still might not be grounded. what if the platform is moving away from us? 
         if (platform != nullptr && grounded) {
             RigidBody *platformRigidBody = &platform->getComponent<RigidBody>();
             Transform *platformTransform = &platform->getComponent<Transform>();
+
+            // but we still might not be grounded. what if the platform is moving away from us? 
             
             if (platformRigidBody) {
-                // compare velocity on the up axis
+                // get the difference between our velocity and the platform's:
+                
                 glm::vec3 platformVelocity = platformRigidBody->getLinearVelocity();
                 glm::vec3 playerVelocity = playerRigidBody->getLinearVelocity();
                 glm::vec3 relativeVelocity = platformVelocity - playerVelocity;
-                std::cout << "player velocity: " << glm::length2(playerVelocity) << std::endl;
-                std::cout << "platfm velocity: " << glm::length2(platformVelocity) << std::endl;
+                // std::cout << "player velocity: " << glm::length2(playerVelocity) << std::endl;
+                // std::cout << "platfm velocity: " << glm::length2(platformVelocity) << std::endl;
                 
-                // if dot product of relative velocity and up is positive, they're in the same directions
-                // if dot product of relative velocity and up is negative, they're in different directions
+                // if that difference points up, the platform and player are moving towards each other on the up axis.
+                // therefor we are grounded.
 
-                std::cout << "dot velocity: " << glm::dot(relativeVelocity, up) << std::endl;
-                std::cout << "velocity amnt: " << glm::length2(relativeVelocity) << std::endl;
+                // we can use dot product to check this.
+                // dot(relativeVelocity, up) is positive if grouneded and negative if not.
+
+                // std::cout << "dot velocity: " << glm::dot(relativeVelocity, up) << std::endl;
+                // std::cout << "velocity amnt: " << glm::length2(relativeVelocity) << std::endl;
                 grounded = (
                     glm::dot(relativeVelocity, up) >= 0 ||
-                    // for some reason, the player's velocity is just a really small number and i have no idea why so now we just check if it's close to zero
+                    // for some reason, the player's velocity is always just a really small number, so now we just check if it's close to zero
                     glm::length2(relativeVelocity) <= 0.01f 
                 );
 
                 if (grounded) {
                     glm::vec3 platformCenterOfMass = platformRigidBody->getCenterOfMass();
                     glm::vec3 forceOffset = playerCenterOfMass - platformCenterOfMass;
+
+                    // I really want to just bounce the player off the ground but the physics engine isn't letting me ):
+                    // playerRigidBody->setBounciness(1);
+                    
+                    // so instead we're doing our own calculations for semi-realistic physics:
                     float platformMass = platformRigidBody->getMass();
                     float playerMass = playerRigidBody->getMass();
                     // if either mass is 0, the object is static. we'll just pretend its 1 as to not divide by 0
                     float forceRatio;
                     if (platformMass == 0) forceRatio = 1;
-                    else forceRatio = playerMass / platformMass / (playerMass + platformMass);
-
-                    platformRigidBody->addForce( (1-forceRatio) * -jumpStrength * up, forceOffset);
-                    force += up * forceRatio * jumpStrength;
+                    else forceRatio = playerMass / (playerMass + platformMass);
+                    
+                    
+                    force += jumpStrength * up;
+                    platformRigidBody->addForce( (1-forceRatio) * jumpStrength * -up, forceOffset);
                 }
 
             } else {
-                // platform doesnt have required components? that's okay, just apply default force - as if the platform is just a static object
                 force += up * jumpStrength;
+                // platform doesnt have necessary components? that's okay, just apply default force - as if the platform is a static object
             }
             
-            std::cout << "grounded: " << grounded << std::endl;
+            // std::cout << "grounded: " << grounded << std::endl;
 
 
             jumpTimer = 0;
-            std::cout << "jump force: " << force.y << std::endl;
+            // std::cout << "jump force: " << force.y << std::endl;
         }
 
-    } else if (jumpTimer < jumpCooldown) 
+    } else {
         jumpTimer += physicsComponent->deltaTime;
+        // playerRigidBody->setBounciness(0);
+    }
     
     playerRigidBody->addForce(force, glm::vec3(0));
 

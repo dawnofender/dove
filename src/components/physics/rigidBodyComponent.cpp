@@ -15,7 +15,14 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
 
     // get shape of collider
     // FIX: handle no collider found
-    btCollisionShape* colliderShape = host->getComponent<Collider>().collisionShape;
+    std::vector<btCollisionShape*> colliderShapes;
+    for (auto && collider : host->getComponents<Collider>()) {
+        colliderShapes.push_back(collider->collisionShape);
+    }
+    
+    // TODO: combine multiple colliders into one object
+    btCollisionShape* colliderShape = colliderShapes[0];
+
     motionstate = new btDefaultMotionState(bulletTransform);
     btVector3 localInertia;
 
@@ -133,7 +140,6 @@ void RigidBody::setSpinningFriction(float newSpinningFriction) {
     bulletRigidBody->setSpinningFriction(newSpinningFriction);
 }
 
-
 void RigidBody::setLinearVelocity(glm::vec3 v) {
     bulletRigidBody->setLinearVelocity(btVector3(v.x, v.y, v.z));
 }
@@ -142,4 +148,7 @@ void RigidBody::setAngularVelocity(glm::vec3 v) {
     bulletRigidBody->setAngularVelocity(btVector3(v.x, v.y, v.z));
 }
 
+void RigidBody::setBounciness(float newBounciness) {
+    bulletRigidBody->setRestitution(newBounciness);
+}
 

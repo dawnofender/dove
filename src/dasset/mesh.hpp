@@ -39,7 +39,6 @@ struct MeshData {
 
 template< class LayerType, typename... Args >
 LayerType& MeshData::addLayer(Args&&... args) {
-    std::cout << "test0" << std::endl;
     auto layer = std::make_unique<LayerType>(std::forward<Args>(args)...);
     LayerType& ref = *layer;
     layers.emplace_back(std::move(layer));

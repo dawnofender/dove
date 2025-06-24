@@ -8,7 +8,6 @@
 #include <glm/gtx/transform.hpp>
 #include <lib/shaderLoader.hpp>
 
-
 class Shader {
 private: 
     bool active;

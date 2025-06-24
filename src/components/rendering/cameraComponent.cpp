@@ -6,10 +6,9 @@
 CLASS_DEFINITION(Component, Camera)
 
 
-Camera::Camera(std::string && initialValue, Thingy* h, GLFWwindow *w, float fov, int dw, int dh, float n, float f) 
+Camera::Camera(std::string && initialValue, Thingy* h, Window *w, float fov, int dw, int dh, float n, float f) 
     : Component(std::move(initialValue)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {
     cameras.push_back(this);
-    setActiveWindow(window);
 }
 
 Camera::~Camera() {
@@ -24,25 +23,17 @@ glm::mat4 Camera::getViewMatrix() {
     return viewMatrix;
 }
 
-GLFWwindow* Camera::getActiveWindow() {
-    return activeWindow;
-};
-
-void Camera::setActiveWindow(GLFWwindow* newActiveWindow) {
-    activeWindow = newActiveWindow;
-}
 
 void Camera::renderAll() {
     for (auto && camera : cameras) {
         camera->render();
     }
+    glfwPollEvents();
 }
 
 void Camera::render() {
-    setActiveWindow(window);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glfwGetWindowSize(window, &width, &height);
+    glfwGetWindowSize(&window->getGLFWwindow(), &width, &height);
     glViewport(0, 0, width, height);
 
     Transform* transform = &host->getComponent<Transform>();
@@ -58,6 +49,5 @@ void Camera::render() {
     SkyRenderer::drawAll();
     Physics::debugDrawAll();
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    glfwSwapBuffers(&window->getGLFWwindow());
 }

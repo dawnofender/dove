@@ -1,7 +1,7 @@
 #ifndef GLYPHTHINGY_HPP
 #define GLYPHTHINGY_HPP
 
-#include <src/thingy/thingy.hpp>
+#include "../thingy.hpp"
 
 // glyph::children -> glyphs that will be activated by this glyph, in order (aka a timeline)
 // glyph::parent -> whatever glyph led to this timeline / thread

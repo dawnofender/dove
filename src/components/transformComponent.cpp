@@ -22,7 +22,7 @@ void Transform::setGlobalMatrix(glm::mat4 newTransform) {
 }
 
 void Transform::setPosition(glm::vec3 newPos) {
-    transform[3] = glm::vec4{newPos.x, newPos.y, newPos.z, transform[3].w};
+    transform[3] = glm::vec4(newPos.x, newPos.y, newPos.z, transform[3].w);
     updateChildTransforms();
 }
 
@@ -34,20 +34,23 @@ void Transform::setGlobalPosition(glm::vec3 newPos) {
 
 
 void Transform::translate(glm::vec3 translation) {
-    transform = glm::translate(transform, translation);
+    transform[3] += glm::vec4(translation.x, translation.y, translation.z, 0);
     updateChildTransforms();
 }
 
 void Transform::rotate(glm::quat rotation) {
     transform *= glm::mat4_cast(rotation);
+    updateChildTransforms();
 }
 
 void Transform::rotate(glm::mat4 rotation) {
     transform *= rotation;
+    updateChildTransforms();
 }
 
 void Transform::rotate(float angle, glm::vec3 axis) {
     transform = glm::rotate(transform, angle, axis);
+    updateChildTransforms();
 }
 
 void Transform::setScale(glm::vec3 newScale) {

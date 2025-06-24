@@ -7,14 +7,8 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include <lib/controls.hpp>
-
 #include <iostream>
-    // template<class ComponentType, typename... Args>
-    // ComponentType& addComponent(Args&&... args);
 
-    // template<class ComponentType>
-    // ComponentType& getComponent();
 
 class Material {
 public:
@@ -22,6 +16,11 @@ public:
     
     bool Activate(glm::mat4 modelMatrix);
     void setTexture(int i, std::shared_ptr<Texture> newTexture);
+    
+    // temporary separation of cubemap as its own thing here
+    void setCubemap(int i, std::shared_ptr<Texture> newCubemap);
+    // TODO: make a class for any kind of shader uniform to alleviate materials of this complexity
+    
     void setShader(std::shared_ptr<Shader> newShader);
     
     std::shared_ptr<Shader> getShader();
@@ -29,6 +28,7 @@ public:
 private:
     std::shared_ptr<Shader> shader;
     std::vector<std::shared_ptr<Texture>> textures;
+    std::vector<std::shared_ptr<Texture>> cubemaps;
     
     GLuint MatrixID;       
     GLuint ViewMatrixID;   

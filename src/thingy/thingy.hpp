@@ -38,17 +38,23 @@ public:
     ComponentType& addComponent(Args&&... args);
 
     template<class ComponentType>
+    void removeComponent(std::string value = "");
+
+    template<class ComponentType>
+    void removeComponents(std::string value = "");
+
+    template<class ComponentType>
     ComponentType& getComponent();
     
     // not implemented yet
-    template< class ComponentType >
+    template<class ComponentType>
     std::vector<ComponentType*> getComponents();
 
     template<class ThingyType, typename... Args>
     ThingyType& addChild(Args&&... args);
     
     void addChild(std::shared_ptr<Thingy> thingy);
-    Thingy& addChild(std::string childName);
+    Thingy& addChild(std::string childName = "");
     
     template<class ThingyType>
     ThingyType& getChild();
@@ -94,6 +100,40 @@ ComponentType& Thingy::getComponent() {
             return *static_cast<ComponentType*>(component.get());
     }
     return *std::unique_ptr<ComponentType>(nullptr);
+}
+
+
+template< class ComponentType >
+void Thingy::removeComponents(std::string value) {
+    for ( int i = 0; i < components.size(); i++ ) {
+        if (components[i]->IsClassType( ComponentType::Type ) && 
+            components[i]->value == value
+        ) {
+            components.erase(components.begin() + i);
+        }
+    }
+}
+
+template< class ComponentType >
+void Thingy::removeComponent(std::string value) {
+    for ( int i = 0; i < components.size(); i++ ) {
+        if (components[i]->IsClassType( ComponentType::Type ) && 
+            components[i]->value == value
+        ) {
+            components.erase(components.begin() + i);
+            return;
+        }
+    }
+}
+
+template< class ComponentType >
+std::vector<ComponentType*> Thingy::getComponents() {
+    std::vector<ComponentType*> componentsOfType;
+    for ( auto && component : components ) {
+        if ( component->IsClassType( ComponentType::Type ) )
+            componentsOfType.emplace_back( static_cast<ComponentType*>( component.get() ) );
+    }
+    return componentsOfType;
 }
 
 template< class ThingyType, typename... Args >

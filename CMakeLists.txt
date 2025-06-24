@@ -46,8 +46,11 @@ add_executable(dove
     src/dove.cpp
     src/TransformVertexShader.vertexshader
     src/TextureFragmentShader.fragmentshader
-    src/worldgen/doctree.cpp
-    src/worldgen/doctree.hpp
+    # src/worldgen/doctree.cpp
+    # src/worldgen/doctree.hpp
+
+    src/defaultAssets.hpp
+    src/defaultAssets.cpp
 
     src/dasset/metadata.cpp
     src/dasset/metadata.hpp
@@ -66,6 +69,10 @@ add_executable(dove
     src/thingy/thingy.hpp
     src/thingy/glyph/glyphThingy.cpp
     src/thingy/glyph/glyphThingy.hpp
+    src/thingy/panel/panelThingy.cpp
+    src/thingy/panel/panelThingy.hpp
+    src/thingy/panel/windowThingy.cpp
+    src/thingy/panel/windowThingy.hpp
     
     src/components/component.cpp
     src/components/component.hpp
@@ -97,23 +104,23 @@ add_executable(dove
     src/components/rendering/skyRendererComponent.hpp
     src/components/rendering/cameraComponent.cpp
     src/components/rendering/cameraComponent.hpp
-
-
+    
+    lib/setup.hpp
+    lib/setup.cpp
     lib/shaderLoader.cpp
     lib/shaderLoader.hpp
+    lib/stb_image.h
+    lib/stb_image.h
+
+    lib/bulletDebugDrawer.cpp
+    lib/bulletDebugDrawer.hpp
+    
+    # used in GAIA
+    lib/threadsafe_vector.hpp
     lib/SimplexNoise.cpp
     lib/SimplexNoise.h
     lib/FastNoise.cpp
     lib/FastNoise.h
-    lib/controls.cpp
-    lib/controls.hpp
-    lib/texture.cpp
-    lib/texture.hpp
-    lib/threadsafe_vector.hpp
-    lib/bulletDebugDrawer.cpp
-    lib/bulletDebugDrawer.hpp
-
-    lib/stb_image.h
 )
 
 target_link_libraries(dove ${ALL_LIBS})

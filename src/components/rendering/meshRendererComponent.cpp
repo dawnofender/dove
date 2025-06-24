@@ -9,8 +9,6 @@
 #include <vector>
 #include <typeinfo>
 
-#include <lib/controls.hpp>
-
 CLASS_DEFINITION(Component, MeshRenderer)
 
 

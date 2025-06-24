@@ -16,12 +16,12 @@ private:
     Transform* cameraTransform;
     Physics* physicsComponent;
     float jumpTimer = 0;
-    float jumpCooldown = 0.05f; // in seconds
+    float jumpCooldown = 0.1f; // in seconds
     float pitch;
     float yaw;
 
 public: 
-    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 1000, float j = 1500, float m = 1.5f, float ms = 0.01);
+    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 10000, float j = 1500, float m = 1.5f, float ms = 0.01);
     
     void update();
     

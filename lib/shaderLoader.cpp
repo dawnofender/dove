@@ -15,7 +15,6 @@ using namespace std;
 #include "shaderLoader.hpp"
 
 GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path){
-
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -29,7 +28,7 @@ GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_pat
 		VertexShaderCode = sstr.str();
 		VertexShaderStream.close();
 	}else{
-		printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
+		printf("Impossible to open %s. Are you in the right directory? \n", vertex_file_path);
 		getchar();
 		return 0;
 	}

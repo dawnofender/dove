@@ -9,7 +9,7 @@
 #include <functional>
 #include <cstddef>
 
-// The purpose of Thing is to be an abstract class that every object in the hierarchy inherits from.
+// Thing is an abstract class that every object in the hierarchy inherits from.
 // This way, all components, thingies, assets, etc. can be accessible in-world.
 // Each derived class will have a type, hashed as a size_t, that can be used to identify it.
 // Later, this class will also make it easier to serialize/deserialize objects, by assigning each thing an ID.
@@ -17,11 +17,13 @@
 // The base Thing class has just the bare minimum functionality, and is not meant to be interacted with in-world.
 // There is no tree structure - derived classes must implement this.
 
+// NOTE: consider using composition instead - this method is nice but it could get messy
+
 // NOTE: every thing-derived class must be constructable with no passed arguments.
 //  - this is for serialization: create all the things, then give them the data.
-//    the error thrown if you forget a constructor comes from the way ThingFactory registers new thing types.
-//      - this could be made less annoying with some small edits to the declaration macro and ThingFactory class,
-//        however, that would likely lead to issues with serialization down the line. 
+//    the error thrown if you forget a constructor originates in the way ThingFactory registers new thing types.
+//      - this could be made less annoying with some small changes to the declaration macro and ThingFactory class,
+//        however, that could lead to issues with serialization down the line.
 
 // TODO: maybe find a more efficient way to accomplish this? 
 // when objects are first constructed with no arguments, it takes extra time to assign them.

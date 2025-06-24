@@ -8,4 +8,6 @@ uniform samplerCube skybox;
 void main()
 {    
     FragColor = texture(skybox, TexCoords);
+    // boring lets procedurally generate it :)
+
 }

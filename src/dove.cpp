@@ -1,316 +1,113 @@
 #define STB_IMAGE_IMPLEMENTATION
 
-#include <cmath>
-// #include <glm/detail/qualifier.hpp>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <array>
-#include <functional>
-#include <iostream>
-#include <sstream>
-#include <map>
-#include <memory>
-#include <set>
-#include <stdio.h>
-#include <stdlib.h>
-#include <thread>
-#include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
-#include <string>
+#include <lib/setup.hpp>
 
-#include <lib/texture.hpp>
-#include <lib/vboindexer.hpp>
+#include "defaultAssets.hpp"
+#include "test_dove.hpp"
 
-#include <lib/FastNoise.h>
-#include <lib/SimplexNoise.h>
+#include "components/transformComponent.hpp"
+#include "components/playerControllerComponent.hpp"
+#include "components/physics/physicsComponent.hpp"
+#include "components/physics/sphereColliderComponent.hpp"
+#include "components/physics/boxColliderComponent.hpp"
+#include "components/physics/rigidBodyComponent.hpp"
+#include "components/rendering/objectRendererComponent.hpp"
+#include "components/rendering/skyRendererComponent.hpp"
+#include "components/rendering/cameraComponent.hpp"
 
-#include <src/dasset/shader.hpp>
-#include <src/dasset/mesh.hpp>
+#include <glm/gtx/io.hpp>
 
-#include <src/thingy/thingy.hpp>
-#include <src/components/transformComponent.hpp>
-#include <src/components/playerControllerComponent.hpp>
-#include <src/components/physics/physicsComponent.hpp>
-#include <src/components/physics/sphereColliderComponent.hpp>
-#include <src/components/physics/boxColliderComponent.hpp>
-#include <src/components/physics/rigidBodyComponent.hpp>
-// #include <src/components/gaiaComponent.hpp>
-#include <src/components/rendering/objectRendererComponent.hpp>
-#include <src/components/rendering/skyRendererComponent.hpp>
-#include <src/components/rendering/cameraComponent.hpp>
-
-
-GLFWwindow *window;
 
 int main() {
     std::cout << "hi!" << std::endl;
 
-    Camera::setActiveWindow(window);
+    // #########
+    // # tests #
+    // #########
+    
+    // defined in test_dove.hpp
+    std::cout << "Running tests... " << std::endl;
+    runTests(); 
+    std::cout << "Running tests: done" << std::endl;
+    
 
-    // ################
-    // # OpenGL setup #
-    // ################
+    // #########
+    // # setup #
+    // #########
 
-    if (!glfwInit()) {
-      fprintf(stderr, "Failed to initialize GLFW\n");
-      return -1;
-    }
+    std::cout << std::endl << "Press enter to start." << std::endl;
+    std::cin.get();
 
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
-                   GL_TRUE); // To make MacOS happy; should not be needed
-    glfwWindowHint(GLFW_OPENGL_PROFILE,
-                   GLFW_OPENGL_COMPAT_PROFILE); // We don't want the old OpenGL
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);  
-
-
-    window = glfwCreateWindow(1024, 768, "dream", NULL, NULL);
-    if (window == NULL) {
-        // If you have an Intel GPU, they are not 3.3 compatible. 
-        fprintf(stderr, "Failed to open GLFW window.\n" );
-        glfwTerminate();
+    std::cout << "Initializing Dove..." << std::endl;
+    
+    if (!initDove()) {
+        std::cerr << "Failed to initialize Dove" << std::endl;
         return -1;
     }
-
-    glfwMakeContextCurrent(window);
-    glewExperimental = true;
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
-        return -1;
-    }
-
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwPollEvents();
-    // glClearColor(0.6f, 0.7f, 0.9f, 0.0f);
     
-    // TODO: handle some of this in the material or shader 
+    // Essential thingies
+    Window* window = new Window("main window");
+    
+    // Creates a basic cube model, some materials, textures, and shaders
+    loadDefaultAssets();
 
 
-    
-    // ##########   
-    // # ASSETS #   
-    // ##########   
-    
-    std::vector<glm::vec3> cubeVertices = {
-        // +x
-        glm::vec3(.5f, .5f, .5f),
-        glm::vec3(.5f, -.5f, .5f),
-        glm::vec3(.5f, -.5f, -.5f),
-        glm::vec3(.5f, .5f, -.5f),
-        // -x
-        glm::vec3(-.5f, .5f, -.5f),
-        glm::vec3(-.5f, -.5f, -.5f),
-        glm::vec3(-.5f, -.5f, .5f),
-        glm::vec3(-.5f, .5f, .5f),
-        // +y
-        glm::vec3(-.5f, .5f, -.5f),
-        glm::vec3(-.5f, .5f, .5f),
-        glm::vec3(.5f, .5f, .5f),
-        glm::vec3(.5f, .5f, -.5f),
-        // -y
-        glm::vec3(-.5f, -.5f, .5f),
-        glm::vec3(-.5f, -.5f, -.5f),
-        glm::vec3(.5f, -.5f, -.5f),
-        glm::vec3(.5f, -.5f, .5f),
-        // +z
-        glm::vec3(-.5f, .5f, .5f),
-        glm::vec3(-.5f, -.5f, .5f),
-        glm::vec3(.5f, -.5f, .5f),
-        glm::vec3(.5f, .5f, .5f),
-        // -z
-        glm::vec3(.5f, .5f, -.5f),
-        glm::vec3(.5f, -.5f, -.5f),
-        glm::vec3(-.5f, -.5f, -.5f),
-        glm::vec3(-.5f, .5f, -.5f),
-    };
-    
-    std::vector<glm::vec2> cubeUVs = {
-        // +x
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-        // -x
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-        // +y
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-        // -y
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-        // +z
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-        // -z
-        glm::vec2(0, 1),
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(1, 1),
-    };
-    
-    // normals:
-    std::vector<glm::vec3> cubeNormals = {
-        // +x
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 0, 0),
-        // -x
-        glm::vec3(-1, 0, 0),
-        glm::vec3(-1, 0, 0),
-        glm::vec3(-1, 0, 0),
-        glm::vec3(-1, 0, 0),
-        // +y
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 1, 0),
-        // -y
-        glm::vec3(0, -1, 0),
-        glm::vec3(0, -1, 0),
-        glm::vec3(0, -1, 0),
-        glm::vec3(0, -1, 0),
-        // +z
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        // -z
-        glm::vec3(0, 0, -1),
-        glm::vec3(0, 0, -1),
-        glm::vec3(0, 0, -1),
-        glm::vec3(0, 0, -1),
-    };
-    
-    // colors:
-    std::vector<glm::vec3> cubeColors = {
-        // +x
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        // -x
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        // +y
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        // -y
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        // +z
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        // -z
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 0),
-    };
-    
-    // indices:
-    std::vector<unsigned int> cubeIndices = {
-        0,  1,  2,  0,  2,  3,  //+x
-        4,  5,  6,  4,  6,  7,  //-x
-        8,  9,  10, 8,  10, 11, //+y
-        12, 13, 14, 12, 14, 15, //-y
-        16, 17, 18, 16, 18, 19, //+z
-        20, 21, 22, 20, 22, 23  //-z
-    };
-    
-    std::shared_ptr<MeshData> cube = std::make_shared<MeshData>();
-    cube->indices = cubeIndices;
-    cube->addLayer<Vec3Layer>(cubeVertices);
-    cube->addLayer<Vec3Layer>(cubeColors);
-    cube->addLayer<Vec2Layer>(cubeUVs);
-    cube->addLayer<Vec3Layer>(cubeNormals);
-    
-    std::shared_ptr<Shader> testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    std::shared_ptr<Shader> testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    std::shared_ptr<Shader> testSkyShader = std::make_shared<Shader>("SkyVertexShader.vertexshader", "SkyboxFragmentShader.fragmentshader");
-    
-    std::shared_ptr<Texture> testTexture = std::make_shared<Texture>("test.png");
-    std::shared_ptr<Texture> UVGridTexture = std::make_shared<Texture>("../assets/textures/UVgrid.png");
-    
-    std::vector testTextureVector = {testTexture};
-    std::vector testTextureVector2 = {UVGridTexture};
-    
-    std::shared_ptr<Material> testMaterial = std::make_shared<Material>(testShader, testTextureVector);
-    std::shared_ptr<Material> testMaterial2 = std::make_shared<Material>(testShader2, testTextureVector);
-    std::shared_ptr<Material> testMaterial3 = std::make_shared<Material>(testShader, testTextureVector2);
-    std::shared_ptr<Material> testSkyMaterial = std::make_shared<Material>(testSkyShader, testTextureVector);
 
-    // ###############
-    // # world setup #
-    // ###############
+
+
+    // ##################
+    // # world creation #
+    // ##################
     
-    std::cout << "setting up world" << std::endl;
-    // essential thingies
+    std::cout << "Building world..." << std::endl;
+    
+    // the universe
     Thingy *universe = new Thingy("universe");
     Physics *physics = &universe->addComponent<Physics>("Laws Of Physics");
-
+    
+    // the player
     Thingy *player = &universe->addChild("it's you!");
-    // Thingy *sight = &universe->addChild("perception");
     Transform *playerTransform = &player->addComponent<Transform>("Transform", player);
     player->addComponent<SphereCollider>("SphereCollider", 0.5f);
     RigidBody *playerRigidBody = &player->addComponent<RigidBody>("RigidBody", physics, player, 5.f, false, false);
-    playerRigidBody->setFriction(0.9f);
-    playerRigidBody->setRollingFriction(0.9f);
+    
+    playerRigidBody->setFriction(1.5f);
+    playerRigidBody->setRollingFriction(100.f);
     playerRigidBody->setSpinningFriction(0.9f);
+
+    playerTransform->setPosition(glm::vec3(0, 0, -2)); // just moving back a bit so the boxes dont crush us
     
     // main camera
-    Thingy *perception = &player->addChild("Perception");
-    Transform *perceptionTransform = &perception->addComponent<Transform>("Transform", perception);
-    perception->addComponent<Camera>("Camera", perception, window);
+    Thingy *camera = &player->addChild("Perception");
+    Transform *perceptionTransform = &camera->addComponent<Transform>("Transform", camera);
+    camera->addComponent<Camera>("Camera", camera, window);
     
-    // player controller
-    player->addComponent<PlayerController>("PlayerController", physics, player, perception, playerRigidBody, perceptionTransform, 100);
-    
+    player->addComponent<PlayerController>("PlayerController", physics, player, camera, playerRigidBody, perceptionTransform, 100);
+
     // # Basic scene
-    // environment:
+    // environment
     Thingy *sky = &universe->addChild("Sky");
-    sky->addComponent<Transform>("Transform", sky);
     sky->addComponent<SkyRenderer>("SkyRenderer", testSkyMaterial, cube);
-    
-    // ground:
+   
+    // ground
     Thingy *ground = &universe->addChild("Ground");
     Transform *groundTransform = &ground->addComponent<Transform>("Transform", ground);
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
-    ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
-    ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
     ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
-  
+    ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
+    RigidBody *groundRigidBody = &ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
+    groundRigidBody->setFriction(0.9f);
+    
+    // cubes
     Thingy *testCube = &universe->addChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
-    // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
     testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 10.f);
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
+    // TODO: thingy copy constructor
     Thingy *testCube2 = &universe->addChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform", testCube2);
     cubeTransform2->setPosition({0, 16.f, 0});
@@ -318,50 +115,26 @@ int main() {
     testCube2->addComponent<RigidBody>("RigidBody", physics, testCube2, 1.f);
     testCube2->addComponent<ObjectRenderer>("ObjectRenderer", testCube2, testMaterial2, cube);
     
+    std::cout << "Building world: done" << std::endl;
 
-    std::cout << "setting up world: done" << std::endl;
-    // ###############
-    // # other tests #
-    // ###############
-    
-
-    // # GAIA
-    
-    // Thingy *gaia = &universe->addChild("gaia");
-    // gaia->addComponent<Gaia>("Gaia", gaia, player);
-
-    // put player on serface (temporary)
-    // playerController->teleport({0, 4210, 0});
-
-    // auto *world = &gaia->getComponent<Gaia>();
-    // Octree cellTree(0, 24);
-    // world->createWorld(&cellTree);
-    // 23 - a bit bigger than earth
-    // 65 - max before math breaks at edges (currently breaks world entirely, but
-    // can be fixed by generating from the center instead of the corner) 90 -
-    // bigger than the observable universe
-    
-    // world->startGeneratingWorld();
-    
     // #############
     // # main loop #
     // #############
     
-    // NOTE: any functionality written directly into this loop will later be moved into its own class. 
+    // TODO: any functionality written directly into this loop will later be moved into its own class. 
     //  - fps tracking
     //  - input (mouse pos, keyboard, click raycasting)
     //  - this list used to be way longer :)
 
     double lastFrameTime = glfwGetTime();
-    double lastGenTime = lastFrameTime;
     int nbFrames = 0;
 
-    double mouseX, mouseY;
 		
     double lastTime;
     double time;
     
-    int frame = 0;
+    // just making sure the FPS print doesn't write over anything
+    std::cout << std::endl << std::endl;
     do {
         // #######
         // # fps #
@@ -369,15 +142,20 @@ int main() {
         lastTime = time;
         time = glfwGetTime();
         nbFrames++;
-        if ( time - lastFrameTime >= 1.0) { // If last prinf() was more than 1sec ago
-            // printf and reset
-            printf("%f ms/frame    ", 1000.0 / double(nbFrames));
-            std::cout << playerTransform->getPosition().x << ", "
-                      << playerTransform->getPosition().y << ", "
-                      << playerTransform->getPosition().z << "\n";
+        if ( time - lastFrameTime >= 1.0) { // If last cout was more than 1sec ago
+            // print current framerate
+            // while we're here, might as well print the player's location
+            std::cout << 
+                "\033[2A" << // move up two lines to overwrite 
+                "fps: " << nbFrames << std::endl <<
+                "position: " << playerTransform->getPosition() << 
+            std::endl;
+            
+
             nbFrames = 0;
             lastFrameTime += 1.0;
-        }
+        } 
+
 
         
         // ##############
@@ -387,7 +165,9 @@ int main() {
         // TODO: move click-raycasting into player controller component
         
         // handle raycasting for player clicking on objects 
-	    glfwGetCursorPos(Camera::getActiveWindow(), &mouseX, &mouseY);
+        double mouseX, mouseY;
+
+	    glfwGetCursorPos(&window->getGLFWwindow(), &mouseX, &mouseY);
         glm::vec4 lRayStart_NDC(
             (mouseX - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
         	  (mouseY - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
@@ -402,8 +182,8 @@ int main() {
         	  1.0f
         );
         
-        glm::mat4 projectionMatrix = getProjectionMatrix();
-        glm::mat4 viewMatrix = getViewMatrix();
+        glm::mat4 projectionMatrix = Camera::getProjectionMatrix();
+        glm::mat4 viewMatrix = Camera::getViewMatrix();
         glm::mat4 M = glm::inverse(projectionMatrix * viewMatrix);
         glm::vec4 lRayStart_world = M * lRayStart_NDC; lRayStart_world/=lRayStart_world.w;
         glm::vec4 lRayEnd_world   = M * lRayEnd_NDC  ; lRayEnd_world  /=lRayEnd_world.w;
@@ -415,7 +195,7 @@ int main() {
         Thingy* hoverObject = rayCastInfo.thingy;
         
         // on click, do something to hovered object 
-        if (glfwGetMouseButton(Camera::getActiveWindow(), GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
+        if (glfwGetMouseButton(&window->getGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
             Thingy *testCube = &universe->addChild("Cube");
             Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
             cubeTransform->setPosition({0, 16.f, 0});
@@ -439,16 +219,43 @@ int main() {
 
         // # rendering stuff
         Camera::renderAll();
-        frame++;
 
-    } while (glfwGetKey(Camera::getActiveWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-             glfwWindowShouldClose(window) == 0);
+    } while (glfwGetKey(&window->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+             glfwWindowShouldClose(&window->getGLFWwindow()) == 0);
     // } while (glfwWindowShouldClose(window) == 0);
 
     std::cout << "cleaning up..." << std::endl;
     delete universe;
-    glfwTerminate();
+    doveTerminate();
 
     std::cout << "bye bye!" << std::endl;
     return 0;
 }
+
+
+
+
+
+
+    // #########
+    // # other #
+    // #########
+
+    // # GAIA
+    
+    // Thingy *gaia = &universe->addChild("gaia");
+    // gaia->addComponent<Gaia>("Gaia", gaia, player);
+
+    // put player on serface (temporary)
+    // playerController->teleport({0, 4210, 0});
+
+    // auto *world = &gaia->getComponent<Gaia>();
+    // Octree cellTree(0, 24);
+    // world->createWorld(&cellTree);
+    // 23 - a bit bigger than earth
+    // 65 - max before math breaks at edges (currently breaks world entirely, but
+    // can be fixed by generating from the center instead of the corner) 90 -
+    // bigger than the observable universe
+    
+    // world->startGeneratingWorld();
+    
