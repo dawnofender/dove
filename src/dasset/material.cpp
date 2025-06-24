@@ -50,7 +50,7 @@ bool Material::Activate(glm::mat4 modelMatrix) {
 
     glEnable(GL_DEPTH_TEST); 
     glDepthFunc(GL_LEQUAL); 
-    glEnable(GL_CULL_FACE); 
+    // glEnable(GL_CULL_FACE); 
 
     return true;
 }

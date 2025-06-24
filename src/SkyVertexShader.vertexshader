@@ -2,7 +2,6 @@
 layout (location = 0) in vec3 vertexPos;
 
 out vec3 TexCoords;
-out vec3 EyeDirection_cameraspace;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -12,7 +11,8 @@ void main()
     TexCoords = vertexPos;
     vec4 pos = projection * view * vec4(vertexPos, 1.0);
 
-	EyeDirection_cameraspace = vec3(0,0,0) - pos.xyz;
+    // direction = projection * view;
+	// EyeDirection_cameraspace = vec3(0,0,0) - pos.xyz;
 
     gl_Position = pos.xyww;
 }  
