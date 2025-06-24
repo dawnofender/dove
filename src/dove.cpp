@@ -26,9 +26,7 @@ int main() {
     // #########
     
     // defined in test_dove.hpp
-    std::cout << "Running tests... " << std::endl;
     runTests(); 
-    std::cout << "Running tests: done" << std::endl;
     
 
     // #########
@@ -50,9 +48,6 @@ int main() {
     
     // Creates a basic cube model, some materials, textures, and shaders
     loadDefaultAssets();
-
-
-
 
 
     // ##################
@@ -162,45 +157,10 @@ int main() {
         // # world loop #
         // ##############
         
-        // TODO: move click-raycasting into player controller component
-        
-        // handle raycasting for player clicking on objects 
-        double mouseX, mouseY;
-
-	    glfwGetCursorPos(&window->getGLFWwindow(), &mouseX, &mouseY);
-        glm::vec4 lRayStart_NDC(
-            (mouseX - 0.5f) * 2.0f, // [0,1024] -> [-1,1]
-        	  (mouseY - 0.5f) * 2.0f, // [0, 768] -> [-1,1]
-        	  -1.0, // The near plane maps to Z=-1 in Normalized Device Coordinates
-        	  1.0f
-        );
-
-        glm::vec4 lRayEnd_NDC(
-        	  (mouseX - 0.5f) * 2.0f,
-        	  (mouseY - 0.5f) * 2.0f,
-        	  0.0,
-        	  1.0f
-        );
-        
-        glm::mat4 projectionMatrix = Camera::getProjectionMatrix();
-        glm::mat4 viewMatrix = Camera::getViewMatrix();
-        glm::mat4 M = glm::inverse(projectionMatrix * viewMatrix);
-        glm::vec4 lRayStart_world = M * lRayStart_NDC; lRayStart_world/=lRayStart_world.w;
-        glm::vec4 lRayEnd_world   = M * lRayEnd_NDC  ; lRayEnd_world  /=lRayEnd_world.w;
-
-        glm::vec3 lRayDir_world(lRayEnd_world - lRayStart_world);
-        lRayDir_world = glm::normalize(lRayDir_world);
-        
-        auto rayCastInfo = physics->rayCast(playerTransform->getPosition(), lRayDir_world, 1000);
-        Thingy* hoverObject = rayCastInfo.thingy;
-        
-        // on click, do something to hovered object 
-        if (glfwGetMouseButton(&window->getGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) && hoverObject) {
+        // on click, make a cube
+        if (glfwGetMouseButton(&window->getGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT)) {
             Thingy *testCube = &universe->addChild("Cube");
-            Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
-            cubeTransform->setPosition({0, 16.f, 0});
             testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
-            // testCube->addComponent<SphereCollider>("SphereCollider", 0.5f);
             testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 1.f);
             testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
         }
@@ -211,13 +171,13 @@ int main() {
         }
 
         
-        // # physics - should be one function in physics component
+        // # tick physics
         Physics::simulateAll();
 
-        // # updating components
+        // # update components
         UpdatableComponent::updateAll();
 
-        // # rendering stuff
+        // # render everything
         Camera::renderAll();
 
     } while (glfwGetKey(&window->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&

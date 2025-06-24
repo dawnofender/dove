@@ -34,38 +34,81 @@ public:
     // Thingy& operator=(const Thingy&) = delete;
 
 public:
+    
+    // addComponent creates a component, of any specified type, attached to this Thingy.
+    // Output: returns a reference to the new component.
+    // Inputs: arguments for the new component's constructor - varies by type.
+    // Example: thingy.addComponent<Transform>("Transform") creates a component of type Transform and returns a reference to it.
     template<class ComponentType, typename... Args>
     ComponentType& addComponent(Args&&... args);
 
+    // removeComponent removes a component matching the given type and value from this Thingy.
+    // Output: true if a component was deleted, false if no matching component was found.
+    // Inputs: the value, or name, of the component you wish to delete.
+    // Example: thingy.removeComponent<Transform>("Transform") may remove a single Transform component and return true.
     template<class ComponentType>
-    void removeComponent(std::string value = "");
+    bool removeComponent(std::string value = "");
 
+    // removeComponents removes all components matching the given type and value from this Thingy.
+    // Output: the number of components that have been removed.
+    // Inputs: the value, or name, of the component(s) you wish to delete.
+    // Example: thingy.removeComponents<Transform>("Transform") may remove a single Transform component and return 1.
     template<class ComponentType>
-    void removeComponents(std::string value = "");
+    int removeComponents(std::string value = "");
 
+    // getComponent finds a component of the specified type in this thingy's components.
+    // Output: a reference to the found component, or nullptr, if no component was found.
+    // Inputs: N/A
+    // Example: thingy.getComponent<Transform>() may return a reference to a Transform component.
     template<class ComponentType>
     ComponentType& getComponent();
     
-    // not implemented yet
+    // getComponents finds all components of the specified type in this thingy's components.
+    // Output: a vector of pointers to each component found, or {nullptr}, if no component was found.
+    // Inputs: N/A
+    // Example: thingy.getComponents<Transform>() may return a vector containing one pointer to a Transform component.
     template<class ComponentType>
     std::vector<ComponentType*> getComponents();
 
+    // addChild creates an object of the specified Thingy-derived type, and adds it as a child to this thingy.
+    // Output: a reference to the new child thingy.
+    // Inputs: arguments for the new thingy's constructor - varies by type.
+    // Example: thingy.addChild<Window>("window") creates a child thingy of type Window and returns a reference to it.
     template<class ThingyType, typename... Args>
     ThingyType& addChild(Args&&... args);
     
-    void addChild(std::shared_ptr<Thingy> thingy);
+    // this is just a shorter version for thingies of the base type. it redirects to the function above
     Thingy& addChild(std::string childName = "");
+
+    // addChild(shared_ptr<Thingy>) places the given thingy under this one as a child.
+    // Output: N/A
+    // Inputs: arguments for the new thingy's constructor - varies by type.
+    // Example: thingy.addChild<Window>("window") creates a child thingy of type Window and returns a reference to it.
+    void addChild(std::shared_ptr<Thingy> thingy);
     
+    // getChild finds a child thingy of the given type.
+    // Output: a reference to the found thingy.
+    // Inputs: N/A
+    // Example: thingy.getChild<Window>() may return a reference to a child of type Window.
     template<class ThingyType>
     ThingyType& getChild();
     
+    // getChild finds a child thingy of the given type.
+    // Output: a reference to the found thingy.
+    // Inputs: the name of the child
+    // Example: thingy.getChild(window) may return a reference to a child named "window".
+    // FIX: this one probably doesn't work on derived types
     Thingy& getChild(std::string childName);
     
+
+    void setParent(std::shared_ptr<Thingy> thingy);
+    void setName(std::string newName);
+    std::string getName();
+
     // not implemented yet (2)
     template<class ThingyType>
     std::vector<ThingyType*> getChildren();
     std::vector<std::shared_ptr<Thingy>> getChildren(std::string childName);
-   
 
     void removeChild(std::shared_ptr<Thingy> child);
     void removeChild(Thingy* child);
@@ -74,13 +117,7 @@ public:
     void removeChild(std::string childName);
     void removeChildren(std::string childName);
 
-    void setParent(std::shared_ptr<Thingy> thingy);
-    void setName(std::string newName);
-    std::string getName();
-
-
     static void serializeHierarchy(Thingy *root, std::string filename);
-    
 };
 
 
@@ -104,26 +141,30 @@ ComponentType& Thingy::getComponent() {
 
 
 template< class ComponentType >
-void Thingy::removeComponents(std::string value) {
+int Thingy::removeComponents(std::string value) {
+    int removedComponentCount = 0;
     for ( int i = 0; i < components.size(); i++ ) {
         if (components[i]->IsClassType( ComponentType::Type ) && 
             components[i]->value == value
         ) {
             components.erase(components.begin() + i);
+            removedComponentCount++;
         }
     }
+    return removedComponentCount;
 }
 
 template< class ComponentType >
-void Thingy::removeComponent(std::string value) {
+bool Thingy::removeComponent(std::string value) {
     for ( int i = 0; i < components.size(); i++ ) {
         if (components[i]->IsClassType( ComponentType::Type ) && 
             components[i]->value == value
         ) {
             components.erase(components.begin() + i);
-            return;
+            return true;
         }
     }
+    return false;
 }
 
 template< class ComponentType >

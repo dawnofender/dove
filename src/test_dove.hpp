@@ -38,7 +38,8 @@ void runTestGLM(const std::string testName, T result, T expected) {
     runTest(testName, glm::to_string(result), glm::to_string(expected));
 }
 
-int runTests() {
+void runTests() {
+    std::cout << "Running tests... " << std::endl;
 
     Thingy *a = new Thingy();
     Thingy *b = &a->addChild();
@@ -98,5 +99,5 @@ int runTests() {
         glm::vec3(0.5f, 2.f, 3.f)
     );
 
-    return 1;
+    std::cout << "Running tests: done" << std::endl;
 }

@@ -28,8 +28,12 @@ public:
     }
 
 
-    
+    // setMatrix directly sets the transformation matrix.
+    // Output: N/A
+    // Inputs: a 4x4 transformation matrix.
+    // Example: transform.setMatrix(glm::mat4(1)) sets the transform to the identity matrix.
     void setMatrix(glm::mat4 newTransform);
+
     void setPosition(glm::vec3 newPos);
     void setScale(glm::vec3 newScale);
     void setOrientation(glm::quat newRotation);

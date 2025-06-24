@@ -47,7 +47,7 @@ void Camera::render() {
 
     ObjectRenderer::drawAll();
     SkyRenderer::drawAll();
-    Physics::debugDrawAll();
+    // Physics::debugDrawAll();
 
     glfwSwapBuffers(&window->getGLFWwindow());
 }
