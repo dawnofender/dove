@@ -8,7 +8,8 @@
 #include <unordered_map>
 #include <functional>
 #include <cstddef>
-#include <src/thingy/thing.hpp>
+#include "../thingy/thing.hpp"
+#include "../thingy/archive/archiveThingy.hpp"
 
 
 
@@ -21,14 +22,10 @@ public:
         : value( initialValue ) { 
     }
     
-    virtual void serialize(std::ostream& out) {
-        out << value;
-    }
+    virtual void serialize(Archive& ar) override;
+    virtual void deserialize(Archive& ar) override;
 
-    virtual void unserialize(std::istream& in) {
-        in >> value;
-    }
-
+public:
     std::string value = "uninitialized";
     
 private: 

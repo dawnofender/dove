@@ -10,9 +10,7 @@ friend class RigidBody;
 protected:
     btCollisionShape* collisionShape; //FIX: needs to be deleted in destructor?
 public:
-    Collider( std::string && initialValue = "Collider", btCollisionShape* shape = nullptr)
-        : Component(std::move( initialValue )), collisionShape(shape) { 
-    }
+    Collider( std::string && initialValue = "Collider", btCollisionShape* shape = nullptr);
 };
 
 

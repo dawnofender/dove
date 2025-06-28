@@ -63,6 +63,8 @@ add_executable(dove
     src/dasset/material.cpp
     src/dasset/material.hpp
 
+
+    src/thingy/rtti_macros.hpp
     src/thingy/thing.cpp
     src/thingy/thing.hpp
     src/thingy/thingy.cpp
@@ -73,6 +75,8 @@ add_executable(dove
     src/thingy/panel/panelThingy.hpp
     src/thingy/panel/windowThingy.cpp
     src/thingy/panel/windowThingy.hpp
+    src/thingy/archive/archiveThingy.cpp
+    src/thingy/archive/archiveThingy.hpp
     
     src/components/component.cpp
     src/components/component.hpp

@@ -5,6 +5,9 @@
 #include "defaultAssets.hpp"
 #include "test_dove.hpp"
 
+#include "thingy/panel/windowThingy.hpp"
+#include "thingy/archive/archiveThingy.hpp"
+
 #include "components/transformComponent.hpp"
 #include "components/playerControllerComponent.hpp"
 #include "components/physics/physicsComponent.hpp"
@@ -90,7 +93,7 @@ int main() {
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
-    ground->addComponent<BoxCollider>("BoxCollider", ground, glm::vec3(16.f, 16.f, 16.f));
+    ground->addComponent<BoxCollider>("BoxCollider", glm::vec3(16.f, 16.f, 16.f));
     RigidBody *groundRigidBody = &ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
     groundRigidBody->setFriction(0.9f);
     
@@ -98,7 +101,7 @@ int main() {
     Thingy *testCube = &universe->addChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
     cubeTransform->setPosition({0, 16.f, 0});
-    testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
+    testCube->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
     testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 10.f);
     testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
     
@@ -106,7 +109,7 @@ int main() {
     Thingy *testCube2 = &universe->addChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform", testCube2);
     cubeTransform2->setPosition({0, 16.f, 0});
-    testCube2->addComponent<BoxCollider>("BoxCollider", testCube2, glm::vec3(.5f, .5f, .5f));
+    testCube2->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", physics, testCube2, 1.f);
     testCube2->addComponent<ObjectRenderer>("ObjectRenderer", testCube2, testMaterial2, cube);
     
@@ -123,7 +126,7 @@ int main() {
 
     double lastFrameTime = glfwGetTime();
     int nbFrames = 0;
-
+    int frame = 0;
 		
     double lastTime;
     double time;
@@ -137,6 +140,7 @@ int main() {
         lastTime = time;
         time = glfwGetTime();
         nbFrames++;
+        frame++;
         if ( time - lastFrameTime >= 1.0) { // If last cout was more than 1sec ago
             // print current framerate
             // while we're here, might as well print the player's location
@@ -159,10 +163,12 @@ int main() {
         
         // on click, make a cube
         if (glfwGetMouseButton(&window->getGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT)) {
-            Thingy *testCube = &universe->addChild("Cube");
-            testCube->addComponent<BoxCollider>("BoxCollider", testCube, glm::vec3(.5f, .5f, .5f));
-            testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 1.f);
-            testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
+            Thingy *testCube3 = &universe->addChild("Cube");
+            Transform *testCube3Transform = &testCube3->addComponent<Transform>("Transform", testCube3);
+            testCube3Transform->setPosition({0, 16.f, 0});
+            testCube3->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
+            testCube3->addComponent<RigidBody>("RigidBody", physics, testCube3, 1.f);
+            testCube3->addComponent<ObjectRenderer>("ObjectRenderer", testCube3, testMaterial, cube);
         }
         
         // if we fall into the void, go back to spawn
@@ -170,14 +176,45 @@ int main() {
             playerTransform->setGlobalMatrix(glm::mat4(1));
         }
 
-        
-        // # tick physics
+        // testing serialization
+        if (frame == 500) {
+            // save
+            {
+                std::cout << "creating file..." << std::endl;
+                std::ofstream file("universe.metadata", std::ios::binary);
+                std::cout << "creating archive..." << std::endl;
+                Archive archive(&file);
+                std::cout << "serializing..." << std::endl;
+                archive.serialize(universe);
+
+            }
+
+            // load
+            {
+                std::cout << "finding file..." << std::endl;
+                std::ifstream file("universe.metadata");
+                std::cout << "creating archive..." << std::endl;
+                Archive archive(&file);
+                std::cout << "deserializing..." << std::endl;
+                std::shared_ptr<Thingy> universe2 = std::make_shared<Thingy>();
+                archive.deserialize(universe2);
+                std::cout << "done" << std::endl;
+            }
+            
+            std::cout << std::endl << std::endl << std::endl;
+
+        }
+
+
+
+        // # important stuff
+        // tick physics
         Physics::simulateAll();
 
-        // # update components
+        // update components
         UpdatableComponent::updateAll();
 
-        // # render everything
+        // render everything
         Camera::renderAll();
 
     } while (glfwGetKey(&window->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&

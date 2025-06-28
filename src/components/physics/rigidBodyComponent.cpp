@@ -8,16 +8,25 @@ RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thi
     
     // get transform information
     transform = &host->getComponent<Transform>();
+    if (!transform) {
+        std::cerr << host->getName() << " : " << value << " : Transform not found, attempting fix" << std::endl;
+        transform = &host->addComponent<Transform>("Transform", host);
+    }
 
     glm::vec3 position = transform->getGlobalPosition();
     bulletTransform.setIdentity();
     bulletTransform.setOrigin(btVector3(position.x, position.y, position.z));
 
     // get shape of collider
-    // FIX: handle no collider found
     std::vector<btCollisionShape*> colliderShapes;
     for (auto && collider : host->getComponents<Collider>()) {
         colliderShapes.push_back(collider->collisionShape);
+    }
+    
+    // no collider found? 
+    if (!colliderShapes.size()) {
+        std::cerr << host->getName() << " : " << value << " : Colliders not found" << std::endl;
+        return;
     }
     
     // TODO: combine multiple colliders into one object

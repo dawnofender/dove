@@ -2,7 +2,6 @@
 #define DTHINGY_HPP
 
 #include "../components/component.hpp"
-#include "../dasset/metadata.hpp"
 #include <memory>
 #include <vector>
 #include <GL/glew.h>
@@ -17,6 +16,8 @@
 #include <iomanip>
 #include <sstream>
 
+class Archive;
+
 class Thingy : public Thing {
 CLASS_DECLARATION(Thingy)
 protected:
@@ -28,7 +29,6 @@ public:
 
 public:
     Thingy(std::string n = "") : name(n) {}
-    Thingy(Metadata *m);
     virtual ~Thingy();
     // Thingy(const Thingy&) = delete;
     // Thingy& operator=(const Thingy&) = delete;
@@ -117,7 +117,8 @@ public:
     void removeChild(std::string childName);
     void removeChildren(std::string childName);
 
-    static void serializeHierarchy(Thingy *root, std::string filename);
+    void serialize(Archive& ar) override;
+    void deserialize(Archive& ar) override;
 };
 
 
