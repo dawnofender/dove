@@ -23,7 +23,7 @@ public:
     }
     
     virtual void serialize(Archive& ar) override;
-    virtual void deserialize(Archive& ar) override;
+    virtual void load() override;
 
 public:
     std::string value = "uninitialized";

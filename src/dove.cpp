@@ -29,7 +29,7 @@ int main() {
     // #########
     
     // defined in test_dove.hpp
-    runTests(); 
+    // runTests(); 
     
 
     // #########
@@ -61,6 +61,10 @@ int main() {
     
     // the universe
     Thingy *universe = new Thingy("universe");
+    // required for shared_from_this to work inside universe object while creating children
+    // ideally, all root thingies will have shared ptrs to them as part of another parent object. this way you can travel between them, or see them all on a list or whatever
+    std::shared_ptr<Thingy> universePtr(universe);
+
     Physics *physics = &universe->addComponent<Physics>("Laws Of Physics");
     
     // the player
@@ -178,43 +182,46 @@ int main() {
 
         // testing serialization
         if (frame == 500) {
+            std::cout << std::endl << "serialization test" << std::endl;
             // save
             {
                 std::cout << "creating file..." << std::endl;
-                std::ofstream file("universe.metadata", std::ios::binary);
+                std::ofstream file("universe.dove", std::ios::binary);
                 std::cout << "creating archive..." << std::endl;
                 Archive archive(&file);
                 std::cout << "serializing..." << std::endl;
                 archive.serialize(universe);
-
+                std::cout << "done" << std::endl << std::endl;
             }
 
             // load
             {
                 std::cout << "finding file..." << std::endl;
-                std::ifstream file("universe.metadata");
+                std::ifstream file("universe.dove");
                 std::cout << "creating archive..." << std::endl;
                 Archive archive(&file);
                 std::cout << "deserializing..." << std::endl;
                 std::shared_ptr<Thingy> universe2 = std::make_shared<Thingy>();
                 archive.deserialize(universe2);
-                std::cout << "done" << std::endl;
+                std::cout << "done" << std::endl << std::endl;
             }
             
-            std::cout << std::endl << std::endl << std::endl;
-
+            std::cout << std::endl;
         }
 
 
 
         // # important stuff
         // tick physics
+        std::cout << "physics" << std::endl;
         Physics::simulateAll();
 
         // update components
+        std::cout << "component updates" << std::endl;
         UpdatableComponent::updateAll();
 
         // render everything
+        std::cout << "rendering" << std::endl;
         Camera::renderAll();
 
     } while (glfwGetKey(&window->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&

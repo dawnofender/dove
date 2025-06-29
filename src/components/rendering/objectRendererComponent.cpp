@@ -11,12 +11,18 @@
 CLASS_DEFINITION(MeshRenderer, ObjectRenderer)
 
 
+ObjectRenderer::ObjectRenderer(std::string &&initialValue) 
+    : MeshRenderer(std::move(initialValue)) {}
+
 ObjectRenderer::ObjectRenderer(std::string &&initialValue, Thingy *h, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m)
-    : MeshRenderer(std::move(initialValue), s, m), host(h) {
-    
+    : MeshRenderer(std::move(initialValue), s, m), host(h) {}
+
+void ObjectRenderer::load() {
     if (host) transform = &host->getComponent<Transform>();
     renderers.push_back(this);
+    MeshRenderer::load();
 }
+
 
 ObjectRenderer::~ObjectRenderer() {
     deleteBuffers();

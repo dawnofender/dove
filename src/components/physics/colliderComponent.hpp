@@ -8,9 +8,10 @@ class Collider : public Component {
 CLASS_DECLARATION(Collider)
 friend class RigidBody;
 protected:
-    btCollisionShape* collisionShape; //FIX: needs to be deleted in destructor?
+    btCollisionShape* collisionShape = nullptr; //FIX: needs to be deleted in destructor?
 public:
-    Collider( std::string && initialValue = "Collider", btCollisionShape* shape = nullptr);
+    Collider(std::string && initialValue = "Collider");
+    Collider(std::string && initialValue, btCollisionShape* shape);
 };
 
 

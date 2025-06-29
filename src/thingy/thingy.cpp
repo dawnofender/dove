@@ -6,17 +6,12 @@
 CLASS_DEFINITION(Thing, Thingy)
 
 void Thingy::serialize(Archive& ar) {
-    std::cout << "serializing " << name << ": " << std::endl;
-    ar << name << children << components;
-    std::cout << name << ": done" << std::endl;
+    ar & name & parent & children & components;
+    std::cout << "archiving " << name << ": done" << std::endl;
 }
 
-void Thingy::deserialize(Archive& ar) {
-    std::cout << "deserializing ";
-    ar >> name;
-    std::cout << name << ": ";
-    ar >> children >> components;
-    std::cout << "done" << std::endl;
+void Thingy::load() {
+    std::cout << "loading " << name << std::endl;
 }
 
 Thingy::~Thingy() {
@@ -27,6 +22,7 @@ Thingy::~Thingy() {
             p->addChild(child);
             child.reset();
         } else {
+            std::cerr << name << ": Destructor error: Failed to lock parent ptr, children orphaned" << std::endl;
             // handle whatever happens if locking the parent ptr doesnt work
         }
     }
@@ -46,6 +42,7 @@ void Thingy::addChild(std::shared_ptr<Thingy> child) {
     if (!weak_from_this().expired()) {
         child->parent = new_shared_from_this();
     } else {
+        std::cerr << name << ": addChild error: Thingy does not have a shared_ptr to it, cannot set child's parent" << std::endl;
         //handle it differently idk
     }
 }

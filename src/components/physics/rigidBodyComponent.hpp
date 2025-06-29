@@ -19,8 +19,9 @@ class RigidBody : public Component {
 CLASS_DECLARATION(RigidBody)
 friend class Physics;
 private:
-    Thingy* host;
+    Thingy *host;
     Transform *transform;
+    Physics *physicsComponent;
     static inline std::vector<RigidBody *> rigidBodies;
 protected:
     btTransform bulletTransform;
@@ -34,7 +35,8 @@ public:
     float mass;
 
 public:
-    RigidBody(std::string && initialValue = "RigidBody", Physics *physicsComponent = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
+    RigidBody(std::string && initialValue = "RigidBody");
+    RigidBody(std::string && initialValue, Physics *p = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
 
     void syncFromTransform();
     void syncToTransform();
@@ -60,6 +62,8 @@ public:
 
     void addForce(glm::vec3 force);
     void addForce(glm::vec3 force, glm::vec3 offset);
+
+    virtual void load() override;
 };
 
 

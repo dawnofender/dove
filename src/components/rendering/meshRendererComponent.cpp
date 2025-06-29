@@ -12,9 +12,13 @@
 CLASS_DEFINITION(Component, MeshRenderer)
 
 
+MeshRenderer::MeshRenderer(std::string &&initialValue) 
+    : Component(std::move(initialValue)) {}
+
 MeshRenderer::MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m)
-    : Component(std::move(initialValue)), material(s), mesh(m) {
-    
+    : Component(std::move(initialValue)), material(s), mesh(m) {}
+
+void MeshRenderer::load() {
     setupBufferData();
 }
 
@@ -23,6 +27,7 @@ MeshRenderer::~MeshRenderer() {
 }
 
 void MeshRenderer::setupBufferData() {
+    std::cout << "MeshRenderer: setting up buffer data" << std::endl;
 
     // VAO
     glGenVertexArrays(1, &VertexArrayID);

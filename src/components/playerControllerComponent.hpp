@@ -21,7 +21,8 @@ private:
     float yaw;
 
 public: 
-    PlayerController(std::string && initialValue = "PlayerController", Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 10000, float j = 1500, float m = 1.5f, float ms = 0.01);
+    PlayerController(std::string && initialValue = "PlayerController");
+    PlayerController(std::string && initialValue, Physics* p = nullptr, Thingy* h = nullptr, Thingy* c = nullptr, RigidBody* r = nullptr, Transform* t = nullptr, float s = 10000, float j = 1500, float m = 1.5f, float ms = 0.01);
     
     void update();
     
@@ -29,6 +30,8 @@ public:
     float walkSpeed;
     float jumpStrength;
     float maxIncline;
+
+    // virtual void serialize(Archive& ar) override;
 };
 
 

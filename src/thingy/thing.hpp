@@ -20,8 +20,6 @@
 // The base Thing class has just the bare minimum functionality, and is not meant to be interacted with in-world.
 // There is no tree structure - derived classes must implement this.
 
-// NOTE: consider using composition instead - this method is nice but it could get messy
-
 // NOTE: every thing-derived class must be constructable with no passed arguments.
 //  - this is for serialization: create all the things, then give them the data.
 //    the error thrown if you forget a constructor originates in the way ThingFactory registers new thing types.
@@ -31,8 +29,10 @@
 // TODO: maybe find a more efficient way to accomplish this? 
 // when objects are first constructed with no arguments, it takes extra time to assign them.
 // also its just kind of annoying to make every thing class work this way
-//
-// TODO: separate serializability from thing and use multiple inheritance for this instead
+
+// TODO: 
+//  - separate serializability from thing and use multiple inheritance for this instead
+//      - 'Archivable' base class
 
 class Archive;
 
@@ -62,7 +62,7 @@ public:
     }
 
     virtual void serialize(Archive& ar) {}
-    virtual void deserialize(Archive& ar) {}
+    virtual void load() {} // called after all things are deserialized
 };
 
 
@@ -78,10 +78,9 @@ public:
 
     // Registers a factory function for a given type‐hash.
     // Returns true if inserted; false if type was already registered.
-    bool registerType(std::size_t typeHash, std::function<std::unique_ptr<Thing>()> creator)
-    {
+    bool registerType(std::size_t typeHash, std::function<std::unique_ptr<Thing>()> creator, std::string name) {
         std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "registered type hash " << typeHash << std::endl;
+        std::cout << "registered type hash " << typeHash << " : " << name << std::endl;
         auto res = creators_.emplace(typeHash, std::move(creator));
         return res.second;
     }

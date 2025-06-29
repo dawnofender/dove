@@ -32,7 +32,10 @@ protected:
     GLuint elementBuffer;
 
 public:
-    MeshRenderer(std::string && initialValue = "MeshRenderer", std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr);
+    MeshRenderer(std::string && initialValue = "MeshRenderer");
+    MeshRenderer(std::string && initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m);
+
+    virtual void load() override;    
 
     virtual ~MeshRenderer();
 
@@ -48,6 +51,8 @@ public:
 
     static void drawAll();
     static void deleteAll();
+
+
 };
 
 #endif

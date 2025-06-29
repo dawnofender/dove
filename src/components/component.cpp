@@ -4,11 +4,12 @@ CLASS_DEFINITION(Thing, Component)
 
 
 void Component::serialize(Archive& ar) {
-    ar << value;
+    ar & value;
+    std::cout << "archived " << value << std::endl;
 }
 
-void Component::deserialize(Archive& ar) {
-    ar >> value;
+void Component::load() {
+    std::cout << "loading " << value << std::endl;
 }
 
 // const std::size_t Component::Type = std::hash<std::string>()(TO_STRING(Component));

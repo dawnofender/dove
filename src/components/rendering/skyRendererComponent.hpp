@@ -7,11 +7,13 @@
 class SkyRenderer : public MeshRenderer {
 CLASS_DECLARATION(SkyRenderer)
 public: 
-    SkyRenderer(std::string &&initialValue = "SkyRenderer", std::shared_ptr<Material> s = nullptr, std::shared_ptr<MeshData> m = nullptr);
+    SkyRenderer(std::string &&initialValue = "SkyRenderer");
+    SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m);
 
     static void drawAll();
     void setupBufferData();
     void draw();
+    virtual void load() override;
 
 private: 
     static inline std::vector<SkyRenderer *> renderers;

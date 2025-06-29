@@ -28,6 +28,7 @@ void Camera::renderAll() {
     for (auto && camera : cameras) {
         camera->render();
     }
+    std::cout << "done rendering" << std::endl;
     glfwPollEvents();
 }
 

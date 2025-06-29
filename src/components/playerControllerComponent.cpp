@@ -5,9 +5,11 @@
 #include <glm/gtx/rotate_vector.hpp>
 
 
-
 CLASS_DEFINITION(Component, PlayerController)
 
+
+PlayerController::PlayerController(std::string && initialValue)
+    : UpdatableComponent(std::move(initialValue)) {}
 
 PlayerController::PlayerController(
     std::string && initialValue, 

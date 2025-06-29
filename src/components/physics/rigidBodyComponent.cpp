@@ -2,10 +2,15 @@
 
 CLASS_DEFINITION(Component, RigidBody)
 
+RigidBody::RigidBody(std::string && initialValue) 
+    : Component(std::move(initialValue)) {}
 
-RigidBody::RigidBody(std::string && initialValue, Physics *physicsComponent, Thingy *h, float m, bool k, bool s) 
-    : Component(std::move(initialValue)), host(h), mass(m), b_kinematic(k), b_static(s) {
-    
+RigidBody::RigidBody(std::string && initialValue, Physics *p, Thingy *h, float m, bool k, bool s) 
+    : Component(std::move(initialValue)), physicsComponent(p), host(h), mass(m), b_kinematic(k), b_static(s) {
+    load();
+}
+
+void RigidBody::load() {
     // get transform information
     transform = &host->getComponent<Transform>();
     if (!transform) {

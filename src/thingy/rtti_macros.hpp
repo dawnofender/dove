@@ -13,7 +13,6 @@
 // https://stackoverflow.com/questions/44105058/implementing-component-system-from-unity-in-c
 // many changes have been made to support serialization
 
-class Archive;
 
 #define TO_STRING( x ) #x
 
@@ -28,8 +27,6 @@ public:                                                                         
     static const std::size_t Type;                                                          \
     virtual bool IsClassType( const std::size_t classType ) const override;                 \
     virtual std::size_t getType() const override;                                           \
-    // virtual void serialize(Archive& ar) const override;                                     \
-    // virtual void deserialize(Archive& ar) const override;                                   \
 
 //****************
 // CLASS_DEFINITION
@@ -62,7 +59,8 @@ public:                                                                         
                 childclass::Type,                                                       \
                 []() -> std::unique_ptr<Thing> {                                        \
                     return std::make_unique<childclass>();                              \
-                }                                                                       \
+                },                                                                      \
+                TO_STRING( childclass )                                                 \
             );                                                                          \
     }                                                                                   \
 
