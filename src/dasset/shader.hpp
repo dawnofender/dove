@@ -7,16 +7,29 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <lib/shaderLoader.hpp>
+#include "asset.hpp"
 
-class Shader {
-private: 
-    bool active;
+
+// TODO: 
+//  - A shader is really just the file that contains the shader code, so we could make it inherit from file thing
+
+class Shader : public Asset {
+CLASS_DECLARATION(Shader)
 public: 
-    GLuint ID;
 
-    Shader(const char* vertexFile, const char* fragmentFile);
+    Shader(std::string && initialName = "Shader");
+    Shader(std::string && initialName, std::string && vertexFile, std::string && fragmentFile);
+    
+    virtual void serialize(Archive& archive) override;
+    virtual void init() override;
+    
+    GLuint ID;
     void Activate();
     void Delete();
+
+private: 
+    std::string vertexFile;
+    std::string fragmentFile;
 };
 
 

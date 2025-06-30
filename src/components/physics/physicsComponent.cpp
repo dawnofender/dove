@@ -11,7 +11,14 @@ CLASS_DEFINITION(Component, Physics)
 
 
 Physics::Physics(std::string &&initialValue)
-    : Component(std::move(initialValue)) {
+    : Component(std::move(initialValue)) {}
+
+Physics::~Physics() {
+    physicsWorlds.erase(std::remove(physicsWorlds.begin(), physicsWorlds.end(), this), physicsWorlds.end());
+}
+
+
+void Physics::init() {
     // Build the broadphase
 	// filterCallback = new btOverlapFilterCallback();
     // pairCache = new btHashedOverlappingPairCache();
@@ -42,12 +49,8 @@ Physics::Physics(std::string &&initialValue)
 
     physicsWorlds.push_back(this);
 
-    // there is absolutely a better way to do this, but the tick callback has to be static for whatever reason, but I also want it to know which physics component is active, sooo we're using an unordered map to get that information for now
+    // i'm so sure there is a better way to do this, but the tick callback has to be static for whatever reason, but I also want it to know which physics component is active, sooo we're using an unordered map to get that information for now
     worldMap.insert(std::make_pair(dynamicsWorld, this));
-}
-
-Physics::~Physics() {
-    physicsWorlds.erase(std::remove(physicsWorlds.begin(), physicsWorlds.end(), this), physicsWorlds.end());
 }
 
 void Physics::OnSimulationTick(btDynamicsWorld *world, btScalar timeStep) { 
@@ -143,21 +146,25 @@ RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distan
 }
 
 void Physics::simulateAll() {
+    std::cout << "syncing from transforms" << std::endl;
     RigidBody::syncFromTransforms();
     for (auto && world : physicsWorlds) {
-
+        std::cout << "simulating world" << std::endl;
         world->simulate();
     }
+    
+    std::cout << "syncing transforms" << std::endl;
     RigidBody::syncToTransforms();
+    std::cout << "syncing transforms: done" << std::endl;
 }
 
 void Physics::simulate() {
-
     time = glfwGetTime();
     // deltaTime = time - lastTime;
     deltaTime = 0.01f;
     lastTime = time;
 
+    std::cout << "stepping simulation" << std::endl;
     dynamicsWorld->stepSimulation(deltaTime);
     dynamicsWorld->performDiscreteCollisionDetection();
 }

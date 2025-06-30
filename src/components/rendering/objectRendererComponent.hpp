@@ -14,11 +14,16 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <set>
 
 #include <src/dasset/material.hpp>
 #include <src/dasset/mesh.hpp>
 #include "meshRendererComponent.hpp"
 
+
+// NOTE: this component may be renamed
+//  - it will be different from meshRenderer, as you will be able to assign multiple different materials to different parts of the mesh.
+//  - so 'skinned mesh renderer' is a pretty solid name but i wanna be different lol
 
 class ObjectRenderer : public MeshRenderer {
 CLASS_DECLARATION(ObjectRenderer)
@@ -31,22 +36,24 @@ private:
 
     std::pair<glm::vec3, glm::vec3> bounds;
     
-    static inline std::vector<ObjectRenderer *> renderers;
+    static inline std::set<ObjectRenderer *> renderers;
 
 protected:
     uint8_t state = 1;
 
 public:
-    ObjectRenderer(std::string &&initialValue = "ObjectRenderer");
-    ObjectRenderer(std::string &&initialValue , Thingy *h, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m);
+    ObjectRenderer(std::string &&initialValue = "ObjectRenderer", Thingy *h = nullptr, std::shared_ptr<Material> s = nullptr, std::shared_ptr<Mesh> m = nullptr);
 
-    ~ObjectRenderer();
+    virtual ~ObjectRenderer();
+
+    virtual void serialize(Archive& archive) override;
+    virtual void init() override;
+
     void draw();
     void setBounds(glm::vec3 a, glm::vec3 b);
 
     static void drawAll();
     static void deleteAll();
-    void load() override;
 };
 
 #endif

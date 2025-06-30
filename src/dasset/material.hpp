@@ -1,6 +1,7 @@
 #ifndef DMATERIAL_HPP
 #define DMATERIAL_HPP
 
+#include "asset.hpp"
 #include "shader.hpp"
 #include "texture.hpp"
 #include <memory>
@@ -10,10 +11,13 @@
 #include <iostream>
 
 
-class Material {
+class Material : public Asset {
+CLASS_DECLARATION(Material)
 public:
-    Material(std::shared_ptr<Shader> s = nullptr, std::vector<std::shared_ptr<Texture>> t = {nullptr});
+    Material(std::string && name = "Material", std::shared_ptr<Shader> s = nullptr, std::vector<std::shared_ptr<Texture>> t = {nullptr});
     
+    virtual void serialize(Archive& archive) override;
+
     bool Activate(glm::mat4 modelMatrix);
     void setTexture(int i, std::shared_ptr<Texture> newTexture);
     

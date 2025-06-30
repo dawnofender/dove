@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <src/thingy/thingy.hpp>
+#include <set>
 
 // TODO: 
 //  - replace GLFWwindow with a render target object (that can contain a window)
@@ -17,8 +18,11 @@ class Camera : public Component {
 CLASS_DECLARATION(Camera)
 public:
     Camera(std::string &&initialValue = "Camera", Thingy* h = nullptr, Window* w = nullptr, float fov = 90.f, int dw = 1024, int dh = 768, float n = .1f, float f = 1024.f);
-    ~Camera();
+    virtual ~Camera();
     
+    virtual void serialize(Archive& archive) override;
+    virtual void init() override;
+
     static glm::mat4 getProjectionMatrix();
     static glm::mat4 getViewMatrix();
     static void renderAll();
@@ -26,7 +30,7 @@ public:
 
 private: 
     Thingy *host;
-    Window *window = nullptr; 
+    Window *window; 
     static inline glm::mat4 projectionMatrix;
     static inline glm::mat4 viewMatrix;
 	float FoV;
@@ -36,7 +40,7 @@ private:
     float far;
 
 protected:
-    static inline std::vector<Camera *> cameras;
+    static inline std::set<Camera *> cameras;
 };
 
 

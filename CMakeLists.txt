@@ -52,8 +52,8 @@ add_executable(dove
     src/defaultAssets.hpp
     src/defaultAssets.cpp
 
-    src/dasset/metadata.cpp
-    src/dasset/metadata.hpp
+    src/dasset/asset.cpp
+    src/dasset/asset.hpp
     src/dasset/mesh.cpp
     src/dasset/mesh.hpp
     src/dasset/texture.cpp

@@ -15,10 +15,16 @@ CLASS_DEFINITION(Component, MeshRenderer)
 MeshRenderer::MeshRenderer(std::string &&initialValue) 
     : Component(std::move(initialValue)) {}
 
-MeshRenderer::MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m)
+MeshRenderer::MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m)
     : Component(std::move(initialValue)), material(s), mesh(m) {}
 
-void MeshRenderer::load() {
+void MeshRenderer::serialize(Archive& archive) {
+    Component::serialize(archive);
+    archive & mesh & material;
+}
+
+
+void MeshRenderer::init() {
     setupBufferData();
 }
 

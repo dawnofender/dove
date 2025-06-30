@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <set>
 
 // TODO: 
 // - if physicsComponent isn't given, it should just use the host and climb up through the hierarchy looking for a thingy with a physics component
@@ -18,25 +19,29 @@
 class RigidBody : public Component {
 CLASS_DECLARATION(RigidBody)
 friend class Physics;
+
 private:
-    Thingy *host;
-    Transform *transform;
-    Physics *physicsComponent;
-    static inline std::vector<RigidBody *> rigidBodies;
+    Thingy *host = nullptr;
+    Transform *transform = nullptr;
+    Physics *physicsComponent = nullptr;
+    static inline std::set<RigidBody *> rigidBodies;
+
 protected:
-    btTransform bulletTransform;
-    btDefaultMotionState* motionstate;
-    btRigidBody *bulletRigidBody;
-    std::vector<Collider*> colliders;
+    btDefaultMotionState* motionstate = nullptr;
+    btRigidBody *bulletRigidBody = nullptr;
+    std::vector<Collider*> colliders = {nullptr};
     bool b_kinematic;
     bool b_static;
 
 public: 
-    float mass;
+    float mass = 0;
 
 public:
-    RigidBody(std::string && initialValue = "RigidBody");
-    RigidBody(std::string && initialValue, Physics *p = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
+    RigidBody(std::string && initialValue = "RigidBody", Physics *p = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
+    ~RigidBody();
+
+    virtual void serialize(Archive& archive) override;
+    virtual void init() override;
 
     void syncFromTransform();
     void syncToTransform();
@@ -62,8 +67,7 @@ public:
 
     void addForce(glm::vec3 force);
     void addForce(glm::vec3 force, glm::vec3 offset);
-
-    virtual void load() override;
+    
 };
 
 

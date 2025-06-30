@@ -18,14 +18,11 @@
 
 class Transform : public Component {
 CLASS_DECLARATION(Transform)
-public: 
-    glm::mat4 transform;
-    Thingy* host;
 
 public: 
-    Transform(std::string && initialValue = "Transform", Thingy* h = nullptr, glm::mat4 t = glm::mat4(1))
-        : Component(std::move(initialValue)), host(h), transform(t) {
-    }
+
+    Transform(std::string && initialValue = "Transform");
+    Transform(std::string && initialValue, Thingy* h, glm::mat4 t = glm::mat4(1));
 
 
     // setMatrix directly sets the transformation matrix.
@@ -58,7 +55,12 @@ public:
     glm::vec3 getGlobalPosition();
     glm::vec3 getGlobalScale();
     glm::quat getGlobalOrientation();
+    
+    virtual void serialize(Archive& archive) override;
+
 private:
+    Thingy* host = nullptr;
+    glm::mat4 transform;
     glm::mat4 parentTransform;
     void updateChildTransforms();
 };

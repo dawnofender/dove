@@ -4,11 +4,11 @@ CLASS_DEFINITION(Component, UpdatableComponent)
 
 UpdatableComponent::UpdatableComponent(std::string && initialValue) 
     : Component(std::move(initialValue)) {
-    updatableComponents.push_back(this);
+    updatableComponents.insert(this);
 }
 
 UpdatableComponent::~UpdatableComponent() {
-    updatableComponents.erase(std::remove(updatableComponents.begin(), updatableComponents.end(), this), updatableComponents.end());
+    updatableComponents.erase(this);
 }
 
 void UpdatableComponent::updateAll() {

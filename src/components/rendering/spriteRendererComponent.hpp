@@ -8,7 +8,7 @@ class SpriteRenderer : public MeshRenderer {
   CLASS_DECLARATION(SpriteRenderer)
 private: 
   std::shared_ptr<Shader> shader;
-  std::shared_ptr<MeshData> mesh;
+  std::shared_ptr<Mesh> mesh;
 
   GLuint VertexArrayID;
 
@@ -28,7 +28,7 @@ private:
   static inline std::vector<MeshRenderer *> renderers;
   static inline std::mutex m_renderers;
 public: 
-  SpriteRenderer(std::string &&initialValue = "SpriteRenderer", std::shared_ptr<Shader> s = nullptr, std::shared_ptr<MeshData> m = nullptr)
+  SpriteRenderer(std::string &&initialValue = "SpriteRenderer", std::shared_ptr<Shader> s = nullptr, std::shared_ptr<Mesh> m = nullptr)
       : MeshRenderer(std::move(initialValue), s, m) {
     setupBufferData();
 
@@ -47,7 +47,7 @@ public:
   void draw();
   void deleteBuffers();
   void setBounds(glm::vec3 a, glm::vec3 b);
-  std::shared_ptr<MeshData> getMesh();
+  std::shared_ptr<Mesh> getMesh();
 
   static void drawAll();
 };

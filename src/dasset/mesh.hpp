@@ -8,10 +8,16 @@
 #include <string>
 #include <cstring>
 #include <memory>
+#include "asset.hpp"
 
 struct MeshLayer;
 
-struct MeshData {
+class Mesh : public Asset {
+CLASS_DECLARATION(Mesh)
+public: 
+    Mesh(std::string && initialName = "Mesh");
+    
+    virtual void serialize(Archive& archive) override;
 
     std::vector<std::unique_ptr<MeshLayer>> layers;
     // NOTE: currently, layers have to be in a specifc order for shaders to know what to do with them.
@@ -22,9 +28,8 @@ struct MeshData {
     
     std::vector<unsigned> indices;
     
-    MeshData() = default;
 
-    // MeshData( MeshData& source ) {
+    // Mesh( MeshData& source ) {
     //     layers = source.layers;
     //     indices = source.indices;
     // }
@@ -38,7 +43,7 @@ struct MeshData {
 };
 
 template< class LayerType, typename... Args >
-LayerType& MeshData::addLayer(Args&&... args) {
+LayerType& Mesh::addLayer(Args&&... args) {
     auto layer = std::make_unique<LayerType>(std::forward<Args>(args)...);
     LayerType& ref = *layer;
     layers.emplace_back(std::move(layer));
@@ -49,16 +54,21 @@ LayerType& MeshData::addLayer(Args&&... args) {
 // NOTE: structure of meshes and relationship to layers is similar to thingies and components.
 // maybe this could be simplified later
 
-class MeshLayer {
+class MeshLayer : public Thing{
+CLASS_DECLARATION(MeshLayer)
 public:
     static const unsigned elementSize;
     std::vector<unsigned> data;
     
-    MeshLayer() = default;
+    MeshLayer() {}
 
     // Copy constructor
     MeshLayer(const MeshLayer& source) {
         data = source.data;
+    }
+
+    virtual void serialize(Archive& archive) override {
+        archive & data;
     }
 
     // Constructor from type and data vector
@@ -82,12 +92,16 @@ public:
 };
 
 class IndexLayer : public MeshLayer {
+CLASS_DECLARATION(IndexLayer)
 public:
-    static const unsigned elementSize = 1;
-    std::vector<unsigned> data;
+    IndexLayer() {}
 
     IndexLayer(const std::vector<unsigned>& inputData) {
         data = std::vector<unsigned>(inputData);
+    }
+
+    virtual void serialize(Archive& archive) override {
+        archive & data;
     }
 
     virtual std::size_t getSize() override {
@@ -101,15 +115,22 @@ public:
     virtual unsigned getElementSize() const override {
         return elementSize;
     }
+
+    static const unsigned elementSize = 1;
+    std::vector<unsigned> data;
 };
 
 class Vec2Layer : public MeshLayer {
+CLASS_DECLARATION(Vec2Layer)
 public:
-    static const unsigned elementSize = 2;
-    std::vector<glm::vec2> data;
+    Vec2Layer() {}
 
     Vec2Layer(const std::vector<glm::vec2>& inputData) {
         data = std::vector<glm::vec2>(inputData);
+    }
+
+    virtual void serialize(Archive& archive) override {
+        archive & data;
     }
 
     virtual std::size_t getSize() override {
@@ -123,15 +144,22 @@ public:
     virtual unsigned getElementSize() const override {
         return elementSize;
     }
+    
+    static const unsigned elementSize = 2;
+    std::vector<glm::vec2> data;
 };
 
 class Vec3Layer : public MeshLayer {
+CLASS_DECLARATION(Vec3Layer)
 public:
-    static const unsigned elementSize = 3;
-    std::vector<glm::vec3> data;
+    Vec3Layer() {}
 
     Vec3Layer(const std::vector<glm::vec3>& inputData) {
         data = std::vector<glm::vec3>(inputData);
+    }
+
+    virtual void serialize(Archive& archive) override {
+        archive & data;
     }
 
     virtual std::size_t getSize() override {
@@ -145,15 +173,22 @@ public:
     virtual unsigned getElementSize() const override {
         return elementSize;
     }
+
+    static const unsigned elementSize = 3;
+    std::vector<glm::vec3> data;
 };
 
 class Vec4Layer : public MeshLayer {
+CLASS_DECLARATION(Vec4Layer)
 public:
-    static const unsigned elementSize = 4;
-    std::vector<glm::vec4> data;
+    Vec4Layer() {}
 
     Vec4Layer(const std::vector<glm::vec4>& inputData) {
         data = std::vector<glm::vec4>(inputData);
+    }
+
+    virtual void serialize(Archive& archive) override {
+        archive & data;
     }
 
     virtual std::size_t getSize() override {
@@ -163,5 +198,10 @@ public:
     virtual unsigned getElementSize() const override {
         return elementSize;
     }
+
+    static const unsigned elementSize = 4;
+    std::vector<glm::vec4> data;
 };
+
+
 #endif

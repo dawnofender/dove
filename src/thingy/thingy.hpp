@@ -118,7 +118,7 @@ public:
     void removeChildren(std::string childName);
 
     void serialize(Archive& ar) override;
-    void load() override;
+    void init() override;
 };
 
 
@@ -127,7 +127,7 @@ ComponentType& Thingy::addComponent(Args&&... args) {
     auto component = std::make_unique<ComponentType>(std::forward<Args>(args)...);
     ComponentType& ref = *component;
     components.emplace_back(std::move(component));
-    components.back()->load();
+    components.back()->init();
     return ref;
 }
 

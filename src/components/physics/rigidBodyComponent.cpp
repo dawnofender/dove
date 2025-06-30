@@ -2,15 +2,29 @@
 
 CLASS_DEFINITION(Component, RigidBody)
 
-RigidBody::RigidBody(std::string && initialValue) 
-    : Component(std::move(initialValue)) {}
-
 RigidBody::RigidBody(std::string && initialValue, Physics *p, Thingy *h, float m, bool k, bool s) 
-    : Component(std::move(initialValue)), physicsComponent(p), host(h), mass(m), b_kinematic(k), b_static(s) {
-    load();
+    : Component(std::move(initialValue)), physicsComponent(p), host(h), mass(m), b_kinematic(k), b_static(s) {}
+
+RigidBody::~RigidBody() {
+    rigidBodies.erase(this);
 }
 
-void RigidBody::load() {
+void RigidBody::serialize(Archive& archive) {
+    // Component::serialize(archive);
+    archive & 
+        value &
+        host &
+        transform &
+        physicsComponent &
+        colliders &
+        b_kinematic &
+        b_static &
+        mass;
+}
+
+void RigidBody::init() {
+    Component::init();
+    std::cout << "ini component of type RigidBody" << std::endl;
     // get transform information
     transform = &host->getComponent<Transform>();
     if (!transform) {
@@ -19,6 +33,7 @@ void RigidBody::load() {
     }
 
     glm::vec3 position = transform->getGlobalPosition();
+    btTransform bulletTransform;
     bulletTransform.setIdentity();
     bulletTransform.setOrigin(btVector3(position.x, position.y, position.z));
 
@@ -57,7 +72,7 @@ void RigidBody::load() {
     // bulletRigidBody->setActivationState(DISABLE_DEACTIVATION); // make this toggleable too 
     physicsComponent->dynamicsWorld->addRigidBody(bulletRigidBody);
 
-    rigidBodies.push_back(this);
+    rigidBodies.insert(this);
 }
 
 void RigidBody::addForce(glm::vec3 force) {
@@ -71,16 +86,33 @@ void RigidBody::addForce(glm::vec3 force, glm::vec3 offset) {
 }
 
 void RigidBody::syncFromTransform() {
+    if (!transform) {
+        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: transform component not found" << std::endl;
+        return;
+    }
+    if (!bulletRigidBody) {
+        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: bullet3 rigidbody not found" << std::endl;
+        return;
+    }
     float bulletTransformMatrix[16];
     // get transform matrix from transform component, but with reset scale
     glm::mat4 oglTransformMatrix = glm::scale(transform->getGlobalMatrix(), glm::vec3(1) / transform->getGlobalScale());
     memcpy(bulletTransformMatrix, (void*)glm::value_ptr(oglTransformMatrix), 16*sizeof(GLfloat));
     
+    btTransform bulletTransform;
     bulletTransform.setFromOpenGLMatrix(bulletTransformMatrix);
     bulletRigidBody->setWorldTransform(bulletTransform);
 }
 
 void RigidBody::syncToTransform() {
+    if (!transform) {
+        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: transform not set" << std::endl;
+        return;
+    }
+    if (!bulletRigidBody) {
+        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: bullet3 rigidbody not found" << std::endl;
+        return;
+    }
     float bulletTransformMatrix[16];
     bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
     glm::mat4 oglTransformMatrix = glm::make_mat4(bulletTransformMatrix);

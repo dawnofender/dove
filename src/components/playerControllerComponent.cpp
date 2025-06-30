@@ -8,9 +8,6 @@
 CLASS_DEFINITION(Component, PlayerController)
 
 
-PlayerController::PlayerController(std::string && initialValue)
-    : UpdatableComponent(std::move(initialValue)) {}
-
 PlayerController::PlayerController(
     std::string && initialValue, 
     Physics* p, 
@@ -23,8 +20,7 @@ PlayerController::PlayerController(
     float m, 
     float ms
 ) 
-    : UpdatableComponent(
-    std::move(initialValue)), 
+    : UpdatableComponent(std::move(initialValue)), 
     physicsComponent(p), 
     host(h), 
     camera(c), 
@@ -36,11 +32,27 @@ PlayerController::PlayerController(
     mouseSensitivity(ms) 
 {}
 
+void PlayerController::serialize(Archive& archive) {
+    Component::serialize(archive);
+    archive &
+        host &
+        camera &
+        cameraTransform &
+        physicsComponent &
+        playerRigidBody &
+        jumpTimer &
+        jumpCooldown &
+        pitch &
+        yaw &
+        mouseSensitivity &
+        walkSpeed &
+        jumpStrength &
+        maxIncline;
+}
 
 
 void PlayerController::update() {
     
-    // TODO: add error messages
     GLFWwindow* window = &Window::getActiveWindow().getGLFWwindow();
     if (!window) {
         std::cerr << value << ": window not found" << std::endl;

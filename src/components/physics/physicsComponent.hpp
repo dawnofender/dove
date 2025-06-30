@@ -51,6 +51,7 @@ public:
 public:
     Physics(std::string &&initialValue = "Physics");
     ~Physics();
+    virtual void init() override;
 
     RayCastInfo rayCast(glm::vec3 position, glm::vec3 direction, float distance);
     RayCastInfo sphereCast(glm::vec3 position, float distance); // not implemented yet

@@ -1,6 +1,6 @@
 #include "defaultAssets.hpp"
 
-std::shared_ptr<MeshData> cube;
+std::shared_ptr<Mesh> cube;
 std::shared_ptr<Shader> testShader; 
 std::shared_ptr<Shader> testShader2; 
 std::shared_ptr<Shader> testSkyShader;
@@ -161,25 +161,25 @@ void loadDefaultAssets() {
         20, 21, 22, 20, 22, 23  //-z
     };
     
-    cube = std::make_shared<MeshData>();
+    cube = std::make_shared<Mesh>("cube");
     cube->indices = cubeIndices;
     cube->addLayer<Vec3Layer>(cubeVertices);
     cube->addLayer<Vec3Layer>(cubeColors);
     cube->addLayer<Vec2Layer>(cubeUVs);
     cube->addLayer<Vec3Layer>(cubeNormals);
     
-    testShader = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    testShader2 = std::make_shared<Shader>("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-    testSkyShader = std::make_shared<Shader>("SkyVertexShader.vertexshader", "SkyboxFragmentShader.fragmentshader");
+    testShader = std::make_shared<Shader>("testShader", "TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    testShader2 = std::make_shared<Shader>("testShader2", "TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+    testSkyShader = std::make_shared<Shader>("testSkyShader", "SkyVertexShader.vertexshader", "SkyboxFragmentShader.fragmentshader");
     
-    testTexture = std::make_shared<Texture>("test.png");
-    UVGridTexture = std::make_shared<Texture>("../assets/textures/UVgrid.png");
+    testTexture = std::make_shared<Texture>("testTexture", "test.png");
+    UVGridTexture = std::make_shared<Texture>("testTexture", "../assets/textures/UVgrid.png");
     
     testTextureVector = {testTexture};
     testTextureVector2 = {UVGridTexture};
     
-    testMaterial = std::make_shared<Material>(testShader, testTextureVector);
-    testMaterial2 = std::make_shared<Material>(testShader2, testTextureVector);
-    testMaterial3 = std::make_shared<Material>(testShader, testTextureVector2);
-    testSkyMaterial = std::make_shared<Material>(testSkyShader, testTextureVector);
+    testMaterial = std::make_shared<Material>("test material", testShader, testTextureVector);
+    testMaterial2 = std::make_shared<Material>("test material 2", testShader2, testTextureVector);
+    testMaterial3 = std::make_shared<Material>("test material 3", testShader, testTextureVector2);
+    testSkyMaterial = std::make_shared<Material>("test sky material", testSkyShader, testTextureVector);
 }

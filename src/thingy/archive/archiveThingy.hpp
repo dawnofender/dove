@@ -3,6 +3,7 @@
 
 #include "../thing.hpp"
 #include <memory>
+#include <any>
 #include <iostream>
 #include <type_traits>
 #include <string>
@@ -30,6 +31,15 @@
 
 class PointerTracker {
 public:
+    ~PointerTracker () {
+        std::cout << "pointer tracker destructor called" << std::endl;
+        std::cout << "clearing raw ptrs..." << std::endl;
+        idToPointer.clear();
+        std::cout << "clearing shared ptrs..." << std::endl;
+        idToSharedPointer.clear();
+        std::cout << "clearing ids" << std::endl;
+        pointerToId.clear();
+    }    
 
     int registerPointer(void* ptr) {
         // if this pointer has already been registered, return its ID
@@ -58,15 +68,14 @@ public:
     template <typename T>
     void addDeserialized(int& id, T*& obj) {
         idToPointer[id] = (void*)obj;
-        idToSharedPointer[id] = std::shared_ptr<void>(obj);
-        // addDeserialized(id, std::shared_ptr<void>(obj));
+        idToSharedPointer[id] = nullptr;
     }
     
+    // TODO: add check that obj type T is base of Thing
     template <typename T>
-    void addDeserialized(int& id, std::shared_ptr<T> obj) {
-        idToSharedPointer[id] = std::static_pointer_cast<void>(obj);
-        idToPointer[id] = static_cast<void*>(obj.get());
-        // addDeserialized(id, obj.get());
+    void addDeserialized(int& id, std::shared_ptr<T> &obj) {
+        idToSharedPointer[id] = obj;
+        idToPointer[id] = (void*)obj.get();
     }
 
     // OUTPUT:  - replaces the given pointer with the found pointer, returns it
@@ -81,10 +90,20 @@ public:
     
     // same but with shared_ptr 
     template <typename T>
-    std::shared_ptr<T>& getPointer(int& id, std::shared_ptr<T>& ptr) {
-        // if the pointer isn't in the map, we just return nullptr
+    std::shared_ptr<T>& getPointer(int& id, std::shared_ptr<T> &ptr) {
         auto it = idToSharedPointer.find(id);
         return (ptr = it != idToSharedPointer.end() ? it->second : nullptr);
+        // if (it != idToSharedPointer.end()) {
+        //     if (auto locked = it->second.lock())
+        //         return (ptr = locked);
+        //     else
+        //         std::cout << "ERROR: PointerTracker failed to lock weak pointer";
+        // }
+        // // if lock failed, or the pointer isn't in the map, we can look for it in the raw ptr map
+        // // (nullptr if it isn't found)
+        // void* rawPtr;
+        // getPointer(id, rawPtr);
+        // return (ptr = std::shared_ptr<T>(static_cast<T*>(rawPtr)));
     }
     
 
@@ -109,19 +128,11 @@ public:
         return getID(rawPtr);
     }
 
-    // std::vector<std::shared_ptr<void>> getPointers() {
-    //     std::vector<std::shared_ptr<void>> pointers;
-    //     for(auto kv : idToShareedPointer) {
-    //         pointers.push_back(kv.second);  
-    //     }
-    //     return std::move(pointers);
-    // }
-
 private:
     int nextId = 1;
     std::unordered_map<void*, int> pointerToId;
     std::unordered_map<int, void*> idToPointer;
-    std::unordered_map<int, std::shared_ptr<void>> idToSharedPointer;
+    std::unordered_map<int, std::shared_ptr<Thing>> idToSharedPointer;
 };
 
 
@@ -165,7 +176,6 @@ public:
             // anything else is assumed to be a basic data type so we just save that
             if constexpr (std::is_base_of<Thing, T>::value) {
                 // things
-                // NOTE: solid chance this is just going to get the type of the base class and we'll need a shared ptr or something
                 std::size_t typeHash = ptr->getType();
                 archive(typeHash);
                 serializeArchivable(ptr);
@@ -186,8 +196,34 @@ public:
     // # unique pointer
     template<typename T>
     void archive(std::unique_ptr<T>& ptr) {
-        T* rawPtr = ptr.get();
-        archive(rawPtr);
+        auto* rawPtr = ptr.get();
+
+        int id = pointerTracker.getID(rawPtr);
+
+        // we only write the data for a pointer's object once, on its first occurance. 
+        // getID() returns -1 only when the ptr has not been registered and is not null.
+        if (id < 0) {
+            id = pointerTracker.registerPointer(rawPtr);
+            archive(id);
+            
+            // Serializable classes have a special archive function, so we must use this
+            // anything else is assumed to be a basic data type so we just save that
+            if constexpr (std::is_base_of<Thing, T>::value) {
+                // things
+                std::size_t typeHash = ptr->getType();
+                archive(typeHash);
+                serializeArchivable(ptr);
+            } else {
+                // basic types
+                T data = ptr;
+                archive(data);
+            }
+
+        } else {
+            // the data this points to has already been archived, just write the ID
+            // nullptrs should always have an ID of 0
+            archive(id);
+        }
     }
 
     // # shared pointer
@@ -273,6 +309,14 @@ public:
             for (auto && item : vec)
                 archive(item);
     }
+
+    // pair:
+    template<typename T1, typename T2>
+    void archive(std::pair<T1, T2>& p) {
+        archive(p.first);
+        archive(p.second);
+    }
+
 };
 
 class ArchiveReader : public Archivist {
@@ -283,7 +327,6 @@ public:
 
     ArchiveReader(std::istream *is);
         
-    // 
     // # raw pointer
     template<typename T>
     void archive(T*& ptr) {
@@ -308,25 +351,31 @@ public:
             if constexpr (std::is_base_of<Thing, T>::value) {
                 std::size_t thingType;
                 archive(thingType);
-
-                std::unique_ptr<Thing> uniqueBase = ThingFactory::instance().create(thingType); 
-                if (!uniqueBase) {
-                    std::cerr << 
-                        "Deserialization error: Raw pointer ThingFactory instantiation failed" << std::endl <<
-                        "    ID:            " << id << std::endl <<
-                        "    Type hash:     " << thingType << std::endl;
-                    ptr = nullptr;
-                    return;
-                }
-                Thing* rawBase = uniqueBase.release();
-                ptr = dynamic_cast<T*>(rawBase);
                 
+                // if our pointer already points to an object of the right type, we won't have to create a new object
+                // NOTE: we are assuming that, if this behavior isn't wanted, the user will instead deserialize into an empty object
+                // if (!ptr || ptr->getType() != thingType) {
+                    // create new object of the correct type
+                    std::unique_ptr<Thing> uniqueBase = ThingFactory::instance().create(thingType); 
+                    if (!uniqueBase) {
+                        std::cerr << 
+                            "Deserialization error: Raw pointer ThingFactory instantiation failed" << std::endl <<
+                            "    ID:            " << id << std::endl <<
+                            "    Type hash:     " << thingType << std::endl;
+                        ptr = nullptr;
+                        return;
+                    }
+                    // redirect ptr to new object
+                    Thing* rawBase = uniqueBase.release();
+                    ptr = dynamic_cast<T*>(rawBase);
+                // }
+
                 // we must track deserialized pointers before calling the object's deserialize function.
                 // this is because the object may contain a pointer back to itself, either directly or through encapsulation.
                 //  - (eg. thingy has children that contain a weak ptr back to the parent. parent->child->parent)
                 // If we run into this, we need to know we've already seen this pointer.
                 pointerTracker.addDeserialized(id, ptr);
-                deserializedThings.push_back(std::shared_ptr<Thing>(ptr));
+                deserializedThings.push_back(ptr);
                 serializeArchivable(ptr);
 
             } else {
@@ -343,9 +392,63 @@ public:
     // # unique pointer
     template<typename T>
     void archive(std::unique_ptr<T>& ptr) {
-        T* rawPtr = nullptr;
-        archive(rawPtr);
-        ptr = std::unique_ptr<T>(rawPtr);
+        int id;
+        archive(id);
+        
+        // id 0? no data, just nullptr
+        if (id == 0) {
+            ptr = nullptr;
+        } else {
+            
+            // let's check if we've deserialized this already
+            void* existing;
+            if (pointerTracker.getPointer(id, existing)) {
+                // yep
+                ptr = std::unique_ptr<T>(static_cast<T*>(existing));
+                return;
+            }
+
+            // haven't returned yet? new pointer! let's deserialize the data
+            // Thing-based objects have their own deserialize function:
+            if constexpr (std::is_base_of<Thing, T>::value) {
+                std::size_t thingType;
+                archive(thingType);
+                
+                // if our pointer already points to an object of the right type, we won't have to create a new object
+                // NOTE: we are assuming that, if this behavior isn't wanted, the user will instead deserialize into an empty object
+                // if (!ptr || ptr->getType() != thingType) {
+                    // create new object of the correct type
+                    std::unique_ptr<Thing> uniqueBase = ThingFactory::instance().create(thingType); 
+                    if (!uniqueBase) {
+                        std::cerr << 
+                            "Deserialization error: Raw pointer ThingFactory instantiation failed" << std::endl <<
+                            "    ID:            " << id << std::endl <<
+                            "    Type hash:     " << thingType << std::endl;
+                        ptr = nullptr;
+                        return;
+                    }
+                    // redirect ptr to new object
+                // }
+                ptr = std::unique_ptr<T>(static_cast<T*>(uniqueBase.release()));
+                T* rawPtr = ptr.get();
+
+                // we must track deserialized pointers before calling the object's deserialize function.
+                // this is because the object may contain a pointer back to itself, either directly or through encapsulation.
+                //  - (eg. thingy has children that contain a weak ptr back to the parent. parent->child->parent)
+                // If we run into this, we need to know we've already seen this pointer.
+                pointerTracker.addDeserialized(id, rawPtr);
+                deserializedThings.push_back(rawPtr);
+                serializeArchivable(ptr);
+
+            } else {
+                // anything else is assumed to be a basic data type, so we just read the data directly:
+                T data; 
+                archive(data);
+                ptr = data;
+                T* rawPtr = ptr.get();
+                pointerTracker.addDeserialized(id, rawPtr);
+            }
+        }
     }
 
     // # shared pointer
@@ -360,7 +463,7 @@ public:
         } else {
             
             // let's check if we've deserialized this already
-            std::shared_ptr<void> existing;
+            std::shared_ptr<Thing> existing;
             if (pointerTracker.getPointer(id, existing)) {
                 // yep
                 ptr = std::static_pointer_cast<T>(existing);
@@ -373,24 +476,29 @@ public:
                 std::size_t thingType;
                 archive(thingType);
 
-                std::unique_ptr<Thing> basePtr = ThingFactory::instance().create(thingType);
-                if (!basePtr) {
-                    std::cerr << 
-                        "Deserialization error: Raw pointer ThingFactory instantiation failed" << std::endl <<
-                        "    ID:            " << id << std::endl <<
-                        "    Type hash:     " << thingType << std::endl;
-                    ptr = nullptr;
-                    return;
-                }
-                std::shared_ptr<Thing> baseShared = std::move(basePtr);
-                ptr = std::dynamic_pointer_cast<T>(baseShared);
+                // if our pointer already points to an object of the right type, we won't have to create a new object
+                // NOTE: we are assuming that, if this behavior isn't wanted, the user will instead deserialize into an empty object
+                // if (!ptr || ptr->getType() != thingType) {
+                    // create new object of the correct type
+                    std::unique_ptr<Thing> basePtr = ThingFactory::instance().create(thingType);
+                    if (!basePtr) {
+                        std::cerr << 
+                            "Deserialization error: Shared pointer ThingFactory instantiation failed" << std::endl <<
+                            "    ID:            " << id << std::endl <<
+                            "    Type hash:     " << thingType << std::endl;
+                        ptr = nullptr;
+                        return;
+                    }
+                    std::shared_ptr<Thing> baseShared = std::move(basePtr);
+                    ptr = std::dynamic_pointer_cast<T>(baseShared);
+                // }
 
                 // we must track deserialized pointers before calling the object's deserialize function.
                 // this is because the object may contain a pointer back to itself, either directly or through encapsulation.
                 //  - (eg. thingy has children that contain a weak ptr back to the parent. parent->child->parent)
                 // If we run into this, we need to know we've already seen this pointer.
                 pointerTracker.addDeserialized(id, ptr);
-                deserializedThings.push_back(std::shared_ptr<Thing>(ptr));
+                deserializedThings.push_back(ptr.get());
                 serializeArchivable(ptr);
 
 
@@ -460,14 +568,21 @@ public:
                 archive(item);
     }
 
-    void loadDeserialized() {
+    // pair:
+    template<typename T1, typename T2>
+    void archive(std::pair<T1, T2>& p) {
+        archive(p.first);
+        archive(p.second);
+    }
+
+    void initializeDeserialized() {
         for (auto& thing : deserializedThings) {
-            thing->load();
+            thing->init();
         }
     }
 
 private: 
-    std::vector<std::shared_ptr<Thing>> deserializedThings;
+    std::vector<Thing*> deserializedThings;
 
 };
 
@@ -531,7 +646,7 @@ public:
     template<typename T>
     void serializeArchivable(T& obj) {
         obj->serialize(*this);
-        // NOTE: load() is not necessary for all archivable objects, maybe separate into another base class or just keep in thing class?
+        // NOTE: init() is not necessary for all archivable objects, maybe separate into another base class or just keep in thing class?
     }
 
 private:
@@ -550,7 +665,7 @@ void Archive::serialize(T& obj) {
 template<typename T>
 void Archive::deserialize(T& obj) {
     (*this) & obj;
-    archiveReader->loadDeserialized();
+    archiveReader->initializeDeserialized();
 }
 
 template<typename T>

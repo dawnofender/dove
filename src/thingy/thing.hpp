@@ -52,6 +52,7 @@ protected:
 
 public: 
     Thing() = default;
+    virtual ~Thing() {};
 
     virtual bool IsClassType( const std::size_t classType ) const { 
         return classType == Type;
@@ -61,8 +62,16 @@ public:
         return Type; 
     }
 
-    virtual void serialize(Archive& ar) {}
-    virtual void load() {} // called after all things are deserialized
+    // TODO: 
+    //  - maybe add automatically calling the parent class's serialize function without having to write parentclass::serialize()
+    //      - i started working on this but stopped because if the child class's serialize function isn't declared then it just runs the parent's multiple times
+    //      - eventually, if we can get all serialization to be handled by some simple macros, this could be implemented much more easily
+    //          (if class has serialization macros, then this is defined, otherwise it will just call base)
+
+    // serialize / deserialize variables
+    virtual void serialize(Archive& archive) {} 
+    // called after deserialization is complete
+    virtual void init() {} 
 };
 
 
@@ -86,8 +95,7 @@ public:
     }
 
     // Creates a new Thing* for the given typeHash. Returns nullptr if not found.
-    std::unique_ptr<Thing> create(std::size_t typeHash) const
-    {
+    std::unique_ptr<Thing> create(std::size_t typeHash) const {
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = creators_.find(typeHash);
         if (it == creators_.end()) {

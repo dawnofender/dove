@@ -2,16 +2,33 @@
 
 #include <iostream>
 
-Texture::Texture(const char* image, GLenum texType, GLuint slot, GLenum format, GLenum pixelType) {
-	  // Assigns the type of the texture ot the texture object
-	  type = texType;
+CLASS_DEFINITION(Asset, Texture)
+
+
+Texture::Texture(std::string && name, std::string && i, GLenum t, GLuint s, GLenum f, GLenum p) 
+    : Asset(std::move(name)), imageFile(std::move(i)), texType(t), slot(s), format(f), pixelType(p) {
+    init(); //TODO: get rid of this and have new assets added in another function that automatically runs init
+}
+
+void Texture::serialize(Archive& archive) {
+    Asset::serialize(archive);
+    archive & 
+        imageFile &
+        texType &
+        slot &
+        format &
+        pixelType;
+}
+
+
+void Texture::init() {
 
 	  // Stores the width, height, and the number of color channels of the image
 	  int widthImg, heightImg, numColCh;
 	  // Flips the image so it appears right side up
 	  stbi_set_flip_vertically_on_load(true);
 	  // Reads the image from a file and stores it in bytes
-	  unsigned char* bytes = stbi_load(image, &widthImg, &heightImg, &numColCh, 0);
+	  unsigned char* bytes = stbi_load(imageFile.c_str(), &widthImg, &heightImg, &numColCh, 0);
 
 	  // Generates an OpenGL texture object
 	  glGenTextures(1, &ID);
@@ -46,13 +63,13 @@ Texture::Texture(const char* image, GLenum texType, GLuint slot, GLenum format, 
 
 void Texture::bind(GLuint unit) {
     // FIX: if texture was never unbinded, this segfaults
-	  glActiveTexture(GL_TEXTURE0 + unit);
-	  glBindTexture(type, ID);
+    glActiveTexture(GL_TEXTURE0 + unit);
+	  glBindTexture(texType, ID);
 }
 
 void Texture::unbind(GLuint unit) {
 	  glActiveTexture(GL_TEXTURE0 + unit);
-	  glBindTexture(type, 0);
+	  glBindTexture(texType, 0);
 }
 
 void Texture::deleteTexture() {

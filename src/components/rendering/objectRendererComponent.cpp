@@ -11,23 +11,25 @@
 CLASS_DEFINITION(MeshRenderer, ObjectRenderer)
 
 
-ObjectRenderer::ObjectRenderer(std::string &&initialValue) 
-    : MeshRenderer(std::move(initialValue)) {}
-
-ObjectRenderer::ObjectRenderer(std::string &&initialValue, Thingy *h, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m)
+ObjectRenderer::ObjectRenderer(std::string &&initialValue, Thingy *h, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m)
     : MeshRenderer(std::move(initialValue), s, m), host(h) {}
 
-void ObjectRenderer::load() {
-    if (host) transform = &host->getComponent<Transform>();
-    renderers.push_back(this);
-    MeshRenderer::load();
+void ObjectRenderer::serialize(Archive& archive) {
+    MeshRenderer::serialize(archive);
+    archive & host & bounds;
 }
-
 
 ObjectRenderer::~ObjectRenderer() {
     deleteBuffers();
-    renderers.erase(std::remove(renderers.begin(), renderers.end(), this), renderers.end());
+    renderers.erase(this);
 }
+
+void ObjectRenderer::init() {
+    MeshRenderer::init();
+    if (host) transform = &host->getComponent<Transform>();
+    renderers.insert(this);
+}
+
 
 // ObjectRenderer Component
 void ObjectRenderer::drawAll() {
@@ -38,6 +40,7 @@ void ObjectRenderer::drawAll() {
 }
 
 void ObjectRenderer::draw() {
+    std::cout << "renderer test" << std::endl;
     if (!transform) {
         std::cout << host->getName() + ": transform not found, attempting fix" << std::endl;
         transform = &host->getComponent<Transform>();

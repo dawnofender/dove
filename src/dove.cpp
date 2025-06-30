@@ -20,6 +20,29 @@
 
 #include <glm/gtx/io.hpp>
 
+void printThingyTree(Thingy *thingy, int &depth) {
+
+    for (int i = 0; i < depth; i++)
+        std::cout << "| ";
+    std::cout << thingy->getName() << " : " <<thingy->getType() << std::endl;
+
+    for (auto && component : thingy->components) {
+        for (int i = 0; i < depth; i++)
+            std::cout << "| ";
+        std::cout << "- " << component->value << " : " << component->getType() << std::endl;
+    }
+    
+    depth++;
+    for (auto && child : thingy->children) {
+        printThingyTree(child.get(), depth);
+    }
+    depth--;
+}
+
+void printThingyTree(Thingy *thingy) {
+    int depth = 0;
+    printThingyTree(thingy, depth);
+}
 
 int main() {
     std::cout << "hi!" << std::endl;
@@ -63,7 +86,7 @@ int main() {
     Thingy *universe = new Thingy("universe");
     // required for shared_from_this to work inside universe object while creating children
     // ideally, all root thingies will have shared ptrs to them as part of another parent object. this way you can travel between them, or see them all on a list or whatever
-    std::shared_ptr<Thingy> universePtr(universe);
+    // std::shared_ptr<Thingy> universePtr(universe);
 
     Physics *physics = &universe->addComponent<Physics>("Laws Of Physics");
     
@@ -84,7 +107,7 @@ int main() {
     Transform *perceptionTransform = &camera->addComponent<Transform>("Transform", camera);
     camera->addComponent<Camera>("Camera", camera, window);
     
-    player->addComponent<PlayerController>("PlayerController", physics, player, camera, playerRigidBody, perceptionTransform, 100);
+    // player->addComponent<PlayerController>("PlayerController", physics, player, camera, playerRigidBody, perceptionTransform, 100);
 
     // # Basic scene
     // environment
@@ -128,37 +151,16 @@ int main() {
     //  - input (mouse pos, keyboard, click raycasting)
     //  - this list used to be way longer :)
 
+    int frame = 0;
+    double time;
+    double lastTime;
     double lastFrameTime = glfwGetTime();
     int nbFrames = 0;
-    int frame = 0;
-		
-    double lastTime;
-    double time;
+    int framerate = 0;
     
     // just making sure the FPS print doesn't write over anything
     std::cout << std::endl << std::endl;
     do {
-        // #######
-        // # fps #
-        // #######
-        lastTime = time;
-        time = glfwGetTime();
-        nbFrames++;
-        frame++;
-        if ( time - lastFrameTime >= 1.0) { // If last cout was more than 1sec ago
-            // print current framerate
-            // while we're here, might as well print the player's location
-            std::cout << 
-                "\033[2A" << // move up two lines to overwrite 
-                "fps: " << nbFrames << std::endl <<
-                "position: " << playerTransform->getPosition() << 
-            std::endl;
-            
-
-            nbFrames = 0;
-            lastFrameTime += 1.0;
-        } 
-
 
         
         // ##############
@@ -182,6 +184,7 @@ int main() {
 
         // testing serialization
         if (frame == 500) {
+        // {
             std::cout << std::endl << "serialization test" << std::endl;
             // save
             {
@@ -193,6 +196,10 @@ int main() {
                 archive.serialize(universe);
                 std::cout << "done" << std::endl << std::endl;
             }
+            
+            delete universe;
+            universe = nullptr;
+            // universePtr = std::make_shared<Thingy>();
 
             // load
             {
@@ -201,12 +208,16 @@ int main() {
                 std::cout << "creating archive..." << std::endl;
                 Archive archive(&file);
                 std::cout << "deserializing..." << std::endl;
-                std::shared_ptr<Thingy> universe2 = std::make_shared<Thingy>();
-                archive.deserialize(universe2);
+                // std::shared_ptr<Thingy> universe2 = std::make_shared<Thingy>();
+                // archive.deserialize(universePtr);
+                archive.deserialize(universe);
                 std::cout << "done" << std::endl << std::endl;
+                
+                printThingyTree(universe);
+
             }
-            
-            std::cout << std::endl;
+
+            // std::cout << std::endl;
         }
 
 
@@ -223,6 +234,33 @@ int main() {
         // render everything
         std::cout << "rendering" << std::endl;
         Camera::renderAll();
+
+        printThingyTree(universe);
+
+
+        // #######
+        // # fps #
+        // #######
+        
+        lastTime = time;
+        time = glfwGetTime();
+        nbFrames++;
+        frame++;
+
+        if ( time - lastFrameTime >= 1.0) { // If last cout was more than 1sec ago
+            framerate = nbFrames;
+            nbFrames = 0;
+            lastFrameTime += 1.0;
+        }
+
+        // // print current framerate
+        // // while we're here, might as well print the player's location
+        // std::cout << 
+        //     "fps: " << framerate << std::endl <<
+        //     "position: " << playerTransform->getPosition() << 
+        //     "\033[2A" << // move up two lines to overwrite 
+        // std::endl;
+
 
     } while (glfwGetKey(&window->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(&window->getGLFWwindow()) == 0);

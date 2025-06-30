@@ -12,7 +12,6 @@
 #include "../thingy/archive/archiveThingy.hpp"
 
 
-
 // Component base class
 class Component : public Thing {
 CLASS_DECLARATION(Component)
@@ -21,15 +20,16 @@ public:
     Component( std::string && initialValue = "")
         : value( initialValue ) { 
     }
-    
+
+    virtual ~Component() {
+        std::cout << "deleting " << value << std::endl;
+    }
+
     virtual void serialize(Archive& ar) override;
-    virtual void load() override;
+    virtual void init() override;
 
 public:
     std::string value = "uninitialized";
-    
-private: 
-  static inline std::vector<Component *> dynamicComponents;
 
 // public: 
 // weak ptr to host ?

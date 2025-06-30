@@ -8,9 +8,9 @@
 class BoxCollider : public Collider {
 CLASS_DECLARATION(BoxCollider)
 public: 
-    BoxCollider(std::string &&initialValue = "BoxCollider");
-    BoxCollider(std::string &&initialValue, glm::vec3 d);
-    virtual void load() override;
+    BoxCollider(std::string &&initialValue = "BoxCollider", glm::vec3 d = {1, 1, 1});
+    virtual void init() override;
+
 private: 
     glm::vec3 dimensions;
 };

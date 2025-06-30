@@ -11,7 +11,7 @@
 
 // NOTE: extremely temporary dont keep this code for longer than a week
 
-extern std::shared_ptr<MeshData> cube;
+extern std::shared_ptr<Mesh> cube;
  
 extern std::shared_ptr<Shader> testShader; 
 extern std::shared_ptr<Shader> testShader2; 

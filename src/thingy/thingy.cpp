@@ -6,25 +6,30 @@
 CLASS_DEFINITION(Thing, Thingy)
 
 void Thingy::serialize(Archive& ar) {
-    ar & name & parent & children & components;
+    ar & name & components & parent & children;
     std::cout << "archiving " << name << ": done" << std::endl;
 }
 
-void Thingy::load() {
-    std::cout << "loading " << name << std::endl;
+void Thingy::init() {
+    std::cout << "initializing " << name << std::endl;
 }
 
 Thingy::~Thingy() {
+    std::cout << "deleting " << name << std::endl;
 
     for ( auto&& child : children ) {
         //move children 
         if (auto p = parent.lock()) {
             p->addChild(child);
-            child.reset();
         } else {
-            std::cerr << name << ": Destructor error: Failed to lock parent ptr, children orphaned" << std::endl;
+            std::cerr << name << ": Destructor error: Failed to lock parent ptr, children deleted" << std::endl;
+            child.reset();
             // handle whatever happens if locking the parent ptr doesnt work
         }
+    }
+    
+    for ( auto &&component : components ) {
+        component.reset();
     }
 }
 

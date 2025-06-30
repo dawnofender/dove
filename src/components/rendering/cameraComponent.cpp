@@ -7,12 +7,28 @@ CLASS_DEFINITION(Component, Camera)
 
 
 Camera::Camera(std::string && initialValue, Thingy* h, Window *w, float fov, int dw, int dh, float n, float f) 
-    : Component(std::move(initialValue)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {
-    cameras.push_back(this);
+    : Component(std::move(initialValue)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {}
+    
+Camera::~Camera() {
+    std::cout << "erasing camera from map" << std::endl;
+    cameras.erase(this);
 }
 
-Camera::~Camera() {
-    cameras.erase(std::remove(cameras.begin(), cameras.end(), this), cameras.end());
+void Camera::init() {
+    Component::init();
+    cameras.insert(this);
+}
+
+void Camera::serialize(Archive& archive) {
+    Component::serialize(archive);
+    archive &
+        host &
+        window &
+        FoV &
+        width &
+        height &
+        near &
+        far;
 }
 
 glm::mat4 Camera::getProjectionMatrix() {
@@ -25,7 +41,14 @@ glm::mat4 Camera::getViewMatrix() {
 
 
 void Camera::renderAll() {
+    std::cout << "cameras: " << cameras.size() << std::endl;
+
     for (auto && camera : cameras) {
+        if (!camera) {
+            std::cout << "skipping camera" << std::endl;
+            continue;
+        }
+           
         camera->render();
     }
     std::cout << "done rendering" << std::endl;

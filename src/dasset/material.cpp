@@ -1,10 +1,18 @@
 #include "material.hpp"
 #include <src/components/rendering/cameraComponent.hpp>
 
+CLASS_DEFINITION(Asset, Material)
 
+Material::Material(std::string && name, std::shared_ptr<Shader> s, std::vector<std::shared_ptr<Texture>> t) 
+    : Asset(std::move(name)), shader(s), textures(t) {}
 
-Material::Material(std::shared_ptr<Shader> s, std::vector<std::shared_ptr<Texture>> t) 
-    : shader(s), textures(t) {}
+void Material::serialize(Archive& archive) {
+    Asset::serialize(archive);
+    archive &
+        shader &
+        textures &
+        cubemaps;
+}
 
 bool Material::Activate(glm::mat4 modelMatrix) {
 

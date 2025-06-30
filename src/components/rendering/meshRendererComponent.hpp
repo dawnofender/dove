@@ -25,7 +25,7 @@ protected:
 
     // maybe make this a vector so people can layer materials? probably not great for performance but could be interesting...
     std::shared_ptr<Material> material;
-    std::shared_ptr<MeshData> mesh;
+    std::shared_ptr<Mesh> mesh;
     
     GLuint VertexArrayID;
     std::vector<GLuint> buffers;
@@ -33,9 +33,9 @@ protected:
 
 public:
     MeshRenderer(std::string && initialValue = "MeshRenderer");
-    MeshRenderer(std::string && initialValue, std::shared_ptr<Material> s, std::shared_ptr<MeshData> m);
+    MeshRenderer(std::string && initialValue, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m);
 
-    virtual void load() override;    
+    virtual void init() override;    
 
     virtual ~MeshRenderer();
 
@@ -44,15 +44,15 @@ public:
     static void unbindBufferData();
     void regenerate();
     void draw();
-    void setMesh(std::shared_ptr<MeshData>);
+    void setMesh(std::shared_ptr<Mesh>);
     void setMaterial(std::shared_ptr<Material>);
-    std::shared_ptr<MeshData> getMesh();
+    std::shared_ptr<Mesh> getMesh();
     void deleteBuffers();
 
     static void drawAll();
     static void deleteAll();
 
-
+    virtual void serialize(Archive& archive) override;
 };
 
 #endif
