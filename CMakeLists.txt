@@ -18,7 +18,7 @@ include_directories(
 	  # external/AntTweakBar-1.16/include/
 	  external/glfw-3.1.2/include/
 	  external/glm-0.9.7.1/
-	  external/glew-1.13.0/include/
+	  external/glew-2.1.0/include/
 	  external/assimp-3.0.1270/include/
 	  external/bullet3/src/
   	external/SimplexNoise/src/
@@ -26,9 +26,9 @@ include_directories(
 )
 
 set(ALL_LIBS
-	  ${OPENGL_LIBRARY}
-	  glfw
-	  GLEW_1130
+	${OPENGL_LIBRARY}
+	glfw
+	GLEW_1130
     BulletDynamics
     BulletCollision
     LinearMath
@@ -63,6 +63,15 @@ add_executable(dove
     src/dasset/material.cpp
     src/dasset/material.hpp
 
+    src/event/event.cpp
+    src/event/event.hpp
+    src/event/momento.cpp
+    src/event/momento.hpp
+    src/command/command.cpp
+    src/command/command.hpp
+
+    src/thingy/node.cpp
+    src/thingy/node.hpp
 
     src/thingy/rtti_macros.hpp
     src/thingy/thing.cpp
@@ -75,8 +84,8 @@ add_executable(dove
     src/thingy/panel/panelThingy.hpp
     src/thingy/panel/windowThingy.cpp
     src/thingy/panel/windowThingy.hpp
-    src/thingy/archive/archiveThingy.cpp
-    src/thingy/archive/archiveThingy.hpp
+    src/thingy/archive/archive.cpp
+    src/thingy/archive/archive.hpp
     
     src/components/component.cpp
     src/components/component.hpp

@@ -40,9 +40,8 @@ void ObjectRenderer::drawAll() {
 }
 
 void ObjectRenderer::draw() {
-    std::cout << "renderer test" << std::endl;
     if (!transform) {
-        std::cout << host->getName() + ": transform not found, attempting fix" << std::endl;
+        std::cerr << "ERROR: " << host->getName() << ": transform not found, attempting fix" << std::endl;
         transform = &host->getComponent<Transform>();
         return;
     }

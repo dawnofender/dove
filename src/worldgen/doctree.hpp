@@ -8,19 +8,38 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 
+
+// TODO: 
+//  - rewrite stuff to be less recursive
+//  - move some functionality out into a voxel class, which will be stored as the octree's value
+//      - neighbors, surface, 
+//      - things like transparency should be in a derived voxel class that has color and stuff
+//  - octree, 64tree, and thingy all have parent and children, so they could all be derived from something (node?)
+
+
 enum Direction { POS_X = 0, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z };
 
 struct OctreeNode {
     bool transparent;
     bool surface = false;
     bool leaf; 
-    std::shared_ptr<OctreeNode> parent = {nullptr};        
     uint8_t indexInParent = 0;  // 0..7 as per (x<<2)|(y<<1)|z
+    std::weak_ptr<OctreeNode> parent = {nullptr};        
     std::array<std::shared_ptr<OctreeNode>, 8> children = {nullptr};
     std::array<std::shared_ptr<OctreeNode>, 6> neighbors = {nullptr}; // ±X, ±Y, ±Z
+    std::unique_ptr<T> value;
 };
 
 struct Octree {
+
+    // Proxy object for operator[] chaining
+    struct ProxyZ {
+        Octree& octree;
+        int x, y;
+
+        T& operator[](int z) { return octree.at(x, y, z); }
+    };
+
     int8_t maxDepth;
     int8_t minDepth;
     glm::vec3 origin;
@@ -29,8 +48,6 @@ struct Octree {
 
     std::unordered_map<std::shared_ptr<OctreeNode>, glm::vec3> positionMap;
     std::unordered_map<std::shared_ptr<OctreeNode>, int8_t> depthMap;
-
-    //std::map< int8_t, std::unordered_map< glm::vec3, std::shared_ptr<OctreeNode> > > leafMap; // (depth, (position, leaf cell))
 
     Octree(int8_t mind, int8_t maxd) 
         : minDepth(mind), maxDepth(maxd){}

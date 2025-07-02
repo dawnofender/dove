@@ -9,6 +9,7 @@ class BoxCollider : public Collider {
 CLASS_DECLARATION(BoxCollider)
 public: 
     BoxCollider(std::string &&initialValue = "BoxCollider", glm::vec3 d = {1, 1, 1});
+    virtual void serialize(Archive& archive) override;
     virtual void init() override;
 
 private: 

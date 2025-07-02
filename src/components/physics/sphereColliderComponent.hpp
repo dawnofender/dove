@@ -7,9 +7,11 @@ class SphereCollider : public Collider {
 CLASS_DECLARATION(SphereCollider)
 public: 
     SphereCollider(std::string &&initialValue = "SphereCollider", float r = 0.5f);
+    
+    virtual void serialize(Archive& archive) override;
+    virtual void init() override;
 
     void setRadius(float r);
-    virtual void init() override;
 
 private:
     float radius;

@@ -15,8 +15,13 @@
 #include <stack>
 #include <iomanip>
 #include <sstream>
+#include "archive/archive.hpp"
 
-class Archive;
+
+// TODO:
+//  - a lot of these functions could be const
+//  - derive thingy from an abstract node class which has children and parent
+
 
 class Thingy : public Thing {
 CLASS_DECLARATION(Thingy)
@@ -38,42 +43,34 @@ public:
     // addComponent creates a component, of any specified type, attached to this Thingy.
     // Output: returns a reference to the new component.
     // Inputs: arguments for the new component's constructor - varies by type.
-    // Example: thingy.addComponent<Transform>("Transform") creates a component of type Transform and returns a reference to it.
     template<class ComponentType, typename... Args>
     ComponentType& addComponent(Args&&... args);
 
     // removeComponent removes a component matching the given type and value from this Thingy.
     // Output: true if a component was deleted, false if no matching component was found.
     // Inputs: the value, or name, of the component you wish to delete.
-    // Example: thingy.removeComponent<Transform>("Transform") may remove a single Transform component and return true.
     template<class ComponentType>
     bool removeComponent(std::string value = "");
 
     // removeComponents removes all components matching the given type and value from this Thingy.
     // Output: the number of components that have been removed.
     // Inputs: the value, or name, of the component(s) you wish to delete.
-    // Example: thingy.removeComponents<Transform>("Transform") may remove a single Transform component and return 1.
     template<class ComponentType>
     int removeComponents(std::string value = "");
 
     // getComponent finds a component of the specified type in this thingy's components.
     // Output: a reference to the found component, or nullptr, if no component was found.
-    // Inputs: N/A
-    // Example: thingy.getComponent<Transform>() may return a reference to a Transform component.
     template<class ComponentType>
     ComponentType& getComponent();
     
     // getComponents finds all components of the specified type in this thingy's components.
     // Output: a vector of pointers to each component found, or {nullptr}, if no component was found.
-    // Inputs: N/A
-    // Example: thingy.getComponents<Transform>() may return a vector containing one pointer to a Transform component.
     template<class ComponentType>
     std::vector<ComponentType*> getComponents();
 
     // addChild creates an object of the specified Thingy-derived type, and adds it as a child to this thingy.
     // Output: a reference to the new child thingy.
     // Inputs: arguments for the new thingy's constructor - varies by type.
-    // Example: thingy.addChild<Window>("window") creates a child thingy of type Window and returns a reference to it.
     template<class ThingyType, typename... Args>
     ThingyType& addChild(Args&&... args);
     
@@ -81,44 +78,67 @@ public:
     Thingy& addChild(std::string childName = "");
 
     // addChild(shared_ptr<Thingy>) places the given thingy under this one as a child.
-    // Output: N/A
     // Inputs: arguments for the new thingy's constructor - varies by type.
-    // Example: thingy.addChild<Window>("window") creates a child thingy of type Window and returns a reference to it.
     void addChild(std::shared_ptr<Thingy> thingy);
     
     // getChild finds a child thingy of the given type.
     // Output: a reference to the found thingy.
-    // Inputs: N/A
-    // Example: thingy.getChild<Window>() may return a reference to a child of type Window.
     template<class ThingyType>
     ThingyType& getChild();
     
     // getChild finds a child thingy of the given type.
     // Output: a reference to the found thingy.
     // Inputs: the name of the child
-    // Example: thingy.getChild(window) may return a reference to a child named "window".
-    // FIX: this one probably doesn't work on derived types
     Thingy& getChild(std::string childName);
+    
+    // Traces ancestry back to root, or returns cached root
+    Thingy& getRoot();
     
 
     void setParent(std::shared_ptr<Thingy> thingy);
     void setName(std::string newName);
     std::string getName();
 
+    // remove 1 child by pointer
+    void removeChild(std::shared_ptr<Thingy> &child);
+    void removeChild(Thingy *&child);
+    
+    // remove 1 child by name
+    void removeChild(std::string childName);
+    
+    // remove 1 child of given type
+    template<class ThingyType>
+    void removeChild();
+
+    // remove 1 child by name and type    
+    template<class ThingyType>
+    void removeChild(std::string childName);
+    
+    // remove all children with a given name
+    // Output: # of removed children
+    int removeChildren(std::string childName);
+    
+    // remove all children with a given type
+    // Output: # of removed children
+    template<class ThingyType>
+    int removeChildren();
+
+    // remove all children with a given name and type
+    // Output: # of removed children
+    template<class ThingyType>
+    int removeChildren(std::string childName);
+
+
     // not implemented yet (2)
     template<class ThingyType>
     std::vector<ThingyType*> getChildren();
     std::vector<std::shared_ptr<Thingy>> getChildren(std::string childName);
+    
 
-    void removeChild(std::shared_ptr<Thingy> child);
-    void removeChild(Thingy* child);
-
-    // not implemented yet (2)
-    void removeChild(std::string childName);
-    void removeChildren(std::string childName);
 
     void serialize(Archive& ar) override;
     void init() override;
+    
 };
 
 
@@ -127,7 +147,7 @@ ComponentType& Thingy::addComponent(Args&&... args) {
     auto component = std::make_unique<ComponentType>(std::forward<Args>(args)...);
     ComponentType& ref = *component;
     components.emplace_back(std::move(component));
-    components.back()->init();
+    ref.initOnce();
     return ref;
 }
 
@@ -183,8 +203,60 @@ template< class ThingyType, typename... Args >
 ThingyType& Thingy::addChild(Args&&... args) {
     auto child = std::make_shared<ThingyType>(std::forward<Args>(args)...);
     ThingyType& ref = *child;
-    components.emplace_back(child);
+    children.emplace_back(child);
+    ref.initOnce();
     return ref;
+}
+
+// remove 1 child of given type
+template<class ThingyType>
+void Thingy::removeChild() {
+    auto it = std::find_if(children.begin(), children.end(), [](const std::shared_ptr<Thingy>& child) {
+        return std::dynamic_pointer_cast<ThingyType>(child) != nullptr;
+    });
+
+    if (it != children.end()) {
+        children.erase(it);
+    }
+}
+
+// remove child by name and type
+template<class ThingyType>
+void Thingy::removeChild(std::string childName) {
+    auto it = std::find_if(children.begin(), children.end(), [&childName](const std::shared_ptr<Thingy>& child) {
+        return child->getName() == childName && 
+            child->IsClassType( ThingyType::Type );
+    });
+    if (it != children.end()) {
+        children.erase(it);
+    }
+}
+
+// remove all childen with given type
+template<class ThingyType>
+int Thingy::removeChildren() {
+    int originalSize = children.size();
+    children.erase(
+        std::remove_if(children.begin(), children.end(),
+            [](const std::shared_ptr<Thingy>& child) {
+                return child->IsClassType( ThingyType::Type );
+            }),
+        children.end());
+    return originalSize - children.size();
+}
+
+// remove all children with a given name and type
+template<class ThingyType>
+int Thingy::removeChildren(std::string childName) {
+    int originalSize = children.size();
+    children.erase(
+        std::remove_if(children.begin(), children.end(),
+            [&childName](const std::shared_ptr<Thingy>& child) {
+                return child->getName() == childName &&
+                       child->IsClassType( ThingyType::Type );
+            }),
+        children.end());
+    return originalSize - children.size();
 }
 
 

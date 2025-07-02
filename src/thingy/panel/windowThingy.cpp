@@ -4,7 +4,20 @@ CLASS_DEFINITION(Panel, Window)
 
 
 Window::Window(std::string && initialName) 
-    : Panel(std::move(initialName)) {
+    : Panel(std::move(initialName)) {}
+
+
+Window::~Window() {
+    if (activeWindow == this)
+        activeWindow = nullptr;
+    closeGLFWwindow(glfwWindow);
+}
+
+void Window::closeGLFWwindow(GLFWwindow* window) {
+    glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void Window::init() {
     
     glfwWindow = glfwCreateWindow(1024, 768, name.c_str(), NULL, NULL);
 
@@ -18,6 +31,8 @@ Window::Window(std::string && initialName)
     glfwSetInputMode(glfwWindow, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwPollEvents(); // try removing in a sec
+    
+    glfwSetWindowCloseCallback(glfwWindow, closeGLFWwindow);
 
     if (glewInit() != GLEW_OK) {
         std::cerr << "Failed to initialize GLEW" << std::endl;

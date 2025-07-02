@@ -89,7 +89,7 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::makeCell(glm::vec3 tar
 
         auto& child = cell->children[childInd];
         if (!child) {
-            child = std::make_unique<OctreeNode>();
+            child = std::make_shared<OctreeNode>();
             child->parent = cell;
             child->indexInParent = childInd;
         }

@@ -98,6 +98,27 @@ void runTests() {
         aTransform->getGlobalScale(),
         glm::vec3(0.5f, 2.f, 3.f)
     );
+    
 
-    std::cout << "Running tests: done" << std::endl;
+    // std::cout << std::endl << "serialization test" << std::endl;
+    // // save
+    // {
+    //     std::ofstream file("universe.dove", std::ios::binary);
+    //     Archive archive(&file);
+    //     archive.serialize(a);
+    //     std::cout << "done" << std::endl << std::endl;
+    // }
+    // 
+    // // window.reset();
+    // // universe.reset();
+    //
+    // // load
+    // {
+    //     std::cout << "deserializing" << std::endl;
+    //     std::ifstream file("universe.dove");
+    //     Archive archive(&file);
+    //     archive.deserialize(a);
+    //     std::cout << "done" << std::endl << std::endl;
+    // }
+    // std::cout << "Running tests: done" << std::endl;
 }

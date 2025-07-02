@@ -10,7 +10,6 @@ Camera::Camera(std::string && initialValue, Thingy* h, Window *w, float fov, int
     : Component(std::move(initialValue)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {}
     
 Camera::~Camera() {
-    std::cout << "erasing camera from map" << std::endl;
     cameras.erase(this);
 }
 
@@ -41,17 +40,16 @@ glm::mat4 Camera::getViewMatrix() {
 
 
 void Camera::renderAll() {
-    std::cout << "cameras: " << cameras.size() << std::endl;
 
     for (auto && camera : cameras) {
         if (!camera) {
-            std::cout << "skipping camera" << std::endl;
+            std::cerr << "ERROR: Camera::renderAll: missing camera, erasing from map" << std::endl;
+                cameras.erase(camera);
             continue;
         }
            
         camera->render();
     }
-    std::cout << "done rendering" << std::endl;
     glfwPollEvents();
 }
 

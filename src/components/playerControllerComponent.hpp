@@ -4,7 +4,6 @@
 #include "updatableComponent.hpp"
 #include "transformComponent.hpp"
 #include "physics/rigidBodyComponent.hpp"
-#include <src/thingy/thingy.hpp>
 #include <glm/glm.hpp>
 
 class PlayerController: public UpdatableComponent {

@@ -9,6 +9,7 @@
 #include "../rendering/cameraComponent.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <lib/bulletDebugDrawer.hpp>
+#include <set>
 
 // TODO: 
 //  - closest surface / spherecast function
@@ -75,7 +76,7 @@ private:
     btSequentialImpulseConstraintSolver* solver;
 
     static inline BulletDebugDrawer_DeprecatedOpenGL mydebugdrawer;     
-    static inline std::vector<Physics*> physicsWorlds;
+    static inline std::set<Physics*> physicsWorlds;
 };
 
 

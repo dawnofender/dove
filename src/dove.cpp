@@ -6,7 +6,8 @@
 #include "test_dove.hpp"
 
 #include "thingy/panel/windowThingy.hpp"
-#include "thingy/archive/archiveThingy.hpp"
+#include "event/momento.hpp"
+#include "command/command.hpp"
 
 #include "components/transformComponent.hpp"
 #include "components/playerControllerComponent.hpp"
@@ -69,10 +70,17 @@ int main() {
         return -1;
     }
     
-    // Essential thingies
-    Window* window = new Window("main window");
+    std::shared_ptr<Thingy> dove = std::make_shared<Thingy>("dove");
+    dove->setParent(dove);  // FIX: evil loop to prevent deserialization errors
+                            //  - alternative fix is to not deserialize thingy parent, or only do so conditionally, instead assigning on initialization
+    dove->init();
+
+    // Essential things
+    Window *window = &dove->addChild<Window>("main window");
     
-    // Creates a basic cube model, some materials, textures, and shaders
+    Event *timeline = new Event(dove);
+    
+    // TEMPORARY: Creates a basic cube model, some materials, imports some textures and shaders
     loadDefaultAssets();
 
 
@@ -83,10 +91,13 @@ int main() {
     std::cout << "Building world..." << std::endl;
     
     // the universe
-    Thingy *universe = new Thingy("universe");
+    Thingy *universe = &dove->addChild("universe");
+
+    // Thingy *universe = new Thingy("universe");
     // required for shared_from_this to work inside universe object while creating children
-    // ideally, all root thingies will have shared ptrs to them as part of another parent object. this way you can travel between them, or see them all on a list or whatever
-    // std::shared_ptr<Thingy> universePtr(universe);
+    // ideally, once this system is handled by commands, all root thingies will have shared ptrs to them as part of a root object, or static inside the thingy class. 
+    // this way you can travel between them, or see them all on a list or whatever
+    // std::unique_ptr<Thingy> universePtr(universe);
 
     Physics *physics = &universe->addComponent<Physics>("Laws Of Physics");
     
@@ -107,7 +118,7 @@ int main() {
     Transform *perceptionTransform = &camera->addComponent<Transform>("Transform", camera);
     camera->addComponent<Camera>("Camera", camera, window);
     
-    // player->addComponent<PlayerController>("PlayerController", physics, player, camera, playerRigidBody, perceptionTransform, 100);
+    player->addComponent<PlayerController>("PlayerController", physics, player, camera, playerRigidBody, perceptionTransform, 100);
 
     // # Basic scene
     // environment
@@ -150,6 +161,8 @@ int main() {
     //  - fps tracking
     //  - input (mouse pos, keyboard, click raycasting)
     //  - this list used to be way longer :)
+    
+    Window* activeWindow = &Window::getActiveWindow();
 
     int frame = 0;
     double time;
@@ -158,6 +171,9 @@ int main() {
     int nbFrames = 0;
     int framerate = 0;
     
+
+    std::shared_ptr<Thingy> universePtr = universe->new_shared_from_this();
+
     // just making sure the FPS print doesn't write over anything
     std::cout << std::endl << std::endl;
     do {
@@ -167,75 +183,41 @@ int main() {
         // # world loop #
         // ##############
         
-        // on click, make a cube
-        if (glfwGetMouseButton(&window->getGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT)) {
-            Thingy *testCube3 = &universe->addChild("Cube");
-            Transform *testCube3Transform = &testCube3->addComponent<Transform>("Transform", testCube3);
-            testCube3Transform->setPosition({0, 16.f, 0});
-            testCube3->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
-            testCube3->addComponent<RigidBody>("RigidBody", physics, testCube3, 1.f);
-            testCube3->addComponent<ObjectRenderer>("ObjectRenderer", testCube3, testMaterial, cube);
-        }
-        
-        // if we fall into the void, go back to spawn
-        if (playerTransform->getGlobalPosition().y < -128) {
-            playerTransform->setGlobalMatrix(glm::mat4(1));
-        }
 
-        // testing serialization
+        // # testing events
+        // momento
         if (frame == 500) {
-        // {
-            std::cout << std::endl << "serialization test" << std::endl;
-            // save
-            {
-                std::cout << "creating file..." << std::endl;
-                std::ofstream file("universe.dove", std::ios::binary);
-                std::cout << "creating archive..." << std::endl;
-                Archive archive(&file);
-                std::cout << "serializing..." << std::endl;
-                archive.serialize(universe);
-                std::cout << "done" << std::endl << std::endl;
-            }
+            Momento *momento = new Momento(universePtr);
+
+            momento->invoke();
+            // dove->removeChildren<Window>();
+            momento->restore();
             
-            delete universe;
-            universe = nullptr;
-            // universePtr = std::make_shared<Thingy>();
-
-            // load
-            {
-                std::cout << "finding file..." << std::endl;
-                std::ifstream file("universe.dove");
-                std::cout << "creating archive..." << std::endl;
-                Archive archive(&file);
-                std::cout << "deserializing..." << std::endl;
-                // std::shared_ptr<Thingy> universe2 = std::make_shared<Thingy>();
-                // archive.deserialize(universePtr);
-                archive.deserialize(universe);
-                std::cout << "done" << std::endl << std::endl;
-                
-                printThingyTree(universe);
-
-            }
-
-            // std::cout << std::endl;
         }
 
-
-
+        // commands
+        if (frame % 1000 == 999) {
+            std::string commandInput = "";
+            std::cin >> commandInput;
+            
+        }
         // # important stuff
+        // these should actually be handled by some components on the world that track instances of components.
+        // on initiation, certain components would be registered under the world so they can all be called at once - but only if that world is active.
+        
         // tick physics
-        std::cout << "physics" << std::endl;
+        // std::cout << "physics" << std::endl;
         Physics::simulateAll();
 
         // update components
-        std::cout << "component updates" << std::endl;
+        // std::cout << "component updates" << std::endl;
         UpdatableComponent::updateAll();
 
         // render everything
-        std::cout << "rendering" << std::endl;
+        // std::cout << "rendering" << std::endl;
         Camera::renderAll();
 
-        printThingyTree(universe);
+        // printThingyTree(universe.get());
 
 
         // #######
@@ -262,12 +244,13 @@ int main() {
         // std::endl;
 
 
-    } while (glfwGetKey(&window->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-             glfwWindowShouldClose(&window->getGLFWwindow()) == 0);
+        activeWindow = &Window::getActiveWindow();
+    } while (glfwGetKey(&activeWindow->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+             glfwWindowShouldClose(&activeWindow->getGLFWwindow()) == 0);
     // } while (glfwWindowShouldClose(window) == 0);
 
-    std::cout << "cleaning up..." << std::endl;
-    delete universe;
+    std::cout << std::endl << "cleaning up..." << std::endl;
+    dove.reset();
     doveTerminate();
 
     std::cout << "bye bye!" << std::endl;

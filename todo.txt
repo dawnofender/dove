@@ -96,6 +96,8 @@ high priority:
     - initialize with a callback function
 
 do sometime: 
+- template node class, base for thingy, octree, and other structures
+    - has a value, children, parent, cached root, etc.
 - some variables may need global access for complicated systems, like the camera
     - store these in universe object?
 - setInternalTickCallback in physics 

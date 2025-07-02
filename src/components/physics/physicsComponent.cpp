@@ -14,7 +14,7 @@ Physics::Physics(std::string &&initialValue)
     : Component(std::move(initialValue)) {}
 
 Physics::~Physics() {
-    physicsWorlds.erase(std::remove(physicsWorlds.begin(), physicsWorlds.end(), this), physicsWorlds.end());
+    physicsWorlds.erase(this);
 }
 
 
@@ -47,7 +47,7 @@ void Physics::init() {
     // Debug drawer
     dynamicsWorld->setDebugDrawer(&mydebugdrawer);
 
-    physicsWorlds.push_back(this);
+    physicsWorlds.insert(this);
 
     // i'm so sure there is a better way to do this, but the tick callback has to be static for whatever reason, but I also want it to know which physics component is active, sooo we're using an unordered map to get that information for now
     worldMap.insert(std::make_pair(dynamicsWorld, this));
@@ -146,16 +146,12 @@ RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distan
 }
 
 void Physics::simulateAll() {
-    std::cout << "syncing from transforms" << std::endl;
     RigidBody::syncFromTransforms();
     for (auto && world : physicsWorlds) {
-        std::cout << "simulating world" << std::endl;
         world->simulate();
     }
     
-    std::cout << "syncing transforms" << std::endl;
     RigidBody::syncToTransforms();
-    std::cout << "syncing transforms: done" << std::endl;
 }
 
 void Physics::simulate() {
@@ -164,7 +160,6 @@ void Physics::simulate() {
     deltaTime = 0.01f;
     lastTime = time;
 
-    std::cout << "stepping simulation" << std::endl;
     dynamicsWorld->stepSimulation(deltaTime);
     dynamicsWorld->performDiscreteCollisionDetection();
 }

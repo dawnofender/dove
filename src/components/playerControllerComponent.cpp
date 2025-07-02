@@ -4,6 +4,11 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
+// TODO: get rid of this 
+#include "../defaultAssets.hpp"
+#include "rendering/objectRendererComponent.hpp"
+#include "physics/boxColliderComponent.hpp"
+#include <GLFW/glfw3.h>
 
 CLASS_DEFINITION(Component, PlayerController)
 
@@ -34,6 +39,7 @@ PlayerController::PlayerController(
 
 void PlayerController::serialize(Archive& archive) {
     Component::serialize(archive);
+    
     archive &
         host &
         camera &
@@ -73,7 +79,6 @@ void PlayerController::update() {
     }
 
 
-    
     // # Mouse movement -> turn head
     // TODO: Move handle this input, especially reseting cursorpos, in a separate component
     // Get mouse movement vector
@@ -82,6 +87,7 @@ void PlayerController::update() {
         double mousePosX, mousePosY;
         int width, height;
 	    glfwGetCursorPos(window, &mousePosX, &mousePosY);
+	    // std::cout << mousePosX << ", " << mousePosY << std::endl;
         glfwGetWindowSize(window, &width, &height);
 
         mouseMovement = glm::vec2(
@@ -303,8 +309,25 @@ void PlayerController::update() {
     
     playerRigidBody->addForce(force, glm::vec3(0));
 
-    // playerRigidBody->setAngularVelocity(glm::vec3(0, 0, 0));
-
-    // do camera transform = lookat()
+    
+    // TODO:  
+    // get rid of this stuff, its just for testing:
+    {
+        // on click, make a cube
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
+            Thingy *root = &host->getRoot().addChild("Cube");
+            Thingy *testCube3 = &root->addChild("Cube");
+            Transform *testCube3Transform = &testCube3->addComponent<Transform>("Transform", testCube3);
+            testCube3Transform->setPosition({0, 16.f, 0});
+            testCube3->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
+            testCube3->addComponent<RigidBody>("RigidBody", physicsComponent, testCube3, 1.f);
+            testCube3->addComponent<ObjectRenderer>("ObjectRenderer", testCube3, testMaterial, cube);
+        }
+            
+        // if we fall into the void, go back to spawn
+        if (playerTransform->getGlobalPosition().y < -128) {
+            playerTransform->setGlobalMatrix(glm::mat4(1));
+        }
+    }
 }
 

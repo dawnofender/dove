@@ -3,7 +3,7 @@
 
 #include <memory>
 #include "../thingy/thing.hpp"
-#include "../thingy/archive/archiveThingy.hpp"
+#include "../thingy/archive/archive.hpp"
 
 
 class Asset : public Thing {

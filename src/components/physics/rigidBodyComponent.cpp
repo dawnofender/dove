@@ -24,7 +24,6 @@ void RigidBody::serialize(Archive& archive) {
 
 void RigidBody::init() {
     Component::init();
-    std::cout << "ini component of type RigidBody" << std::endl;
     // get transform information
     transform = &host->getComponent<Transform>();
     if (!transform) {

@@ -3,14 +3,12 @@
 CLASS_DEFINITION(Component, Transform)
 
 
-Transform::Transform(std::string && initialValue)
-    : Component(std::move(initialValue)) {}
-
 Transform::Transform(std::string && initialValue, Thingy* h, glm::mat4 t)
     : Component(std::move(initialValue)), host(h), transform(t) {}
 
 void Transform::serialize(Archive& archive) {
     Component::serialize(archive);
+    
     archive & host & transform & parentTransform;
 }
 

@@ -27,6 +27,7 @@ public:                                                                         
     static const std::size_t Type;                                                          \
     virtual bool IsClassType( const std::size_t classType ) const override;                 \
     virtual std::size_t getType() const override;                                           \
+    virtual void initOnce() override;                                                       \
 
 //****************
 // CLASS_DEFINITION
@@ -52,15 +53,22 @@ public:                                                                         
                                                                                         \
     std::size_t childclass::getType() const { return Type; }                            \
                                                                                         \
+    void childclass::initOnce() {                                                       \
+        if (!initialized) {                                                             \
+            init();                                                                     \
+            initialized = true;                                                         \
+        }                                                                               \
+    }                                                                                   \
+                                                                                        \
     /* Static registration at load‐time: */                                             \
     namespace {                                                                         \
         static const bool _registered_##childclass =                                    \
             ThingFactory::instance().registerType(                                      \
                 childclass::Type,                                                       \
+                TO_STRING( childclass ),                                                \
                 []() -> std::unique_ptr<Thing> {                                        \
                     return std::make_unique<childclass>();                              \
-                },                                                                      \
-                TO_STRING( childclass )                                                 \
+                }                                                                       \
             );                                                                          \
     }                                                                                   \
 

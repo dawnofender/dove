@@ -49,7 +49,6 @@ struct new_enable_shared_from_this :
 class Thing : public new_enable_shared_from_this {
 protected:    
     static const std::size_t Type;
-
 public: 
     Thing() = default;
     virtual ~Thing() {};
@@ -70,8 +69,13 @@ public:
 
     // serialize / deserialize variables
     virtual void serialize(Archive& archive) {} 
+    
     // called after deserialization is complete
-    virtual void init() {} 
+    virtual void initOnce() {}
+
+    virtual void init() {}
+    
+    bool initialized = false;
 };
 
 
@@ -87,22 +91,46 @@ public:
 
     // Registers a factory function for a given type‐hash.
     // Returns true if inserted; false if type was already registered.
-    bool registerType(std::size_t typeHash, std::function<std::unique_ptr<Thing>()> creator, std::string name) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "registered type hash " << typeHash << " : " << name << std::endl;
-        auto res = creators_.emplace(typeHash, std::move(creator));
+    bool registerType(std::size_t typeHash, std::string typeName, std::function<std::unique_ptr<Thing>()> creator) {
+        std::lock_guard<std::mutex> hashLock(hashMutex);
+        std::lock_guard<std::mutex> nameLock(nameMutex);
+        std::cout << "registered type hash " << typeHash << " : " << typeName << std::endl;
+        auto res = hashToCreator.emplace(typeHash, std::move(creator));
+        typeNameToHash.emplace(typeName, typeHash);
+        hashToTypeName.emplace(typeHash, typeName);
         return res.second;
     }
 
     // Creates a new Thing* for the given typeHash. Returns nullptr if not found.
     std::unique_ptr<Thing> create(std::size_t typeHash) const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto it = creators_.find(typeHash);
-        if (it == creators_.end()) {
-            std::cerr << "ThingFactory error: creator for type not found " << typeHash << std::endl;
+        std::lock_guard<std::mutex> lock(hashMutex);
+        auto it = hashToCreator.find(typeHash);
+        if (it == hashToCreator.end()) {
+            std::cerr << "ERROR: ThingFactory: creator not found for type: " << typeHash << std::endl;
             return nullptr;
         }
         return (it->second)();
+    }
+
+    std::unique_ptr<Thing> create(std::string && typeName) const {
+        std::lock_guard<std::mutex> lock(nameMutex);
+        auto it = typeNameToHash.find(typeName);
+        if (it == typeNameToHash.end()) {
+            std::cerr << "ERROR: ThingFactory: type hash not found for type name: " << typeName << std::endl;
+            return (nullptr);
+        }
+        return create(it->second);
+    }
+    
+    // move into thing class?
+    std::string hashToName(std::size_t && typeHash) {
+        std::lock_guard<std::mutex> lock(nameMutex);
+        auto it = hashToTypeName.find(typeHash);
+        if (it == hashToTypeName.end()) {
+            std::cerr << "ERROR: ThingFactory: name not found for type hash: " << typeHash << std::endl;
+            return "";
+        }
+        return it->second;
     }
 
 private:
@@ -111,8 +139,11 @@ private:
     ThingFactory(const ThingFactory&) = delete;
     ThingFactory& operator=(const ThingFactory&) = delete;
 
-    mutable std::mutex mutex_;
-    std::unordered_map<std::size_t, std::function<std::unique_ptr<Thing>()>> creators_;
+    mutable std::mutex nameMutex;
+    std::unordered_map<std::string, std::size_t> typeNameToHash;
+    std::unordered_map<std::size_t, std::string> hashToTypeName;
+    mutable std::mutex hashMutex;
+    std::unordered_map<std::size_t, std::function<std::unique_ptr<Thing>()>> hashToCreator;
 };
 
 

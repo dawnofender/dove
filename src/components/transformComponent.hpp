@@ -15,14 +15,22 @@
 //        whereas with global position takes priority 
 //      - actually come to think of it my terminology might be way off here im gonna have to look into that lol
 // - make our own matrix and vector classes?
+// - make sure this accounts for if the host's parent changes
+//
+// NOTE: 
+//  - there's 3 approaches (that I can think of) to getting real transform from parent:
+//      - recursively climb up parents to root, multiplying each time
+//      - store parent's transform so you just need to do one multiplication
+//      - store parent's transform and real transform, which is only calculated once every time transform changes
+//  - each approach has different advantages; the first is more memory efficient and the last is less calculations
+//  - currently using middle approach but maybe we could switch between them?
 
 class Transform : public Component {
 CLASS_DECLARATION(Transform)
 
 public: 
 
-    Transform(std::string && initialValue = "Transform");
-    Transform(std::string && initialValue, Thingy* h, glm::mat4 t = glm::mat4(1));
+    Transform(std::string && initialValue = "Transform", Thingy* h = nullptr, glm::mat4 t = glm::mat4(1));
 
 
     // setMatrix directly sets the transformation matrix.
@@ -59,7 +67,7 @@ public:
     virtual void serialize(Archive& archive) override;
 
 private:
-    Thingy* host = nullptr;
+    Thingy* host;
     glm::mat4 transform;
     glm::mat4 parentTransform;
     void updateChildTransforms();

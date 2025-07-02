@@ -9,7 +9,7 @@
 #include <functional>
 #include <cstddef>
 #include "../thingy/thing.hpp"
-#include "../thingy/archive/archiveThingy.hpp"
+#include "../thingy/archive/archive.hpp"
 
 
 // Component base class

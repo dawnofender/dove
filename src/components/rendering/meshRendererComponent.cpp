@@ -33,7 +33,6 @@ MeshRenderer::~MeshRenderer() {
 }
 
 void MeshRenderer::setupBufferData() {
-    std::cout << "MeshRenderer: setting up buffer data" << std::endl;
 
     // VAO
     glGenVertexArrays(1, &VertexArrayID);
@@ -56,7 +55,6 @@ void MeshRenderer::setupBufferData() {
 
     // unbind buffers to prevent accidentally modifying them
     unbindBufferData();
-
 }
 
 void MeshRenderer::bindBufferData() {
