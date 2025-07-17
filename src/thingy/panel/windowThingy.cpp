@@ -22,7 +22,7 @@ void Window::init() {
     glfwWindow = glfwCreateWindow(1024, 768, name.c_str(), NULL, NULL);
 
     if (glfwWindow == NULL) {
-        std::cerr << "Failed to open GLFW window.\n" << std::endl;
+        std::cerr << "ERROR: Window: Failed to open GLFW window." << std::endl;
         return;
     }
 
@@ -35,7 +35,7 @@ void Window::init() {
     glfwSetWindowCloseCallback(glfwWindow, closeGLFWwindow);
 
     if (glewInit() != GLEW_OK) {
-        std::cerr << "Failed to initialize GLEW" << std::endl;
+        std::cerr << "ERROR: Window: Failed to initialize GLEW" << std::endl;
         return;
     }
 

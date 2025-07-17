@@ -135,17 +135,6 @@ public:
         // couldn't find it, return nullptr
         return (ptr = nullptr);
 
-        // if (it != idToSharedPointer.end()) {
-        //     if (auto locked = it->second.lock())
-        //         return (ptr = locked);
-        //     else
-        //         std::cout << "ERROR: PointerTracker failed to lock weak pointer";
-        // }
-        // // if lock failed, or the pointer isn't in the map, we can look for it in the raw ptr map
-        // // (nullptr if it isn't found)
-        // void* rawPtr;
-        // getPointer(id, rawPtr);
-        // return (ptr = std::shared_ptr<T>(static_cast<T*>(rawPtr)));
     }
     
 
@@ -186,7 +175,6 @@ public:
     void setHost(Archive &newHost) {
         hostArchive = &newHost;
     }
-
 
     template<typename T>
     void serializeArchivable(T& obj);
@@ -678,6 +666,8 @@ public:
 
 private:
     int depth = 0; // deserialization recursion depth: currently unused
+
+    // TODO: make it possible to initialize with a different reader/writer
     std::unique_ptr<ArchiveWriter> archiveWriter;
     std::unique_ptr<ArchiveReader> archiveReader;
     std::istream* in;
@@ -699,5 +689,6 @@ template<typename T>
 void Archivist::serializeArchivable(T& obj) {
     hostArchive->serializeArchivable(obj);
 }
+
 
 #endif

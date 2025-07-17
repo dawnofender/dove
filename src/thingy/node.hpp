@@ -12,10 +12,6 @@
 #include "archive/archive.hpp"
 
 
-// TODO:
-//  - a lot of these functions could be const
-//  - derive node from an abstract node class which has children and parent
-
 
 class Node : public Thing {
 CLASS_DECLARATION(Node)

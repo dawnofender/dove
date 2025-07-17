@@ -3,8 +3,8 @@
 CLASS_DEFINITION(Component, Transform)
 
 
-Transform::Transform(std::string && initialValue, Thingy* h, glm::mat4 t)
-    : Component(std::move(initialValue)), host(h), transform(t) {}
+Transform::Transform(std::string && initialName, Thingy* h, glm::mat4 t)
+    : Component(std::move(initialName)), host(h), transform(t) {}
 
 void Transform::serialize(Archive& archive) {
     Component::serialize(archive);
@@ -16,13 +16,13 @@ void Transform::serialize(Archive& archive) {
 void Transform::updateChildTransforms() {
     Transform* childTransform;
     if (!host) {
-        std::cerr << "ERROR: " << value << ": Host thingy not found" << std::endl;
+        std::cerr << "ERROR: " << name << ": Host thingy not found" << std::endl;
         return;
     }
 
     for (auto && child : host->children) {
         if (!child) {
-            std::cerr << "ERROR: " << value << ": failed to update child transform, child thingy not found" << std::endl;
+            std::cerr << "ERROR: " << name << ": failed to update child transform, child thingy not found" << std::endl;
             continue;
         }
         if ((childTransform = &child->getComponent<Transform>()))

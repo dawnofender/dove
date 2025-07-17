@@ -50,7 +50,7 @@ public:
     std::unordered_map<Thingy*, std::vector<std::shared_ptr<CollisionInfo>>> collisionMap;
 
 public:
-    Physics(std::string &&initialValue = "Physics");
+    Physics(std::string &&initialName = "Physics");
     ~Physics();
     virtual void init() override;
 

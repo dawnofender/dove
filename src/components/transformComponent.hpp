@@ -16,6 +16,8 @@
 //      - actually come to think of it my terminology might be way off here im gonna have to look into that lol
 // - make our own matrix and vector classes?
 // - make sure this accounts for if the host's parent changes
+// - parent global transform could be a function that moves into the parent recursively, caching the result, that way we don't have to run the apply child transforms thing every time
+// 
 //
 // NOTE: 
 //  - there's 3 approaches (that I can think of) to getting real transform from parent:
@@ -30,7 +32,7 @@ CLASS_DECLARATION(Transform)
 
 public: 
 
-    Transform(std::string && initialValue = "Transform", Thingy* h = nullptr, glm::mat4 t = glm::mat4(1));
+    Transform(std::string && initialName = "Transform", Thingy* h = nullptr, glm::mat4 t = glm::mat4(1));
 
 
     // setMatrix directly sets the transformation matrix.

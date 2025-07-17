@@ -28,8 +28,8 @@ private:
   static inline std::vector<MeshRenderer *> renderers;
   static inline std::mutex m_renderers;
 public: 
-  SpriteRenderer(std::string &&initialValue = "SpriteRenderer", std::shared_ptr<Shader> s = nullptr, std::shared_ptr<Mesh> m = nullptr)
-      : MeshRenderer(std::move(initialValue), s, m) {
+  SpriteRenderer(std::string &&initialName = "SpriteRenderer", std::shared_ptr<Shader> s = nullptr, std::shared_ptr<Mesh> m = nullptr)
+      : MeshRenderer(std::move(initialName), s, m) {
     setupBufferData();
 
     MatrixID = glGetUniformLocation(shader->ID, "MVP");                     

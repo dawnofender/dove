@@ -6,7 +6,7 @@
 
 // TODO: get rid of this 
 #include "../defaultAssets.hpp"
-#include "rendering/objectRendererComponent.hpp"
+#include "rendering/modelRendererComponent.hpp"
 #include "physics/boxColliderComponent.hpp"
 #include <GLFW/glfw3.h>
 
@@ -14,7 +14,7 @@ CLASS_DEFINITION(Component, PlayerController)
 
 
 PlayerController::PlayerController(
-    std::string && initialValue, 
+    std::string && initialName, 
     Physics* p, 
     Thingy* h, 
     Thingy* c, 
@@ -25,7 +25,7 @@ PlayerController::PlayerController(
     float m, 
     float ms
 ) 
-    : UpdatableComponent(std::move(initialValue)), 
+    : UpdatableComponent(std::move(initialName)), 
     physicsComponent(p), 
     host(h), 
     camera(c), 
@@ -61,14 +61,14 @@ void PlayerController::update() {
     
     GLFWwindow* window = &Window::getActiveWindow().getGLFWwindow();
     if (!window) {
-        std::cerr << value << ": window not found" << std::endl;
+        std::cerr << name << ": window not found" << std::endl;
         return;
     }
 
     
     if (!cameraTransform) {
         if (!camera) {
-            std::cerr << value << ": camera not found" << std::endl;
+            std::cerr << name << ": camera not found" << std::endl;
             return;
         }
         if (!(cameraTransform = &camera->getComponent<Transform>())) {
@@ -315,13 +315,14 @@ void PlayerController::update() {
     {
         // on click, make a cube
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
-            Thingy *root = &host->getRoot().addChild("Cube");
+            Thingy *root = &host->getRoot();
+            std::cout << "test" << std::endl;
             Thingy *testCube3 = &root->addChild("Cube");
             Transform *testCube3Transform = &testCube3->addComponent<Transform>("Transform", testCube3);
             testCube3Transform->setPosition({0, 16.f, 0});
             testCube3->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
             testCube3->addComponent<RigidBody>("RigidBody", physicsComponent, testCube3, 1.f);
-            testCube3->addComponent<ObjectRenderer>("ObjectRenderer", testCube3, testMaterial, cube);
+            testCube3->addComponent<ModelRenderer>("ModelRenderer", testCube3, testMaterial, cube);
         }
             
         // if we fall into the void, go back to spawn
@@ -329,5 +330,6 @@ void PlayerController::update() {
             playerTransform->setGlobalMatrix(glm::mat4(1));
         }
     }
+    
 }
 

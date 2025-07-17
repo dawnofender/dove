@@ -17,7 +17,7 @@
 class Camera : public Component {
 CLASS_DECLARATION(Camera)
 public:
-    Camera(std::string &&initialValue = "Camera", Thingy* h = nullptr, Window* w = nullptr, float fov = 90.f, int dw = 1024, int dh = 768, float n = .1f, float f = 1024.f);
+    Camera(std::string &&initialName = "Camera", Thingy* h = nullptr, Window* w = nullptr, float fov = 90.f, int dw = 1024, int dh = 768, float n = .1f, float f = 1024.f);
     virtual ~Camera();
     
     virtual void serialize(Archive& archive) override;

@@ -7,7 +7,7 @@
 // TODO: 
 // - support multiple windows open
 // - map glfwWindow to Window object to close it better
-// - handle window serialization differently so we aren't closing and opening glfw windows, just moving existing objects based on some ID or something
+// - maybe handle window serialization differently so we aren't closing and opening glfw windows, just moving existing objects based on some ID or something?
 
 class Window : public Panel {
 CLASS_DECLARATION(Window)

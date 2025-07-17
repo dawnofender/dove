@@ -12,11 +12,11 @@
 CLASS_DEFINITION(Component, MeshRenderer)
 
 
-MeshRenderer::MeshRenderer(std::string &&initialValue) 
-    : Component(std::move(initialValue)) {}
+MeshRenderer::MeshRenderer(std::string &&initialName) 
+    : Component(std::move(initialName)) {}
 
-MeshRenderer::MeshRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m)
-    : Component(std::move(initialValue)), material(s), mesh(m) {}
+MeshRenderer::MeshRenderer(std::string &&initialName, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m)
+    : Component(std::move(initialName)), material(s), mesh(m) {}
 
 void MeshRenderer::serialize(Archive& archive) {
     Component::serialize(archive);

@@ -18,9 +18,16 @@
 #include "archive/archive.hpp"
 
 
+// Thingy-derived classes must be extra special in some way,
+// eg. representing some OS object like a file or a window.
+// they build on the core features of this class.
+// everything else should use components for functionality,
+
 // TODO:
 //  - a lot of these functions could be const
-//  - derive thingy from an abstract node class which has children and parent
+//  - derive thingy from an abstract node class (wip)
+//  - unique child names? would allow for more efficient getchild, and its better parity with OS filesystem
+
 
 
 class Thingy : public Thing {
@@ -28,6 +35,7 @@ CLASS_DECLARATION(Thingy)
 protected:
     std::string name;
     std::weak_ptr<Thingy> parent;
+
 public: 
     std::vector<std::unique_ptr<Component>> components;
     std::vector<std::shared_ptr<Thingy>> children;
@@ -46,17 +54,17 @@ public:
     template<class ComponentType, typename... Args>
     ComponentType& addComponent(Args&&... args);
 
-    // removeComponent removes a component matching the given type and value from this Thingy.
+    // removeComponent removes a component matching the given type and name from this Thingy.
     // Output: true if a component was deleted, false if no matching component was found.
-    // Inputs: the value, or name, of the component you wish to delete.
+    // Inputs: the name of the component you wish to delete.
     template<class ComponentType>
-    bool removeComponent(std::string value = "");
+    bool removeComponent(std::string componentName = "");
 
-    // removeComponents removes all components matching the given type and value from this Thingy.
+    // removeComponents removes all components matching the given type and name from this Thingy.
     // Output: the number of components that have been removed.
-    // Inputs: the value, or name, of the component(s) you wish to delete.
+    // Inputs: the name of the component(s) you wish to delete.
     template<class ComponentType>
-    int removeComponents(std::string value = "");
+    int removeComponents(std::string componentName = "");
 
     // getComponent finds a component of the specified type in this thingy's components.
     // Output: a reference to the found component, or nullptr, if no component was found.
@@ -96,7 +104,7 @@ public:
     
 
     void setParent(std::shared_ptr<Thingy> thingy);
-    void setName(std::string newName);
+    void setName(std::string && newName);
     std::string getName();
 
     // remove 1 child by pointer
@@ -163,11 +171,11 @@ ComponentType& Thingy::getComponent() {
 
 
 template< class ComponentType >
-int Thingy::removeComponents(std::string value) {
+int Thingy::removeComponents(std::string componentName) {
     int removedComponentCount = 0;
     for ( int i = 0; i < components.size(); i++ ) {
         if (components[i]->IsClassType( ComponentType::Type ) && 
-            components[i]->value == value
+            components[i]->name == componentName
         ) {
             components.erase(components.begin() + i);
             removedComponentCount++;
@@ -177,10 +185,10 @@ int Thingy::removeComponents(std::string value) {
 }
 
 template< class ComponentType >
-bool Thingy::removeComponent(std::string value) {
+bool Thingy::removeComponent(std::string componentName) {
     for ( int i = 0; i < components.size(); i++ ) {
         if (components[i]->IsClassType( ComponentType::Type ) && 
-            components[i]->value == value
+            components[i]->name == componentName
         ) {
             components.erase(components.begin() + i);
             return true;

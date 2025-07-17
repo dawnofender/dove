@@ -1,13 +1,13 @@
 #include "cameraComponent.hpp"
 #include "skyRendererComponent.hpp"
-#include "objectRendererComponent.hpp"
+#include "modelRendererComponent.hpp"
 #include "../physics/physicsComponent.hpp"
 
 CLASS_DEFINITION(Component, Camera)
 
 
-Camera::Camera(std::string && initialValue, Thingy* h, Window *w, float fov, int dw, int dh, float n, float f) 
-    : Component(std::move(initialValue)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {}
+Camera::Camera(std::string && initialName, Thingy* h, Window *w, float fov, int dw, int dh, float n, float f) 
+    : Component(std::move(initialName)), host(h), window(w), FoV(fov), width(dw), height(dh), near(n), far(f) {}
     
 Camera::~Camera() {
     cameras.erase(this);
@@ -67,7 +67,7 @@ void Camera::render() {
     // view matrix in the inverse of the camera's transformation matrix
     viewMatrix = glm::inverse(transform->getGlobalMatrix());
 
-    ObjectRenderer::drawAll();
+    ModelRenderer::drawAll();
     SkyRenderer::drawAll();
     // Physics::debugDrawAll();
 

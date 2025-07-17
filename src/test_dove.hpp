@@ -6,7 +6,7 @@
 #include "components/physics/sphereColliderComponent.hpp"
 #include "components/physics/boxColliderComponent.hpp"
 #include "components/physics/rigidBodyComponent.hpp"
-#include "components/rendering/objectRendererComponent.hpp"
+#include "components/rendering/modelRendererComponent.hpp"
 #include "components/rendering/skyRendererComponent.hpp"
 #include "components/rendering/cameraComponent.hpp"
 

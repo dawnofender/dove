@@ -2,8 +2,8 @@
 
 CLASS_DEFINITION(Component, UpdatableComponent)
 
-UpdatableComponent::UpdatableComponent(std::string && initialValue) 
-    : Component(std::move(initialValue)) {
+UpdatableComponent::UpdatableComponent(std::string && initialName) 
+    : Component(std::move(initialName)) {
     updatableComponents.insert(this);
 }
 

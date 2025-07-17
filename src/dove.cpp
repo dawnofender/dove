@@ -15,11 +15,13 @@
 #include "components/physics/sphereColliderComponent.hpp"
 #include "components/physics/boxColliderComponent.hpp"
 #include "components/physics/rigidBodyComponent.hpp"
-#include "components/rendering/objectRendererComponent.hpp"
+#include "components/rendering/modelRendererComponent.hpp"
 #include "components/rendering/skyRendererComponent.hpp"
 #include "components/rendering/cameraComponent.hpp"
 
 #include <glm/gtx/io.hpp>
+
+#include <assimp/Importer.hpp>
 
 void printThingyTree(Thingy *thingy, int &depth) {
 
@@ -30,7 +32,7 @@ void printThingyTree(Thingy *thingy, int &depth) {
     for (auto && component : thingy->components) {
         for (int i = 0; i < depth; i++)
             std::cout << "| ";
-        std::cout << "- " << component->value << " : " << component->getType() << std::endl;
+        std::cout << "- " << component->name << " : " << component->getType() << std::endl;
     }
     
     depth++;
@@ -71,8 +73,6 @@ int main() {
     }
     
     std::shared_ptr<Thingy> dove = std::make_shared<Thingy>("dove");
-    dove->setParent(dove);  // FIX: evil loop to prevent deserialization errors
-                            //  - alternative fix is to not deserialize thingy parent, or only do so conditionally, instead assigning on initialization
     dove->init();
 
     // Essential things
@@ -130,7 +130,7 @@ int main() {
     Transform *groundTransform = &ground->addComponent<Transform>("Transform", ground);
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
-    ground->addComponent<ObjectRenderer>("ObjectRenderer", ground, testMaterial3, cube);
+    ground->addComponent<ModelRenderer>("ModelRenderer", ground, testMaterial3, cube);
     ground->addComponent<BoxCollider>("BoxCollider", glm::vec3(16.f, 16.f, 16.f));
     RigidBody *groundRigidBody = &ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
     groundRigidBody->setFriction(0.9f);
@@ -141,7 +141,7 @@ int main() {
     cubeTransform->setPosition({0, 16.f, 0});
     testCube->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
     testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 10.f);
-    testCube->addComponent<ObjectRenderer>("ObjectRenderer", testCube, testMaterial, cube);
+    testCube->addComponent<ModelRenderer>("ModelRenderer", testCube, testMaterial, cube);
     
     // TODO: thingy copy constructor
     Thingy *testCube2 = &universe->addChild("Cube");
@@ -149,7 +149,7 @@ int main() {
     cubeTransform2->setPosition({0, 16.f, 0});
     testCube2->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", physics, testCube2, 1.f);
-    testCube2->addComponent<ObjectRenderer>("ObjectRenderer", testCube2, testMaterial2, cube);
+    testCube2->addComponent<ModelRenderer>("ModelRenderer", testCube2, testMaterial2, cube);
     
     std::cout << "Building world: done" << std::endl;
 
@@ -186,21 +186,23 @@ int main() {
 
         // # testing events
         // momento
-        if (frame == 500) {
-            Momento *momento = new Momento(universePtr);
+        // if (frame == 500) {
+        //     Momento *momento = new Momento(universePtr);
+        //
+        //     momento->invoke();
+        //     // dove->removeChildren<Window>();
+        //     momento->restore();
+        //     
+        // }
+        //
+        // // commands
+        // if (frame % 1000 == 999) {
+        //     std::string commandInput = "";
+        //     std::cin >> commandInput;
+        //     
+        // }
 
-            momento->invoke();
-            // dove->removeChildren<Window>();
-            momento->restore();
-            
-        }
 
-        // commands
-        if (frame % 1000 == 999) {
-            std::string commandInput = "";
-            std::cin >> commandInput;
-            
-        }
         // # important stuff
         // these should actually be handled by some components on the world that track instances of components.
         // on initiation, certain components would be registered under the world so they can all be called at once - but only if that world is active.
@@ -233,16 +235,14 @@ int main() {
             framerate = nbFrames;
             nbFrames = 0;
             lastFrameTime += 1.0;
+            // // print current framerate
+            // // while we're here, might as well print the player's location
+            // std::cout << 
+            //     "fps: " << framerate << std::endl <<
+            //     "position: " << playerTransform->getPosition() << 
+            //     "\033[2A" << // move up two lines to overwrite 
+            // std::endl;
         }
-
-        // // print current framerate
-        // // while we're here, might as well print the player's location
-        // std::cout << 
-        //     "fps: " << framerate << std::endl <<
-        //     "position: " << playerTransform->getPosition() << 
-        //     "\033[2A" << // move up two lines to overwrite 
-        // std::endl;
-
 
         activeWindow = &Window::getActiveWindow();
     } while (glfwGetKey(&activeWindow->getGLFWwindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&

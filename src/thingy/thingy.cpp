@@ -47,6 +47,11 @@ Thingy& Thingy::addChild(std::string n) {
 
 
 void Thingy::addChild(std::shared_ptr<Thingy> child) {
+    if (!weak_from_this().expired() && child == new_shared_from_this()) {
+        std::cerr << "ERROR: Thingy \"" << name << ": " << "cannot add itself as a child" << std::endl;
+        return;
+    }
+
     children.push_back(child);
     
     // if our thing doesn't have a shared ptr to it, shared_from_this will fail
@@ -104,11 +109,16 @@ int Thingy::removeChildren(std::string childName) {
 
 
 void Thingy::setParent(std::shared_ptr<Thingy> newParent) {
+    if (!weak_from_this().expired() && newParent == new_shared_from_this()) {
+        std::cerr << "ERROR: Thingy \"" << name << ": " << "cannot set parent to itself" << std::endl;
+        return;
+    }
+
     newParent->addChild(new_shared_from_this());
 }
 
-void Thingy::setName(std::string n) {
-    name = n;
+void Thingy::setName(std::string && newName) {
+    name = std::move(newName);
 }
 
 std::string Thingy::getName() {

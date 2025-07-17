@@ -23,7 +23,6 @@ class MeshRenderer : public Component {
 CLASS_DECLARATION(MeshRenderer)
 protected:
 
-    // maybe make this a vector so people can layer materials? probably not great for performance but could be interesting...
     std::shared_ptr<Material> material;
     std::shared_ptr<Mesh> mesh;
     
@@ -32,8 +31,8 @@ protected:
     GLuint elementBuffer;
 
 public:
-    MeshRenderer(std::string && initialValue = "MeshRenderer");
-    MeshRenderer(std::string && initialValue, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m);
+    MeshRenderer(std::string && initialName = "MeshRenderer");
+    MeshRenderer(std::string && initialName, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m);
 
     virtual void init() override;    
 

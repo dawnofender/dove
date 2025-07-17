@@ -2,8 +2,8 @@
 
 CLASS_DEFINITION(Component, RigidBody)
 
-RigidBody::RigidBody(std::string && initialValue, Physics *p, Thingy *h, float m, bool k, bool s) 
-    : Component(std::move(initialValue)), physicsComponent(p), host(h), mass(m), b_kinematic(k), b_static(s) {}
+RigidBody::RigidBody(std::string && initialName, Physics *p, Thingy *h, float m, bool k, bool s) 
+    : Component(std::move(initialName)), physicsComponent(p), host(h), mass(m), b_kinematic(k), b_static(s) {}
 
 RigidBody::~RigidBody() {
     rigidBodies.erase(this);
@@ -12,7 +12,6 @@ RigidBody::~RigidBody() {
 void RigidBody::serialize(Archive& archive) {
     // Component::serialize(archive);
     archive & 
-        value &
         host &
         transform &
         physicsComponent &
@@ -27,7 +26,7 @@ void RigidBody::init() {
     // get transform information
     transform = &host->getComponent<Transform>();
     if (!transform) {
-        std::cerr << host->getName() << " : " << value << " : Transform not found, attempting fix" << std::endl;
+        std::cerr << host->getName() << " : " << name << " : Transform not found, attempting fix" << std::endl;
         transform = &host->addComponent<Transform>("Transform", host);
     }
 
@@ -44,7 +43,7 @@ void RigidBody::init() {
     
     // no collider found? 
     if (!colliderShapes.size()) {
-        std::cerr << host->getName() << " : " << value << " : Colliders not found" << std::endl;
+        std::cerr << host->getName() << " : " << name << " : Colliders not found" << std::endl;
         return;
     }
     
@@ -86,11 +85,11 @@ void RigidBody::addForce(glm::vec3 force, glm::vec3 offset) {
 
 void RigidBody::syncFromTransform() {
     if (!transform) {
-        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: transform component not found" << std::endl;
+        std::cerr << "ERROR: RigidBody \"" << name << "\": syncFromTransform: transform component not found" << std::endl;
         return;
     }
     if (!bulletRigidBody) {
-        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: bullet3 rigidbody not found" << std::endl;
+        std::cerr << "ERROR: RigidBody \"" << name << "\": syncFromTransform: bullet3 rigidbody not found" << std::endl;
         return;
     }
     float bulletTransformMatrix[16];
@@ -105,11 +104,11 @@ void RigidBody::syncFromTransform() {
 
 void RigidBody::syncToTransform() {
     if (!transform) {
-        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: transform not set" << std::endl;
+        std::cerr << "ERROR: RigidBody \"" << name << "\": syncFromTransform: transform not set" << std::endl;
         return;
     }
     if (!bulletRigidBody) {
-        std::cerr << "ERROR: RigidBody \"" << value << "\": syncFromTransform: bullet3 rigidbody not found" << std::endl;
+        std::cerr << "ERROR: RigidBody \"" << name << "\": syncFromTransform: bullet3 rigidbody not found" << std::endl;
         return;
     }
     float bulletTransformMatrix[16];

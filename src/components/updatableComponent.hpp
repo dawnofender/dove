@@ -7,7 +7,7 @@
 class UpdatableComponent : public Component {
 CLASS_DECLARATION(UpdatableComponent)
 public:
-    UpdatableComponent(std::string && intialValue = "UpdatableComponent");
+    UpdatableComponent(std::string && intialName = "UpdatableComponent");
     virtual ~UpdatableComponent();
     virtual void update();
     static void updateAll();

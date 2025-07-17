@@ -10,8 +10,8 @@ CLASS_DEFINITION(Component, Physics)
 
 
 
-Physics::Physics(std::string &&initialValue)
-    : Component(std::move(initialValue)) {}
+Physics::Physics(std::string &&initialName)
+    : Component(std::move(initialName)) {}
 
 Physics::~Physics() {
     physicsWorlds.erase(this);

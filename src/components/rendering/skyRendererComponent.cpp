@@ -4,11 +4,11 @@
 CLASS_DEFINITION(MeshRenderer, SkyRenderer)
 
 
-SkyRenderer::SkyRenderer(std::string &&initialValue)
-    : MeshRenderer(std::move(initialValue)) {}
+SkyRenderer::SkyRenderer(std::string &&initialName)
+    : MeshRenderer(std::move(initialName)) {}
 
-SkyRenderer::SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m)
-    : MeshRenderer(std::move(initialValue), s, m) {}
+SkyRenderer::SkyRenderer(std::string &&initialName, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m)
+    : MeshRenderer(std::move(initialName), s, m) {}
 
 SkyRenderer::~SkyRenderer() {
     renderers.erase(this);

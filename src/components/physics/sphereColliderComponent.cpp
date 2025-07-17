@@ -2,8 +2,8 @@
 
 CLASS_DEFINITION(Collider, SphereCollider)
 
-SphereCollider::SphereCollider(std::string &&initialValue, float r)
-    : Collider(std::move(initialValue)), radius(r) {}
+SphereCollider::SphereCollider(std::string &&initialName, float r)
+    : Collider(std::move(initialName)), radius(r) {}
 
 void SphereCollider::serialize(Archive& archive) {
     archive & radius;

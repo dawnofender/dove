@@ -1,7 +1,7 @@
 # CMake entry point
 cmake_minimum_required (VERSION 3.0)
 project (dream)
-set (CMAKE_CXX_STANDARD 23)
+set (CMAKE_CXX_STANDARD 26)
 
 find_package(OpenGL REQUIRED)
 
@@ -15,12 +15,12 @@ endif(INCLUDE_DISTRIB)
 
 
 include_directories(
-	  # external/AntTweakBar-1.16/include/
-	  external/glfw-3.1.2/include/
-	  external/glm-0.9.7.1/
-	  external/glew-2.1.0/include/
-	  external/assimp-3.0.1270/include/
-	  external/bullet3/src/
+	# external/AntTweakBar-1.16/include/
+	external/glfw-3.1.2/include/
+	external/glm-0.9.7.1/
+	external/glew-2.1.0/include/
+	external/assimp/include/
+	external/bullet3/src/
   	external/SimplexNoise/src/
 	.
 )
@@ -111,8 +111,8 @@ add_executable(dove
 
     src/components/rendering/meshRendererComponent.cpp
     src/components/rendering/meshRendererComponent.hpp
-    src/components/rendering/objectRendererComponent.cpp
-    src/components/rendering/objectRendererComponent.hpp
+    src/components/rendering/modelRendererComponent.cpp
+    src/components/rendering/modelRendererComponent.hpp
     src/components/rendering/skyRendererComponent.cpp
     src/components/rendering/skyRendererComponent.hpp
     src/components/rendering/cameraComponent.cpp
@@ -122,6 +122,8 @@ add_executable(dove
     lib/setup.cpp
     lib/shaderLoader.cpp
     lib/shaderLoader.hpp
+    lib/assetImporter.hpp
+    lib/assetImporter.cpp
     lib/stb_image.h
     lib/stb_image.h
 

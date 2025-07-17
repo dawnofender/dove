@@ -37,7 +37,7 @@ public:
     float mass = 0;
 
 public:
-    RigidBody(std::string && initialValue = "RigidBody", Physics *p = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
+    RigidBody(std::string && initialName = "RigidBody", Physics *p = nullptr, Thingy *h = nullptr, float m = 0, bool k = false, bool s = false);
     ~RigidBody();
 
     virtual void serialize(Archive& archive) override;

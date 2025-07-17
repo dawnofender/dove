@@ -9,8 +9,8 @@
 class SkyRenderer : public MeshRenderer {
 CLASS_DECLARATION(SkyRenderer)
 public: 
-    SkyRenderer(std::string &&initialValue = "SkyRenderer");
-    SkyRenderer(std::string &&initialValue, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m);
+    SkyRenderer(std::string &&initialName = "SkyRenderer");
+    SkyRenderer(std::string &&initialName, std::shared_ptr<Material> s, std::shared_ptr<Mesh> m);
     
     virtual ~SkyRenderer(); 
 

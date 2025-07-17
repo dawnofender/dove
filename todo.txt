@@ -64,6 +64,7 @@ ideas:
 - memory-optimized way to get any component's host using a static unordered component->host map
 - GetComponent optimization by moving frequent gets to the top
     - trying to make up for how transform is used constantly but may not be at the top of the list
+- vertex block descent physics backend?
 
 greater plan:
 - roughly in this order, implement rudimentary version of:
@@ -88,28 +89,30 @@ greater plan:
 
 
 high priority: 
-- implement equivalent of materials, a layer between meshrenderers and shaders that can handle uniforms and be reused
-- virtual component members for project data
-    - template data member (whats actually saved to a file)
-    - load and save functions (called for every component)
+- organize to be modular, move things into modules folder
+- finish mesh face groups -> materials 
 - input listener
-    - initialize with a callback function
+    - initialize with a callback functio
+- make our own vec# and mat# types
 
 do sometime: 
 - template node class, base for thingy, octree, and other structures
     - has a value, children, parent, cached root, etc.
-- some variables may need global access for complicated systems, like the camera
-    - store these in universe object?
-- setInternalTickCallback in physics 
-- namespace for dov
-- use two threads, one for polling events and one for rendering. use glfwWaitEvents to block the event thread until events are available
-
-eventually: 
-- octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain
 - unify file system and game engine
-    - efficiently serialize & deserialize objects & components
     - file thingies which exist in the universe but reference actual files
         - these connect to asset types somehow... so assets 
+- organized way to share data across multiple components in the root thingy (scene)
+    - theres a basic implementation in physics component
+        - could call this a world simulator or something instead
+    - should definitely have this for renderers
+- namespace for dov
+
+eventually: 
+- text rendering 
+    - 2 approaches: text->mesh, or normaler 2D text rendering
+- material uniforms
+- use two threads, one for polling events and one for rendering. use glfwWaitEvents to block the event thread until events are available
+- octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain
 
 ########
 # GAIA #

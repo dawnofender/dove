@@ -10,8 +10,8 @@ friend class RigidBody;
 protected:
     btCollisionShape* collisionShape = nullptr; //FIX: needs to be deleted in destructor?
 public:
-    Collider(std::string && initialValue = "Collider");
-    Collider(std::string && initialValue, btCollisionShape* shape);
+    Collider(std::string && initialName = "Collider");
+    Collider(std::string && initialName, btCollisionShape* shape);
 };
 
 
