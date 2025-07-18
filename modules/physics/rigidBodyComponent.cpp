@@ -1,4 +1,5 @@
 #include "rigidBodyComponent.hpp"
+#include "../3d/transformComponent.hpp"
 
 CLASS_DEFINITION(Component, RigidBody)
 

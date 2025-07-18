@@ -18,7 +18,7 @@ public:
     
     virtual void serialize(Archive& archive) override;
 
-    bool Activate(glm::mat4 modelMatrix);
+    bool Activate(glm::mat4 modelMatrix = glm::mat4(0), glm::mat4 viewMatrix = glm::mat4(0), glm::mat4 projectionMatrix = glm::mat4(0));
     void setTexture(int i, std::shared_ptr<Texture> newTexture);
     
     // temporary separation of cubemap as its own thing here

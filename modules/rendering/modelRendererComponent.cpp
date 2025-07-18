@@ -32,14 +32,14 @@ void ModelRenderer::init() {
 
 
 // ModelRenderer Component
-void ModelRenderer::drawAll() {
+void ModelRenderer::drawAll(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
     for (auto &renderer : renderers) {
-        renderer->draw();
+        renderer->draw(viewMatrix, projectionMatrix);
     }
     unbindBufferData();
 }
 
-void ModelRenderer::draw() {
+void ModelRenderer::draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
     if (!transform) {
         std::cerr << "ERROR: " << host->getName() << ": transform not found, attempting fix" << std::endl;
         transform = &host->getComponent<Transform>();
@@ -48,7 +48,7 @@ void ModelRenderer::draw() {
 
 
     // FIX: if this returns false, there was an error, we can skip the object and render all errored objects last with the same shader 
-    material->Activate(transform->getMatrix());
+    material->Activate(transform->getMatrix(), viewMatrix, projectionMatrix);
     bindBufferData();
     glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, nullptr);
 }

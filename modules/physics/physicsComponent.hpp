@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
-#include "../rendering/cameraComponent.hpp"
+#include "../camera/cameraComponent.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <lib/bulletDebugDrawer.hpp>
 #include <set>

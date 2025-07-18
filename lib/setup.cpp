@@ -1,51 +1,63 @@
 #include "setup.hpp"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
 
+#include <dlfcn.h>
+
+
 bool initDove() {
-    if (!setupOpenGL()) {
-        std::cerr << "Failed to setup OpenGL" << std::endl;
-        return false;
-    }
 
+    // load other important modules
+    // if (!loadModules()) {
+    //     std::cerr << "Failed to load modules" << std::endl;
+    //     return false;
+    // }
+    
+    // load module to build test dream
+    {
+        void* handle = dlopen("modules/libtest.so", RTLD_NOW);
+        if (!handle) {
+            std::cerr << "Failed to load libtest.so: " << dlerror() << std::endl;
+            return false;
+        }
+
+        auto buildTestDream = (void (*)()) dlsym(handle, "buildTestDream");
+        buildTestDream();
+        dlclose(handle);
+    }
 
     return true;
 }
 
+bool loadModules() {
+    return (
+        loadModule("common") && 
+        loadModule("3d") && 
+        loadModule("panel") && 
+        loadModule("window") && 
+        loadModule("asset") && 
+        loadModule("camera") && 
+        loadModule("physics") && 
+        loadModule("game") &&
+        loadModule("link")
+    );
+}
 
-bool setupOpenGL() {
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
+bool loadModule(std::string && name) {
+    std::cout << "Loading module " << name << "..." << std::endl;
+    
+    std::string filePath = "modules/lib" + name + ".so";
+
+    void* handle = dlopen(filePath.c_str(), RTLD_NOW | RTLD_GLOBAL);
+    if (!handle) {
+        std::cerr << "Failed to load lib" << name << ".so: " << dlerror() << std::endl;
         return false;
     }
 
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,
-                   GL_TRUE); // to make MacOS happy; should not be needed
-    glfwWindowHint(GLFW_OPENGL_PROFILE,
-                   GLFW_OPENGL_COMPAT_PROFILE); 
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);  
-    // glewExperimental = true;
-    // glClearColor(0.6f, 0.7f, 0.9f, 0.0f);
+    dlclose(handle);
 
-    GLFWwindow *tempWindow = glfwCreateWindow(1024, 768, "dove", NULL, NULL);
-    glfwMakeContextCurrent(tempWindow);
-
-    if (glewInit() != GLEW_OK) {
-        std::cerr << "Failed to initialize GLEW" << std::endl;
-        return false;
-    }
-
-    glfwDestroyWindow(tempWindow);
-
+    std::cout << "Loaded module " << name << ": done" << std::endl;
     return true;
+
 }
 
-
-void doveTerminate() {
-    glfwTerminate();
-}

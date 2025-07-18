@@ -7,13 +7,16 @@
 #include <glm/gtx/quaternion.hpp>
 #include "btBulletDynamicsCommon.h"
 
-#include "../dove/transformComponent.hpp"
+// #include "../3d/transformComponent.hpp"
 #include "physicsComponent.hpp"
 #include "colliderComponent.hpp"
 
 // TODO: 
 // - if physicsComponent isn't given, it should just use the host and climb up through the hierarchy looking for a thingy with a physics component
 // - bullet has serialization functions for rigidbodies, use them
+
+class Transform;
+
 
 class RigidBody : public Component {
 CLASS_DECLARATION(RigidBody)

@@ -14,7 +14,7 @@
 
 // TODO: no way all those includes are necessary 
 
-#include "../dove/transformComponent.hpp"
+#include "../3d/transformComponent.hpp"
 #include "../core/thingy/thingy.hpp"
 #include "../asset/material.hpp"
 #include "../asset/mesh.hpp"

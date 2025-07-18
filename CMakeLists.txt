@@ -1,7 +1,14 @@
 # CMake entry point
-cmake_minimum_required (VERSION 3.0)
-project (dream)
+cmake_minimum_required (VERSION 3.9)
+project (dove VERSION 0.0.1 DESCRIPTION "dreaming")
 set (CMAKE_CXX_STANDARD 26)
+
+# symbol visibility
+set(CMAKE_CXX_VISIBILITY_PRESET default)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 
 find_package(OpenGL REQUIRED)
 
@@ -44,90 +51,12 @@ add_definitions(
 
 add_executable(dove
     src/dove.cpp
-    src/TransformVertexShader.vertexshader
-    src/TextureFragmentShader.fragmentshader
-
-    src/defaultAssets.hpp
-    src/defaultAssets.cpp
-
-    modules/asset/asset.cpp
-    modules/asset/asset.hpp
-    modules/asset/mesh.cpp
-    modules/asset/mesh.hpp
-    modules/asset/texture.cpp
-    modules/asset/texture.hpp
-    modules/asset/shader.hpp
-    modules/asset/shader.cpp
-    modules/asset/material.cpp
-    modules/asset/material.hpp
-
-    modules/event/event.cpp
-    modules/event/event.hpp
-    modules/event/momento.cpp
-    modules/event/momento.hpp
-    modules/command/command.cpp
-    modules/command/command.hpp
-
-    # modules/core/thingy/node.cpp
-    # modules/core/thingy/node.hpp
-
-    modules/core/rtti_macros.hpp
-    modules/core/thing.cpp
-    modules/core/thing.hpp
-    modules/core/thingy/thingy.cpp
-    modules/core/thingy/thingy.hpp
-    modules/core/component/component.cpp
-    modules/core/component/component.hpp
-    modules/core/component/updatableComponent.cpp
-    modules/core/component/updatableComponent.hpp
-    modules/core/archive/archive.cpp
-    modules/core/archive/archive.hpp
-    
-    modules/dove/transformComponent.cpp
-    modules/dove/transformComponent.hpp
-    modules/dove/playerControllerComponent.cpp
-    modules/dove/playerControllerComponent.hpp
-    # modules/gaia/gaiaComponent.cpp
-    # modules/gaia/gaiaComponent.hpp
-
-    modules/glyph/glyphThingy.cpp
-    modules/glyph/glyphThingy.hpp
-    modules/panel/panelThingy.cpp
-    modules/panel/panelThingy.hpp
-    modules/window/window.cpp
-    modules/window/window.hpp
-    
-    modules/physics/physicsComponent.cpp
-    modules/physics/physicsComponent.hpp
-    modules/physics/colliderComponent.cpp
-    modules/physics/colliderComponent.hpp
-    modules/physics/rigidBodyComponent.cpp
-    modules/physics/rigidBodyComponent.hpp
-    modules/physics/sphereColliderComponent.cpp
-    modules/physics/sphereColliderComponent.hpp
-    modules/physics/boxColliderComponent.cpp
-    modules/physics/boxColliderComponent.hpp
-
-    modules/rendering/meshRendererComponent.cpp
-    modules/rendering/meshRendererComponent.hpp
-    modules/rendering/modelRendererComponent.cpp
-    modules/rendering/modelRendererComponent.hpp
-    modules/rendering/skyRendererComponent.cpp
-    modules/rendering/skyRendererComponent.hpp
-    modules/rendering/cameraComponent.cpp
-    modules/rendering/cameraComponent.hpp
     
     lib/setup.hpp
     lib/setup.cpp
-    lib/shaderLoader.cpp
-    lib/shaderLoader.hpp
-    lib/assetImporter.hpp
-    lib/assetImporter.cpp
-    lib/stb_image.h
-    lib/stb_image.h
 
-    lib/bulletDebugDrawer.cpp
-    lib/bulletDebugDrawer.hpp
+    # lib/bulletDebugDrawer.cpp
+    # lib/bulletDebugDrawer.hpp
     
     # # used in GAIA
     # lib/threadsafe_vector.hpp
@@ -136,5 +65,7 @@ add_executable(dove
     # lib/FastNoise.cpp
     # lib/FastNoise.h
 )
+
+add_subdirectory (modules)
 
 target_link_libraries(dove ${ALL_LIBS})

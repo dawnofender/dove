@@ -15,9 +15,9 @@ public:
     
     virtual ~SkyRenderer(); 
 
-    static void drawAll();
     void setupBufferData();
-    void draw();
+    static void drawAll(glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
+    void draw(glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
     virtual void init() override;
 
 private: 

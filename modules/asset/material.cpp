@@ -1,5 +1,4 @@
 #include "material.hpp"
-#include "../rendering/cameraComponent.hpp"
 
 CLASS_DEFINITION(Asset, Material)
 
@@ -14,7 +13,7 @@ void Material::serialize(Archive& archive) {
         cubemaps;
 }
 
-bool Material::Activate(glm::mat4 modelMatrix) {
+bool Material::Activate(glm::mat4 modelMatrix, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
 
     if (!shader) {
         std::cout << "shader not found" << std::endl;
@@ -42,8 +41,6 @@ bool Material::Activate(glm::mat4 modelMatrix) {
     ProjectionMatrixID = glGetUniformLocation(shader->ID, "projection");
     LightID = glGetUniformLocation(shader->ID, "LightPosition_worldspace");
 
-    glm::mat4 projectionMatrix = Camera::getProjectionMatrix();
-    glm::mat4 viewMatrix = Camera::getViewMatrix();
     glm::mat4 MVP = projectionMatrix * viewMatrix * modelMatrix;
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);

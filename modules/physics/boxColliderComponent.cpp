@@ -1,5 +1,5 @@
 #include "boxColliderComponent.hpp"
-#include "../dove/transformComponent.hpp"
+#include "../3d/transformComponent.hpp"
 CLASS_DEFINITION(Collider, BoxCollider)
         
 BoxCollider::BoxCollider(std::string &&initialName, glm::vec3 d) 

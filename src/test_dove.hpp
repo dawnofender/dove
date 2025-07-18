@@ -2,8 +2,8 @@
 
 #include <modules/event/momento.hpp>
 #include <modules/command/command.hpp>
-#include <modules/dove/transformComponent.hpp>
-#include <modules/dove/playerControllerComponent.hpp>
+#include <modules/3d/transformComponent.hpp>
+// #include <modules/dove/playerControllerComponent.hpp>
 #include <modules/physics/physicsComponent.hpp>
 #include <modules/physics/sphereColliderComponent.hpp>
 #include <modules/physics/boxColliderComponent.hpp>

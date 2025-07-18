@@ -34,11 +34,12 @@ public:
 
     virtual void serialize(Archive& archive) override;
     virtual void init() override;
-
-    void draw();
+    
+    // TODO: pass matrices by reference instead
+    void draw(glm::mat4 viewMatrix = glm::mat4(0), glm::mat4 projectionMatrix = glm::mat4(0));
     void setBounds(glm::vec3 a, glm::vec3 b);
 
-    static void drawAll();
+    static void drawAll(glm::mat4 viewMatrix = glm::mat4(0), glm::mat4 projectionMatrix = glm::mat4(0));
     static void deleteAll();
 };
 
