@@ -46,77 +46,76 @@ add_executable(dove
     src/dove.cpp
     src/TransformVertexShader.vertexshader
     src/TextureFragmentShader.fragmentshader
-    # src/worldgen/doctree.cpp
-    # src/worldgen/doctree.hpp
 
     src/defaultAssets.hpp
     src/defaultAssets.cpp
 
-    src/dasset/asset.cpp
-    src/dasset/asset.hpp
-    src/dasset/mesh.cpp
-    src/dasset/mesh.hpp
-    src/dasset/texture.cpp
-    src/dasset/texture.hpp
-    src/dasset/shader.hpp
-    src/dasset/shader.cpp
-    src/dasset/material.cpp
-    src/dasset/material.hpp
+    modules/asset/asset.cpp
+    modules/asset/asset.hpp
+    modules/asset/mesh.cpp
+    modules/asset/mesh.hpp
+    modules/asset/texture.cpp
+    modules/asset/texture.hpp
+    modules/asset/shader.hpp
+    modules/asset/shader.cpp
+    modules/asset/material.cpp
+    modules/asset/material.hpp
 
-    src/event/event.cpp
-    src/event/event.hpp
-    src/event/momento.cpp
-    src/event/momento.hpp
-    src/command/command.cpp
-    src/command/command.hpp
+    modules/event/event.cpp
+    modules/event/event.hpp
+    modules/event/momento.cpp
+    modules/event/momento.hpp
+    modules/command/command.cpp
+    modules/command/command.hpp
 
-    src/thingy/node.cpp
-    src/thingy/node.hpp
+    # modules/core/thingy/node.cpp
+    # modules/core/thingy/node.hpp
 
-    src/thingy/rtti_macros.hpp
-    src/thingy/thing.cpp
-    src/thingy/thing.hpp
-    src/thingy/thingy.cpp
-    src/thingy/thingy.hpp
-    src/thingy/glyph/glyphThingy.cpp
-    src/thingy/glyph/glyphThingy.hpp
-    src/thingy/panel/panelThingy.cpp
-    src/thingy/panel/panelThingy.hpp
-    src/thingy/panel/windowThingy.cpp
-    src/thingy/panel/windowThingy.hpp
-    src/thingy/archive/archive.cpp
-    src/thingy/archive/archive.hpp
+    modules/core/rtti_macros.hpp
+    modules/core/thing.cpp
+    modules/core/thing.hpp
+    modules/core/thingy/thingy.cpp
+    modules/core/thingy/thingy.hpp
+    modules/core/component/component.cpp
+    modules/core/component/component.hpp
+    modules/core/component/updatableComponent.cpp
+    modules/core/component/updatableComponent.hpp
+    modules/core/archive/archive.cpp
+    modules/core/archive/archive.hpp
     
-    src/components/component.cpp
-    src/components/component.hpp
-    src/components/transformComponent.cpp
-    src/components/transformComponent.hpp
-    src/components/playerControllerComponent.cpp
-    src/components/playerControllerComponent.hpp
-    src/components/updatableComponent.cpp
-    src/components/updatableComponent.hpp
-    # src/components/gaiaComponent.cpp
-    # src/components/gaiaComponent.hpp
+    modules/dove/transformComponent.cpp
+    modules/dove/transformComponent.hpp
+    modules/dove/playerControllerComponent.cpp
+    modules/dove/playerControllerComponent.hpp
+    # modules/gaia/gaiaComponent.cpp
+    # modules/gaia/gaiaComponent.hpp
 
-    src/components/physics/physicsComponent.cpp
-    src/components/physics/physicsComponent.hpp
-    src/components/physics/colliderComponent.cpp
-    src/components/physics/colliderComponent.hpp
-    src/components/physics/rigidBodyComponent.cpp
-    src/components/physics/rigidBodyComponent.hpp
-    src/components/physics/sphereColliderComponent.cpp
-    src/components/physics/sphereColliderComponent.hpp
-    src/components/physics/boxColliderComponent.cpp
-    src/components/physics/boxColliderComponent.hpp
+    modules/glyph/glyphThingy.cpp
+    modules/glyph/glyphThingy.hpp
+    modules/panel/panelThingy.cpp
+    modules/panel/panelThingy.hpp
+    modules/window/window.cpp
+    modules/window/window.hpp
+    
+    modules/physics/physicsComponent.cpp
+    modules/physics/physicsComponent.hpp
+    modules/physics/colliderComponent.cpp
+    modules/physics/colliderComponent.hpp
+    modules/physics/rigidBodyComponent.cpp
+    modules/physics/rigidBodyComponent.hpp
+    modules/physics/sphereColliderComponent.cpp
+    modules/physics/sphereColliderComponent.hpp
+    modules/physics/boxColliderComponent.cpp
+    modules/physics/boxColliderComponent.hpp
 
-    src/components/rendering/meshRendererComponent.cpp
-    src/components/rendering/meshRendererComponent.hpp
-    src/components/rendering/modelRendererComponent.cpp
-    src/components/rendering/modelRendererComponent.hpp
-    src/components/rendering/skyRendererComponent.cpp
-    src/components/rendering/skyRendererComponent.hpp
-    src/components/rendering/cameraComponent.cpp
-    src/components/rendering/cameraComponent.hpp
+    modules/rendering/meshRendererComponent.cpp
+    modules/rendering/meshRendererComponent.hpp
+    modules/rendering/modelRendererComponent.cpp
+    modules/rendering/modelRendererComponent.hpp
+    modules/rendering/skyRendererComponent.cpp
+    modules/rendering/skyRendererComponent.hpp
+    modules/rendering/cameraComponent.cpp
+    modules/rendering/cameraComponent.hpp
     
     lib/setup.hpp
     lib/setup.cpp
@@ -130,12 +129,12 @@ add_executable(dove
     lib/bulletDebugDrawer.cpp
     lib/bulletDebugDrawer.hpp
     
-    # used in GAIA
-    lib/threadsafe_vector.hpp
-    lib/SimplexNoise.cpp
-    lib/SimplexNoise.h
-    lib/FastNoise.cpp
-    lib/FastNoise.h
+    # # used in GAIA
+    # lib/threadsafe_vector.hpp
+    # lib/SimplexNoise.cpp
+    # lib/SimplexNoise.h
+    # lib/FastNoise.cpp
+    # lib/FastNoise.h
 )
 
 target_link_libraries(dove ${ALL_LIBS})

@@ -1,12 +1,13 @@
 #ifndef DEFAULTASSETS_HPP
 #define DEFAULTASSETS_HPP
 
-#include "dasset/mesh.hpp"
-#include "dasset/material.hpp"
-#include "dasset/texture.hpp"
-#include "dasset/shader.hpp"
 #include <memory>
 #include <iostream>
+
+#include <modules/asset/mesh.hpp>
+#include <modules/asset/material.hpp>
+#include <modules/asset/texture.hpp>
+#include <modules/asset/shader.hpp>
 
 
 // NOTE: extremely temporary dont keep this code for longer than a week

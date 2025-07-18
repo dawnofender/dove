@@ -2,26 +2,23 @@
 
 #include <lib/setup.hpp>
 
-#include "defaultAssets.hpp"
-#include "test_dove.hpp"
-
-#include "thingy/panel/windowThingy.hpp"
-#include "event/momento.hpp"
-#include "command/command.hpp"
-
-#include "components/transformComponent.hpp"
-#include "components/playerControllerComponent.hpp"
-#include "components/physics/physicsComponent.hpp"
-#include "components/physics/sphereColliderComponent.hpp"
-#include "components/physics/boxColliderComponent.hpp"
-#include "components/physics/rigidBodyComponent.hpp"
-#include "components/rendering/modelRendererComponent.hpp"
-#include "components/rendering/skyRendererComponent.hpp"
-#include "components/rendering/cameraComponent.hpp"
-
 #include <glm/gtx/io.hpp>
 
-#include <assimp/Importer.hpp>
+#include <modules/event/momento.hpp>
+#include <modules/command/command.hpp>
+#include <modules/dove/transformComponent.hpp>
+#include <modules/dove/playerControllerComponent.hpp>
+#include <modules/physics/physicsComponent.hpp>
+#include <modules/physics/sphereColliderComponent.hpp>
+#include <modules/physics/boxColliderComponent.hpp>
+#include <modules/physics/rigidBodyComponent.hpp>
+#include <modules/rendering/modelRendererComponent.hpp>
+#include <modules/rendering/skyRendererComponent.hpp>
+#include <modules/rendering/cameraComponent.hpp>
+#include <modules/window/window.hpp>
+
+#include "defaultAssets.hpp"
+#include "test_dove.hpp"
 
 void printThingyTree(Thingy *thingy, int &depth) {
 
