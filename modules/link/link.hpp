@@ -1,5 +1,8 @@
 
-#include "../core/thingy/thingy.hpp"
+#include "../../core/thingy/thingy.hpp"
+
+
+// currently unused, but this will run the main loop that connects the player to the world.
 
 class Link {
 public:

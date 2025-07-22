@@ -1,5 +1,5 @@
 #include "rigidBodyComponent.hpp"
-#include "../3d/transformComponent.hpp"
+#include "../transform/transformComponent.hpp"
 
 CLASS_DEFINITION(Component, RigidBody)
 
@@ -171,6 +171,10 @@ float RigidBody::getRollingFriction() {
 
 float RigidBody::getSpinningFriction() {
     return bulletRigidBody->getSpinningFriction();
+}
+
+Physics* RigidBody::getPhysicsWorld() {
+    return physicsComponent;
 }
 
 void RigidBody::setFriction(float newFriction) {

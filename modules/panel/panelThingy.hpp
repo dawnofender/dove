@@ -1,7 +1,7 @@
 #ifndef PANELTHINGY_HPP
 #define PANELTHINGY_HPP
 
-#include "../core/thingy/thingy.hpp"
+#include "../../core/thingy/thingy.hpp"
 
 
 class Panel : public Thingy {

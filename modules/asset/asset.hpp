@@ -2,8 +2,8 @@
 #define DASSET_HPP
 
 #include <memory>
-#include "../core/thing.hpp"
-#include "../core/archive/archive.hpp"
+#include "../../core/thing.hpp"
+#include "../../core/archive/archive.hpp"
 
 // assets are objects shared between multiple components
 // generally unchanging, but can be edited, eg. 3D modelling

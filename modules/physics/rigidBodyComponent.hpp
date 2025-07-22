@@ -7,7 +7,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include "btBulletDynamicsCommon.h"
 
-// #include "../3d/transformComponent.hpp"
 #include "physicsComponent.hpp"
 #include "colliderComponent.hpp"
 
@@ -58,6 +57,7 @@ public:
     float getMass();
     glm::vec3 getCenterOfMass();
     glm::mat4 getCenterOfMassTransform();
+    Physics* getPhysicsWorld();
 
     void setFriction(float newFriction);
     void setRollingFriction(float newRollingFriction);

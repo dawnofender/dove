@@ -6,10 +6,6 @@
 #include "meshRendererComponent.hpp"
 
 
-// NOTE: this component may be renamed
-//  - it will be different from meshRenderer, as you will be able to assign multiple different materials to different parts of the mesh.
-//  - so 'skinned mesh renderer' is a pretty solid name but i wanna be different lol
-
 class ModelRenderer : public MeshRenderer {
 CLASS_DECLARATION(ModelRenderer)
 private:

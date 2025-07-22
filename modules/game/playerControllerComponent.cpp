@@ -9,9 +9,6 @@
 #include "../rendering/modelRendererComponent.hpp"
 #include "../physics/boxColliderComponent.hpp"
 
-// TODO: get rid of this 
-#include "../test/defaultAssets.hpp"
-
 
 CLASS_DEFINITION(Component, PlayerController)
 
@@ -31,7 +28,6 @@ PlayerController::PlayerController(
     : UpdatableComponent(std::move(initialName)), 
     physicsComponent(p), 
     host(h), 
-    camera(c), 
     playerRigidBody(r), 
     cameraTransform(t), 
     walkSpeed(s), 
@@ -45,7 +41,6 @@ void PlayerController::serialize(Archive& archive) {
     
     archive &
         host &
-        camera &
         cameraTransform &
         physicsComponent &
         playerRigidBody &
@@ -61,24 +56,27 @@ void PlayerController::serialize(Archive& archive) {
 
 
 void PlayerController::update() {
-    
+    // TODO: get window from camera instead of using active window
     GLFWwindow* window = &Window::getActiveWindow().getGLFWwindow();
     if (!window) {
         std::cerr << name << ": window not found" << std::endl;
         return;
     }
-
     
     if (!cameraTransform) {
-        if (!camera) {
-            std::cerr << name << ": camera not found" << std::endl;
-            return;
-        }
-        if (!(cameraTransform = &camera->getComponent<Transform>())) {
-            // this one can be handled easily so no need to error 
-            cameraTransform = &camera->addComponent<Transform>("Transform", camera);
-        }
+        std::cerr << name << ": camera transform not found" << std::endl;
         return;
+    }
+
+    if (!playerRigidBody) {
+        std::cerr << name << ": rigidbody not found" << std::endl;
+        if (!host) return;
+        playerRigidBody = &host->getComponent<RigidBody>();
+        return;
+    }
+
+    if (!physicsComponent) {
+        physicsComponent = playerRigidBody->getPhysicsWorld();
     }
 
 
@@ -123,34 +121,8 @@ void PlayerController::update() {
     cameraTransform->rotate(yaw, up);
     cameraTransform->rotate(pitch, glm::vec3(1, 0, 0));
 
-    // old way of handling direction with lookat:
-    //
-    // glm::vec3 direction(
-    //     cos(pitch) * sin(yaw),
-    //     sin(pitch),
-    //     cos(pitch) * cos(yaw)
-    // );
-    // 
-    // glm::vec3 cameraPosition = cameraTransform->getPosition();
-    // glm::vec3 target = cameraPosition + direction;
-    //
-    // cameraTransform->setMatrix(
-    //     glm::inverse(glm::lookAt(
-    //         cameraPosition,
-    //         target,
-    //         up
-    // )));
-
 
     // handle locomotion
-    
-    if (!physicsComponent) return;
-    if (!playerRigidBody) {
-        if (!host) return;
-        playerRigidBody = &host->getComponent<RigidBody>();
-        return;
-    }
-
     Transform *playerTransform  = &host->getComponent<Transform>();
 
     

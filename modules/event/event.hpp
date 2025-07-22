@@ -1,7 +1,13 @@
 #ifndef EVENTTHING_HPP
 #define EVENTTHING_HPP
 
-#include "../core/thingy/thingy.hpp"
+#include "../../core/thingy/thingy.hpp"
+
+// rename to "moment" or something more action / change related? 
+// "event" may be confusing as we also will have an event loop each frame which has little to do with this
+// but the event loop could also just be called something else, 
+// i just think people are used to talking about event order using the words event order
+// which has nothing to do with this
 
 
 class Event : public Thing {

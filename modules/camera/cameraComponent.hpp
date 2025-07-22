@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../3d/transformComponent.hpp"
+#include "../transform/transformComponent.hpp"
 #include "../window/window.hpp"
 
 // TODO: 

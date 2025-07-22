@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-extern "C" bool setupOpenGL() {
+extern "C" bool rendererInit() {
     std::cout << "setting up opengl... " << std::endl;
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -32,4 +32,8 @@ extern "C" bool setupOpenGL() {
     glfwDestroyWindow(tempWindow);
 
     return true;
+}
+ 
+void rendererTerminate() {
+    glfwTerminate();
 }

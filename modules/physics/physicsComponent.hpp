@@ -1,8 +1,8 @@
 #ifndef PHYSICSCOMPONENT_HPP
 #define PHYSICSCOMPONENT_HPP
 
-#include "../core/component/component.hpp"
-#include "../core/thingy/thingy.hpp"
+#include "../../core/component/component.hpp"
+#include "../../core/thingy/thingy.hpp"
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>

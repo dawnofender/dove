@@ -13,10 +13,7 @@ build_module(physics
 )
 
 target_link_libraries(physics
-    PRIVATE 3d
-    PRIVATE rendering
-	PRIVATE ${OPENGL_LIBRARY}
-	PRIVATE glfw
+    PRIVATE transform
 	PRIVATE GLEW_1130
     PRIVATE BulletDynamics
     PRIVATE BulletCollision

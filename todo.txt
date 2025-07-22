@@ -22,41 +22,13 @@ maybe limitations are necessary. it's easier to approach a limited environment, 
 current design philosophies VERY SUBJECT TO CHANGE i am still learning and this may be stupid :)
 - avoid having systems controlled globally by say, one static member. this stuff limits our ability to exist between worlds
     - eg. physics system could just be one static bullet3 dynamicsworld. but 
-
-example of ideal code flow
-
-int main() {
-    Thingy *universe = new Thingy( "hello world!" );
-    
-    Thingy *you = &universe.createChild( "despite everything, it's still you." );
-    
-    dov::genisis(universe, you);
-
-    return 0;
-}
-    
-void dov::genisis(Thingy *world, Thingy *you) {
-    world->addComponent< Physics >();      
-
-    you->addComponent< Perception >();     // automatically creates camera, audio listener, haptics(?), etc.
-    you->addComponent< Expression >();     // automatically creates player controller, mic output, fbt, etc.
-
-    // set up physics and graphics etc.
-    
-    do {
-        // update components, 
-        // render frame, 
-        // process input, 
-        // etc.
-    } while ( world != nullptr );
-}
+    - ok we could either do this or have each world be like.. a separate program..?? like each world is its own server? and the clie
 
 
 ideas: 
 - if a player's transform becomes NAN, move them under the asset root (reference to TADC)
+    - but actually just putting them in a secret room would be a cool easter egg
 - spacetime component that knows about every transform, maybe sorting them into zones for fast transform gets, handles deltatime, timers, etc.
-- more thingy types, or template, with specific features & amount of children
-    - useful for octree & similar data structures 
 - 'player controller' is boring. lets fix that
     - 'Expression' for control
     - 'Perception' for graphics, audio, haptics, etc.
@@ -89,7 +61,7 @@ greater plan:
 
 
 high priority: 
-- organize to be modular, move things into modules folder
+- generated reflection data during compilation
 - finish mesh face groups -> materials 
 - input listener
     - initialize with a callback functio
@@ -101,6 +73,8 @@ do sometime:
 - unify file system and game engine
     - file thingies which exist in the universe but reference actual files
         - these connect to asset types somehow... so assets 
+            - whoever wrote that got assassinated, we'll never know what they wanted say
+- audio emitter & listener
 - organized way to share data across multiple components in the root thingy (scene)
     - theres a basic implementation in physics component
         - could call this a world simulator or something instead
@@ -109,8 +83,13 @@ do sometime:
 
 eventually: 
 - text rendering 
-    - 2 approaches: text->mesh, or normaler 2D text rendering
+    - text->mesh?
+    - boring 2D text rendering?
+    - orr, we do a valve and use signed distance fields..?
+        - https://steamcdn-a.akamaihd.net/apps/valve/2007/SIGGRAPH2007_AlphaTestedMagnification.pdf
+        - this would be sick and im absolutely doing it, even if just for fun
 - material uniforms
+- shader graph
 - use two threads, one for polling events and one for rendering. use glfwWaitEvents to block the event thread until events are available
 - octree based LOD where closest 8 on each depth level get rendered and nodes are mapped to what objects they contain
 

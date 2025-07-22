@@ -2,7 +2,7 @@
 
 #include "../window/window.hpp"
 #include "../physics/physicsComponent.hpp"
-#include "../core/component/updatableComponent.hpp"
+#include "../../core/component/updatableComponent.hpp"
 
 Link::Link(Thingy *p) 
     :player(p) {

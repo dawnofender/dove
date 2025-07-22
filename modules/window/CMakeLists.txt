@@ -7,10 +7,5 @@ build_module(window
 target_link_libraries(window
 	  PRIVATE panel
 	  PRIVATE rendering
-	  PRIVATE ${OPENGL_LIBRARY}
-	  PRIVATE glfw
 	  PRIVATE GLEW_1130
-    # PRIVATE BulletDynamics
-    # PRIVATE BulletCollision
-    # PRIVATE LinearMath
 )

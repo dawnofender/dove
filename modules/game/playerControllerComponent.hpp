@@ -4,16 +4,15 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
-#include "../core/component/updatableComponent.hpp"
+#include "../../core/component/updatableComponent.hpp"
 #include "../physics/rigidBodyComponent.hpp"
 
-#include "../3d/transformComponent.hpp"
+#include "../transform/transformComponent.hpp"
 
 class PlayerController: public UpdatableComponent {
 CLASS_DECLARATION(PlayerController)
 private: 
     Thingy* host;
-    Thingy* camera;
     RigidBody* playerRigidBody;
     Transform* cameraTransform;
     Physics* physicsComponent;
@@ -27,8 +26,11 @@ public:
     
     virtual void serialize(Archive& archive) override;
 
-    void update();
+    virtual void update() override;
     
+    void setCameraTransform(Transform* transform);
+    void setRigidBody(RigidBody* rigidbody);
+
     float mouseSensitivity;
     float walkSpeed;
     float jumpStrength;

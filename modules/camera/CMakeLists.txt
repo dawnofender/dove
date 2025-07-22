@@ -5,7 +5,7 @@ build_module(camera
 )
 
 target_link_libraries(camera
-    PRIVATE 3d
+    PRIVATE transform
     PRIVATE rendering
     PRIVATE window
 	PRIVATE ${OPENGL_LIBRARY}

@@ -5,7 +5,7 @@ build_module(game
 )
 
 target_link_libraries(game
-    PRIVATE 3d
+    PRIVATE transform
     PRIVATE camera
     PRIVATE physics
 	PRIVATE ${OPENGL_LIBRARY}
