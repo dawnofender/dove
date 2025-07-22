@@ -1,4 +1,4 @@
-#include "../../core/thingy/thingy.hpp"
+#include <core/thingy/thingy.hpp>
 
 class File : public Thingy {
 CLASS_DECLARATION(File)

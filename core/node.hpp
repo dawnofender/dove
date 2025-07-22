@@ -32,6 +32,16 @@ public:
     virtual void setParent(NodePtr newParent) {};
 
     virtual void addChild(NodePtr child) {};
+
+    Container& getChildren() {
+        return children;
+    }
+    
+    std::shared_ptr<T> getParent() {
+        if (auto p = parent.lock())
+            return p;
+        return nullptr;
+    }
     //
     // void removeChild(std::shared_ptr<Node> child);
     // void removeChild(Node* child);

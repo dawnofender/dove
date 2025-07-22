@@ -1,7 +1,7 @@
 #include "glyphThingy.hpp"
 
-CLASS_DEFINITION(Thingy, Glyph)
+CLASS_DEFINITION(Thing, Glyph)
 
-Glyph::Glyph(std::string n) 
-    : Thingy(n) {}
+Glyph::Glyph(std::string n) :
+    name(n) {}
 

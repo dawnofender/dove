@@ -1,25 +1,42 @@
 #ifndef GLYPHTHINGY_HPP
 #define GLYPHTHINGY_HPP
 
-#include "../../core/thingy/thingy.hpp"
+#include "../../core/thing.hpp"
 
-// glyph::children -> glyphs that will be activated by this glyph, in order (aka a timeline)
-// glyph::parent -> whatever glyph led to this timeline / thread
-// glyph::arguments -> glyphs that need to be accessed by this glyph
 
-// comparing this flow to normal code,
-// glyph::parent -> a function or control flow statement 
-// glyph::children -> statements inside this statement
-// glyph::arguments -> arguments
 
-class Glyph : public Thingy {
+class Glyph : public Thing {
 CLASS_DECLARATION(Glyph)
 public:
     Glyph(std::string n = "");
+    virtual ~Glyph() {};
 
 protected:
-    std::vector<std::shared_ptr<Glyph>> arguments;
+    std::string name;
+    std::shared_ptr<Glyph> next;
+    virtual void execute() {};
+};
+
+
+// arguments
+struct Sigil {
+    Sigil *next;
+    std::weak_ptr<Glyph> glyph;
+};
+
+
+// Glyph that takes arguments
+class Spell : public Glyph {
+CLASS_DECLARATION(Spell)
+public:
+    Spell(std::string n = "");
+    virtual ~Spell() {};
+
+protected:
+    Sigil *arguments;
     
 };
+
+
 
 #endif

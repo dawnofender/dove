@@ -27,20 +27,20 @@
 
 #include <lib/FastNoise.h>
 #include <lib/SimplexNoise.h>
-#include <src/dasset/mesh.hpp>
-#include <src/dasset/shader.hpp>
-#include <src/thingy/components/meshRendererComponent.hpp>
-#include <src/thingy/components/transformComponent.hpp>
-#include <src/thingy/thingy.hpp>
-#include <src/worldgen/doctree.hpp>
+#include <modules/asset/mesh.hpp>
+#include <modules/asset/shader.hpp>
+#include <modules/rendering/meshRendererComponent.hpp>
+#include <modules/transform/transformComponent.hpp>
+#include <core/thingy/thingy.hpp>
+#include "octree.hpp"
 
 // NOTE: Currently unused - come back to this after the engine is more usable
 
 
 // for hashing vec3 (required by threadedcellmap)
 namespace std {
-template <> struct hash<glm::vec3> {
-  std::size_t operator()(glm::vec3 const &v) const noexcept {
+template <> struct hash<Dove::Vector3> {
+  std::size_t operator()(Dove::Vector3 const &v) const noexcept {
     // hash each float member, then combine
     std::size_t h1 = std::hash<float>{}(v.x);
     std::size_t h2 = std::hash<float>{}(v.y);
@@ -58,11 +58,11 @@ template <> struct hash<glm::vec3> {
 struct CellSampleData {
   std::shared_ptr<OctreeNode> cell;
   float distance;
-  glm::vec3 position;
+  Dove::Vector3 position;
   int8_t depth;
   bool sampleMode; // true to upsample, false to downsample
   //
-  CellSampleData(std::shared_ptr<OctreeNode> c, float dist, glm::vec3 p,
+  CellSampleData(std::shared_ptr<OctreeNode> c, float dist, Dove::Vector3 p,
                  int8_t d, bool m)
       : cell(c), distance(dist), position(p), depth(d), sampleMode(m) {}
 
@@ -120,10 +120,10 @@ class threadedCellMap {
 private:
   int8_t offset;
   Octree *cellTree;
-  std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>>
+  std::vector<std::unordered_map<Dove::Vector3, std::shared_ptr<OctreeNode>>>
       cellMap_a; // (depth, (position, leaf cell))
   std::unordered_multimap<std::shared_ptr<OctreeNode>,
-                          std::pair<int8_t, glm::vec3>>
+                          std::pair<int8_t, Dove::Vector3>>
       cellMap_b;
   std::mutex m_a;
   std::mutex m_b;
@@ -134,26 +134,26 @@ public:
     offset = 0 - cellTree->minDepth;
   }
 
-  std::shared_ptr<OctreeNode> find(int8_t depth, glm::vec3 position) {
+  std::shared_ptr<OctreeNode> find(int8_t depth, Dove::Vector3 position) {
     std::lock_guard<std::mutex> lock(m_a);
     return cellMap_a[depth + offset].find(position)->second;
   }
 
   void insert(std::shared_ptr<OctreeNode> cell, int8_t depth,
-              glm::vec3 position) {
+              Dove::Vector3 position) {
     std::lock_guard<std::mutex> lock_a(m_a);
     cellMap_a[depth + offset].insert({position, cell});
     std::lock_guard<std::mutex> lock_b(m_b);
     cellMap_b.insert({cell, {depth, position}});
   }
 
-  std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>> &
+  std::unordered_map<Dove::Vector3, std::shared_ptr<OctreeNode>> &
   get(int8_t depth) {
     std::lock_guard<std::mutex> lock(m_a);
     return cellMap_a[depth + offset];
   }
 
-  std::shared_ptr<OctreeNode> get(int8_t depth, glm::vec3 pos) {
+  std::shared_ptr<OctreeNode> get(int8_t depth, Dove::Vector3 pos) {
     std::lock_guard<std::mutex> lock(m_a);
     if (cellMap_a[depth + offset].contains(pos)) {
       return cellMap_a[depth + offset].find(pos)->second;
@@ -162,18 +162,18 @@ public:
     }
   }
 
-  std::pair<int8_t, glm::vec3> &get(std::shared_ptr<OctreeNode> cell) {
+  std::pair<int8_t, Dove::Vector3> &get(std::shared_ptr<OctreeNode> cell) {
     std::lock_guard<std::mutex> lock(m_b);
     return cellMap_b.find(cell)->second;
   }
 
-  glm::vec3 getPos(std::shared_ptr<OctreeNode> cell) {
+  Dove::Vector3 getPos(std::shared_ptr<OctreeNode> cell) {
     std::lock_guard<std::mutex> lock(m_b);
     return cellMap_b.find(cell)->second.second;
   }
 
   std::unordered_multimap<std::shared_ptr<OctreeNode>,
-                          std::pair<int8_t, glm::vec3>> &
+                          std::pair<int8_t, Dove::Vector3>> &
   getCellMap() {
     std::lock_guard<std::mutex> lock(m_b);
     return cellMap_b;
@@ -184,14 +184,14 @@ public:
     return cellMap_b.find(cell)->second.first;
   }
 
-  std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>> &
+  std::vector<std::unordered_map<Dove::Vector3, std::shared_ptr<OctreeNode>>> &
   get() {
     std::lock_guard<std::mutex> lock(m_a);
     return cellMap_a;
   }
 
   void erase(std::shared_ptr<OctreeNode> cell, int8_t depth,
-             glm::vec3 position) {
+             Dove::Vector3 position) {
     std::lock_guard<std::mutex> lock_a(m_a);
     cellMap_a[depth + offset].erase(position);
     std::lock_guard<std::mutex> lock_b(m_b);
@@ -222,7 +222,7 @@ private:
     Octree *cellTree;
     std::shared_ptr<OctreeNode> chunk;
     int8_t depth;
-    glm::vec3 position;
+    Dove::Vector3 position;
     MeshRenderer *meshRenderer;
     std::shared_ptr<Shader> shader;
     std::shared_ptr<MeshData> mesh;
@@ -236,40 +236,40 @@ public:
     bool shouldUpdate = false;
 
 public:
-    GaiaChunk(std::string &&initialValue, Thingy *h, Octree *ot, threadedCellMap *lm, std::shared_ptr<OctreeNode> c, std::shared_ptr<Shader> s, int8_t d)
-        : Component(std::move(initialValue)), host(h), cellTree(ot), leafMap(lm), chunk(c), shader(s), depth(d) {
+    GaiaChunk(std::string &&initialName = "", Thingy *h = nullptr, Octree *ot = nullptr, threadedCellMap *lm = nullptr, std::shared_ptr<OctreeNode> c = nullptr, std::shared_ptr<Shader> s = nullptr, int8_t d = 0)
+        : Component(std::move(initialName)), host(h), cellTree(ot), leafMap(lm), chunk(c), shader(s), depth(d) {
 
     cube.vertices = {
         // +x
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 0, 1),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 1, 0),
+        Dove::Vector3(1, 1, 1),
+        Dove::Vector3(1, 0, 1),
+        Dove::Vector3(1, 0, 0),
+        Dove::Vector3(1, 1, 0),
         // -x
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 1, 1),
+        Dove::Vector3(0, 1, 0),
+        Dove::Vector3(0, 0, 0),
+        Dove::Vector3(0, 0, 1),
+        Dove::Vector3(0, 1, 1),
         // +y
-        glm::vec3(0, 1, 0),
-        glm::vec3(0, 1, 1),
-        glm::vec3(1, 1, 1),
-        glm::vec3(1, 1, 0),
+        Dove::Vector3(0, 1, 0),
+        Dove::Vector3(0, 1, 1),
+        Dove::Vector3(1, 1, 1),
+        Dove::Vector3(1, 1, 0),
         // -y
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(1, 0, 1),
+        Dove::Vector3(0, 0, 1),
+        Dove::Vector3(0, 0, 0),
+        Dove::Vector3(1, 0, 0),
+        Dove::Vector3(1, 0, 1),
         // +z
-        glm::vec3(0, 1, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(1, 0, 1),
-        glm::vec3(1, 1, 1),
+        Dove::Vector3(0, 1, 1),
+        Dove::Vector3(0, 0, 1),
+        Dove::Vector3(1, 0, 1),
+        Dove::Vector3(1, 1, 1),
         // -z
-        glm::vec3(1, 1, 0),
-        glm::vec3(1, 0, 0),
-        glm::vec3(0, 0, 0),
-        glm::vec3(0, 1, 0),
+        Dove::Vector3(1, 1, 0),
+        Dove::Vector3(1, 0, 0),
+        Dove::Vector3(0, 0, 0),
+        Dove::Vector3(0, 1, 0),
     };
 
     cube.indices = {
@@ -335,9 +335,9 @@ public:
 
     // calculate normals
     for (int i = 0; i < newMesh->vertices.size(); i += 4) {
-      glm::vec3 edge1 = newMesh->vertices[i + 1] - newMesh->vertices[i];
-      glm::vec3 edge2 = newMesh->vertices[i + 2] - newMesh->vertices[i];
-      glm::vec3 triangleNormal = normalize(cross(edge1, edge2));
+      Dove::Vector3 edge1 = newMesh->vertices[i + 1] - newMesh->vertices[i];
+      Dove::Vector3 edge2 = newMesh->vertices[i + 2] - newMesh->vertices[i];
+      Dove::Vector3 triangleNormal = normalize(cross(edge1, edge2));
 
       newMesh->normals[i] = triangleNormal;
       newMesh->normals[i + 1] = triangleNormal;
@@ -359,8 +359,8 @@ public:
       const float noiseB =
           simplex.fractal(nDepth, newMesh->vertices[i].x + 3000.f,
                           newMesh->vertices[i].y, newMesh->vertices[i].z);
-      newMesh->colors[i] = glm::vec3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) +
-                           glm::vec3(rand() / double(RAND_MAX)) / 2.f;
+      newMesh->colors[i] = Dove::Vector3(noiseR + 0.5, noiseG + 0.5, noiseB + 0.5) +
+                           Dove::Vector3(rand() / double(RAND_MAX)) / 2.f;
       // newMesh->colors[i] = mesh->normals[i];
     }
 
@@ -395,7 +395,7 @@ public:
       for (int i = 0; i < 6; i++) {
 
         if (!cell->neighbors[i] || cell->neighbors[i]->transparent) {
-          glm::vec3 cellPos = leafMap->getPos(cell);
+          Dove::Vector3 cellPos = leafMap->getPos(cell);
 
           int vertexInd = newMesh->vertices.size();
           int indexInd = newMesh->indices.size();
@@ -424,162 +424,160 @@ public:
 };
 
 class Gaia : public Component {
-  CLASS_DECLARATION(Gaia)
+    CLASS_DECLARATION(Gaia)
 private:
-  Octree *cellTree;
-  float planetSize;
-  float lod = 16.f;
-  int8_t chunkDepth = 5;
-  MeshData worldMesh;
-  Shader *shader;
-  Thingy *player;
-  Thingy *host;
-  Transform *playerTransform;
+    Octree *cellTree;
+    float planetSize;
+    float lod = 16.f;
+    int8_t chunkDepth = 5;
+    MeshData worldMesh;
+    Shader *shader;
+    Thingy *player;
+    Thingy *host;
+    Transform *playerTransform;
 
-  // std::vector<std::unordered_map<glm::vec3, std::shared_ptr<OctreeNode>>>
-  // leafMap; // (depth, (position, leaf cell))
-  threadedCellMap *leafMap; // (depth, (position, leaf cell))
-  threadedSampleQueue sampleQueue;
-  threadedSampleQueue chunkQueue;
-  std::unordered_map<std::shared_ptr<OctreeNode>, std::shared_ptr<Thingy>>
-      chunkThingies;
+    // std::vector<std::unordered_map<Dove::Vector3, std::shared_ptr<OctreeNode>>>
+    // leafMap; // (depth, (position, leaf cell))
+    threadedCellMap *leafMap; // (depth, (position, leaf cell))
+    threadedSampleQueue sampleQueue;
+    threadedSampleQueue chunkQueue;
+    std::unordered_map<std::shared_ptr<OctreeNode>, std::shared_ptr<Thingy>> chunkThingies;
 
-  bool generatingWorld;
+    bool generatingWorld;
 
-  int maxThreads = 4;
-  int threadIndex = 0;
-  std::vector<std::thread> octreeThreads;
+    int maxThreads = 4;
+    int threadIndex = 0;
+    std::vector<std::thread> octreeThreads;
 
 public:
-  Gaia(std::string &&initialValue, Thingy *h, Thingy *p)
-      : Component(std::move(initialValue)), host(h), player(p) {
+    Gaia(std::string &&initialName = "", Thingy *h, Thingy *p)
+        : Component(std::move(initialName)), host(h), player(p) {
 
-    // FIX: breaks if transform component doesn't exist
-    playerTransform = &player->getComponent<Transform>();
+        // FIX: breaks if transform component doesn't exist
+        playerTransform = &player->getComponent<Transform>();
 
-    shader = new Shader("TransformVertexShader.vertexshader",
-                                      "ColorFragmentShader.fragmentshader");
-  }
-
-  void setLocalPlayer(Thingy *p) {
-    player = p;
-    playerTransform = &player->getComponent<Transform>();
-  }
-
-  void createWorld(Octree *ot) {
-    std::cout << "gaia: creating world" << std::endl;
-    cellTree = ot;
-    leafMap = new threadedCellMap(ot);
-
-    planetSize = cellTree->getCellSize(cellTree->maxDepth);
-
-    float offset = planetSize / -2.f;
-    cellTree->origin = glm::vec3(offset);
-    // planet.leaf = false;
-    //
-    double time0;
-    double time1;
-
-    // time0 = glfwGetTime();
-    // generateWorld();
-    // time1 = glfwGetTime();
-    // std::cout << "                     World generated | " <<
-    // 1000*(time1-time0) << "ms\n";
-
-    // boring method: chunk generation
-    // pros:
-    //  - easy and fast to make separate meshes from each chunk
-    // cons:
-    //  -
-    // 1) make octree nodes within a radius (render distance), down to a
-    // predifined depth (chunkdepth)
-    //  1a) sort cells at chunkdepth by distance
-    // 2) generate closest ungenerated chunks
-    // 3) collect data on new chunks: which sides are completely solid
-    // 4) generate next closest chunks, excluding ones that won't be visible
-    // (using data from 4) (bfs search)
-    // .) repeat 4-5 until all chunks from 1a are generated
-
-    // or: world resampling
-    // 1) make a queue of cells to generate, this will be our first sample
-    //  - start with the root node
-    // 2) generate matter for all cells in the queue
-    // 3) add only surface cells to the queue (next sample)
-    //  - exclude cells if their percieved scale is big enough (lod)
-    //  - if player is too far away, unload cell data
-    // 4) repeat 2-3 until queue is empty
-    // 6) sort cells into chunks for rendering
-
-    // probably combine both methds, only doing full chunk generation for chunks
-    // that are very close
-
-    // setup sample for the root node (entire planet)
-    generateMatter(cellTree->root,
-                   cellTree->origin + glm::vec3(cellTree->getCellSize(
-                                          cellTree->maxDepth - 1)));
-    cellTree->root->leaf = true;
-    leafMap->insert(cellTree->root, cellTree->maxDepth, cellTree->origin);
-    // sampleQueue.push(CellSampleData(cellTree->root, planetSize,
-    // cellTree->origin, cellTree->maxDepth, true));
-
-    std::cout << "gaia: starting sampling" << std::endl;
-    // sample enough times to make world around player
-    for (int i = 0; i <= cellTree->maxDepth; i++) {
-      time0 = glfwGetTime();
-      updateSampleData();
-      generateSamples();
-      time1 = glfwGetTime();
-      std::cout << leafMap->size();
-      std::cout << "          Generated world sample " << (int)i << " | "
-                << 1000 * (time1 - time0) << "ms\n";
+        shader = new Shader("../assets/TransformVertexShader.vertexshader", "../assets/ColorFragmentShader.fragmentshader");
     }
 
-    time0 = glfwGetTime();
-    // simplifyHomogeneous(cellTree->root);
-    time1 = glfwGetTime();
-    std::cout << "              Simplified homogeneous | "
-              << 1000 * (time1 - time0) << "ms\n";
+    void setLocalPlayer(Thingy *p) {
+        player = p;
+        playerTransform = &player->getComponent<Transform>();
+    }
 
-    time0 = glfwGetTime();
-    // simplifyDuplicates(cellTree->root);
-    time1 = glfwGetTime();
-    std::cout << "            Simplified doppelgangers | "
-              << 1000 * (time1 - time0) << "ms\n";
+    void createWorld(Octree *ot) {
+        std::cout << "gaia: creating world" << std::endl;
+        cellTree = ot;
+        leafMap = new threadedCellMap(ot);
 
-    time0 = glfwGetTime();
-    time1 = glfwGetTime();
-    std::cout << "             Neighbor data generated | "
-              << 1000 * (time1 - time0) << "ms\n";
+        planetSize = cellTree->getCellSize(cellTree->maxDepth);
 
-    // time0 = glfwGetTime();
-    // buildChunkObjects();
-    // time1 = glfwGetTime();
-    // std::cout << chunkMap.size();
-    // std::cout << "           Chunk mesh data generated | " <<
-    // 1000*(time1-time0) << "ms\n";
+        float offset = planetSize / -2.f;
+        cellTree->origin = Dove::Vector3(offset);
+        // planet.leaf = false;
+        //
+        double time0;
+        double time1;
 
-    // chunkQueue.clear();
-    // for (int8_t i = 0; i < cellTree->maxDepth - chunkDepth; i++) {
-    //     queueChunksAtDepth(i);
-    // }
-    // queueChunksAtDepth(0);
+        // time0 = glfwGetTime();
+        // generateWorld();
+        // time1 = glfwGetTime();
+        // std::cout << "                     World generated | " <<
+        // 1000*(time1-time0) << "ms\n";
 
-    buildChunkThingies();
-    // std::cout << "              Generated chunk meshes | " <<
-    // 1000*(time1-time0) << "ms\n";
-  }
+        // boring method: chunk generation
+        // pros:
+        //  - easy and fast to make separate meshes from each chunk
+        // cons:
+        //  -
+        // 1) make octree nodes within a radius (render distance), down to a
+        // predifined depth (chunkdepth)
+        //  1a) sort cells at chunkdepth by distance
+        // 2) generate closest ungenerated chunks
+        // 3) collect data on new chunks: which sides are completely solid
+        // 4) generate next closest chunks, excluding ones that won't be visible
+        // (using data from 4) (bfs search)
+        // .) repeat 4-5 until all chunks from 1a are generated
 
-  void setPlayer(Thingy *p) { player = p; }
+        // or: world resampling
+        // 1) make a queue of cells to generate, this will be our first sample
+        //  - start with the root node
+        // 2) generate matter for all cells in the queue
+        // 3) add only surface cells to the queue (next sample)
+        //  - exclude cells if their percieved scale is big enough (lod)
+        //  - if player is too far away, unload cell data
+        // 4) repeat 2-3 until queue is empty
+        // 6) sort cells into chunks for rendering
 
-  void startGeneratingWorld() {
-    generatingWorld = true;
-    std::jthread t1(&Gaia::updateSampleDataLoop, this);
-    // std::jthread t2(&Gaia::generateSampleLoop, this);
-    // std::jthread t3(&Gaia::buildChunkThingiesLoop, this);
-    t1.detach();
-    // t2.detach();
-    // t3.detach();
-  }
+        // probably combine both methds, only doing full chunk generation for chunks
+        // that are very close
+
+        // setup sample for the root node (entire planet)
+        generateMatter(cellTree->root,
+                       cellTree->origin + Dove::Vector3(cellTree->getCellSize(
+                                              cellTree->maxDepth - 1)));
+        cellTree->root->leaf = true;
+        leafMap->insert(cellTree->root, cellTree->maxDepth, cellTree->origin);
+        // sampleQueue.push(CellSampleData(cellTree->root, planetSize,
+        // cellTree->origin, cellTree->maxDepth, true));
+
+        std::cout << "gaia: starting sampling" << std::endl;
+        // sample enough times to make world around player
+        for (int i = 0; i <= cellTree->maxDepth; i++) {
+          time0 = glfwGetTime();
+          updateSampleData();
+          generateSamples();
+          time1 = glfwGetTime();
+          std::cout << leafMap->size();
+          std::cout << "          Generated world sample " << (int)i << " | "
+                    << 1000 * (time1 - time0) << "ms\n";
+        }
+
+        time0 = glfwGetTime();
+        // simplifyHomogeneous(cellTree->root);
+        time1 = glfwGetTime();
+        std::cout << "              Simplified homogeneous | "
+                  << 1000 * (time1 - time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        // simplifyDuplicates(cellTree->root);
+        time1 = glfwGetTime();
+        std::cout << "            Simplified doppelgangers | "
+                  << 1000 * (time1 - time0) << "ms\n";
+
+        time0 = glfwGetTime();
+        time1 = glfwGetTime();
+        std::cout << "             Neighbor data generated | "
+                  << 1000 * (time1 - time0) << "ms\n";
+
+        // time0 = glfwGetTime();
+        // buildChunkObjects();
+        // time1 = glfwGetTime();
+        // std::cout << chunkMap.size();
+        // std::cout << "           Chunk mesh data generated | " <<
+        // 1000*(time1-time0) << "ms\n";
+
+        // chunkQueue.clear();
+        // for (int8_t i = 0; i < cellTree->maxDepth - chunkDepth; i++) {
+        //     queueChunksAtDepth(i);
+        // }
+        // queueChunksAtDepth(0);
+
+        buildChunkThingies();
+        // std::cout << "              Generated chunk meshes | " <<
+        // 1000*(time1-time0) << "ms\n";
+    }
+
+    void setPlayer(Thingy *p) { player = p; }
+
+    void startGeneratingWorld() {
+        generatingWorld = true;
+        std::jthread t1(&Gaia::updateSampleDataLoop, this);
+        // std::jthread t2(&Gaia::generateSampleLoop, this);
+        // std::jthread t3(&Gaia::buildChunkThingiesLoop, this);
+        t1.detach();
+        // t2.detach();
+        // t3.detach();
+    }
 
   void stopGeneratingWorld() {
     generatingWorld = false;
@@ -589,7 +587,7 @@ public:
   void updateSampleDataLoop() {
     double time0;
     double time1;
-    glm::vec3 lastPlayerPos;
+    Dove::Vector3 lastPlayerPos;
     while (generatingWorld) {
       std::cout << "building chunks.. " << std::endl;
       buildChunkThingies();
@@ -659,13 +657,13 @@ public:
 
   void updateSampleData(int8_t depth) {
     for (auto &[position, cell] : leafMap->get(depth)) {
-      glm::vec3 cellCenter =
-          position + glm::vec3(cellTree->getCellSize(depth - 1));
+      Dove::Vector3 cellCenter =
+          position + Dove::Vector3(cellTree->getCellSize(depth - 1));
       float size = cellTree->getCellSize(depth);
 
       if (depth > cellTree->minDepth && cell->surface) {
         float distance =
-            glm::distance(cellCenter, glm::vec3(playerTransform->getPosition().x,
+            glm::distance(cellCenter, Dove::Vector3(playerTransform->getPosition().x,
                                                 playerTransform->getPosition().y,
                                                 playerTransform->getPosition().z));
 
@@ -679,11 +677,11 @@ public:
         // float dx = (cell->indexInParent >> 2) & 1;
         // float dy = (cell->indexInParent >> 1) & 1;
         // float dz = cell->indexInParent & 1;
-        // glm::vec3 parentPos = position - (glm::vec3(dx, dy, dz) * size);
-        // cellCenter = parentPos + glm::vec3(size);
+        // Dove::Vector3 parentPos = position - (Dove::Vector3(dx, dy, dz) * size);
+        // cellCenter = parentPos + Dove::Vector3(size);
 
         // float distance = glm::distance(cellCenter,
-        // glm::vec3(playerTransform->getPosition().x, playerTransform->getPosition().y,
+        // Dove::Vector3(playerTransform->getPosition().x, playerTransform->getPosition().y,
         // playerTransform->getPosition().z)); if (!checkLOD(distance, depth+1)) {
 
         //     // parent cell should be downsampled
@@ -791,12 +789,12 @@ public:
         float dy = (i >> 1) & 1;
         float dz = i & 1;
 
-        glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
+        Dove::Vector3 childOffset = Dove::Vector3(dx, dy, dz) * childSize;
 
-        glm::vec3 childPos = data.position + childOffset;
+        Dove::Vector3 childPos = data.position + childOffset;
 
         generateMatter(
-            child, childPos + glm::vec3(cellTree->getCellSize(data.depth - 2)));
+            child, childPos + Dove::Vector3(cellTree->getCellSize(data.depth - 2)));
 
         leafMap->insert(child, data.depth - 1, childPos);
 
@@ -842,12 +840,12 @@ public:
       // no: map chunk's calculated position,
       //     then create an object for it
       // float chunkSize = cellTree->getCellSize(data.depth);
-      // glm::vec3 chunkPos = glm::vec3(
+      // Dove::Vector3 chunkPos = Dove::Vector3(
       //     std::floor(data.position.x / chunkSize) * chunkSize,
       //     std::floor(data.position.y / chunkSize) * chunkSize,
       //     std::floor(data.position.z / chunkSize) * chunkSize
       // );
-      // glm::vec3 chunkPos = glm::vec3(
+      // Dove::Vector3 chunkPos = Dove::Vector3(
       //     data.position.x,
       //     data.position.y,
       //     data.position.z
@@ -871,8 +869,8 @@ public:
   //             if(neighbor && !neighbor->leaf) surfaceNeighbors++;
   //             if (surfaceNeighbors > 2) {
   //                 float childSize = cellTree->getCellSize(data.depth-1);
-  //                 glm::vec3 cellCenter = data.position +
-  //                 glm::vec3(childSize);
+  //                 Dove::Vector3 cellCenter = data.position +
+  //                 Dove::Vector3(childSize);
 
   //                 cell->leaf = false;
 
@@ -887,12 +885,12 @@ public:
   //                     float dy = (i >> 1) & 1;
   //                     float dz = i & 1;
   //
-  //                     glm::vec3 childOffset = glm::vec3(dx, dy, dz) *
+  //                     Dove::Vector3 childOffset = Dove::Vector3(dx, dy, dz) *
   //                     childSize;
 
-  //                     glm::vec3 childPos = data.position + childOffset;
+  //                     Dove::Vector3 childPos = data.position + childOffset;
   //                     generateMatter(child, childPos +
-  //                     glm::vec3(cellTree->getCellSize(data.depth - 2)));
+  //                     Dove::Vector3(cellTree->getCellSize(data.depth - 2)));
   //                     nextSampleData.insert({child, {childPos, data.depth -
   //                     1}});
 
@@ -974,7 +972,7 @@ public:
       int dy = ((i >> 1 & 1) ^ -sign) + sign;
       int dz = ((i >> 1 & 2) ^ -sign) + sign;
 
-      glm::vec3 offset = glm::vec3(dx, dy, dz) * size;
+      Dove::Vector3 offset = Dove::Vector3(dx, dy, dz) * size;
 
       // find neighbor in position map
       if (auto neighbor = leafMap->get(depth, pos + offset)) {
@@ -988,13 +986,13 @@ public:
   }
 
   // void mapNearbyChunks(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth,
-  // glm::vec3 cellPos, float cellSize) {
+  // Dove::Vector3 cellPos, float cellSize) {
   //     float childSize = cellTree->getCellSize(cellDepth-1);
 
-  //     glm::vec3 cellCenter = cellPos + glm::vec3(childSize);
+  //     Dove::Vector3 cellCenter = cellPos + Dove::Vector3(childSize);
 
   //     if(cellDepth > chunkDepth && distancefast(cellcenter,
-  //     glm::vec3(campos->x, campos->y, campos->z))/cellsize < lod) {
+  //     Dove::Vector3(campos->x, campos->y, campos->z))/cellsize < lod) {
   //         for (int i = 0; i < 8; ++i) {
   //             auto& child = cell->children[i];
   //             child = std::make_unique<OctreeNode>();
@@ -1005,9 +1003,9 @@ public:
   //             float dy = (i >> 1) & 1;
   //             float dz = i & 1;
   //
-  //             glm::vec3 childOffset = glm::vec3(dx, dy, dz) * childSize;
+  //             Dove::Vector3 childOffset = Dove::Vector3(dx, dy, dz) * childSize;
 
-  //             glm::vec3 childPos = cellPos + childOffset;
+  //             Dove::Vector3 childPos = cellPos + childOffset;
 
   //             mapNearbyChunks(cell->children[i], cellDepth-1, childPos,
   //             childSize);
@@ -1035,104 +1033,98 @@ public:
     simplifyCell(cell);
   }
 
-  void simplifyDuplicates(std::shared_ptr<OctreeNode> cell) {
-    for (std::shared_ptr<OctreeNode> child : cell->children) {
-      if (child) {
-        simplifyDuplicates(child); // recurse into children
-        simplifyDuplicates(
-            child, cellTree->root); // compare every other cell with this child
+    void simplifyDuplicates(std::shared_ptr<OctreeNode> cell) {
+        for (std::shared_ptr<OctreeNode> child : cell->children) {
+            if (child) {
+                simplifyDuplicates(child); // recurse into children
+                simplifyDuplicates(child, cellTree->root); // compare every other cell with this child
+            }
+        }
+    }
+
+    void simplifyDuplicates(std::shared_ptr<OctreeNode> cell_a, std::shared_ptr<OctreeNode> cell_b) {
+        for (std::shared_ptr<OctreeNode> child : cell_b->children) {
+            if (child)
+                simplifyDuplicates(cell_a, child); // recursively compare children with cell_a
+        }
+
+        if (cell_a == cell_b) {
+            // replace cell_b with cell_a
+            cell_b->parent->children[cell_b->indexInParent] = cell_a;
+            for (auto &child : cell_b->children) {
+                child->parent = cell_a;
+            }
+
+            leafMap->insert(cell_a, leafMap->getDepth(cell_b), leafMap->getPos(cell_b));
+            leafMap->erase(cell_b);
+            cell_b.reset();
+        }
+    }
+
+    void simplifyCell(std::shared_ptr<OctreeNode> cell) {
+
+        // find first existing child
+        int i;
+        for (auto &&child : cell->children) {
+            if (child) {
+                if (!child->leaf)
+                    simplifyCell(child);
+
+                // take its properties
+                cell->transparent = child->transparent;
+
+                // then, use its leafmap info (depth, pos) to calculate the parent's
+                // leafmap info
+                i = child->indexInParent;
+                int8_t depth = leafMap->getDepth(child);
+                Dove::Vector3 childPos = leafMap->getPos(child);
+                Dove::Vector3 pos = childPos + Dove::Vector3(cellTree->getCellSize(depth));
+
+                // if this is the last cell in its chunk, we should unload it
+                if (!child->transparent)
+                    queueChunkUpdateFromCell(
+                        CellSampleData(child, 0, childPos, depth, true));
+
+                leafMap->erase(child, depth, childPos);
+                child.reset();
+
+                depth++;
+                leafMap->insert(cell, depth, pos);
+                cell->leaf = true;
+
+                break;
+            }
+        }
+
+          // now we can erase the rest of the children
+        while (i < 8) {
+            if (cell->children[i]) {
+                if (!cell->children[i]->leaf)
+                    simplifyCell(cell->children[i]);
+                leafMap->erase(cell->children[i]);
+                cell->children[i].reset();
+            }
+            ++i;
+        }
+    }
+    
+    void buildChunkThingy(std::shared_ptr<OctreeNode> chunk, int8_t depth) {
+
+      // create object for chunk
+      Thingy *chunkThingy = &host->createChild("chunk");
+      chunkThingy->addComponent<GaiaChunk>("GaiaChunk", chunkThingy, cellTree,
+                                           leafMap, chunk, shader, depth);
+
+      if (chunkThingy->getComponent<GaiaChunk>().updateMesh()) {
+        // map so it can be updated easily later
+        std::shared_ptr<Thingy> chunkThingyShared(chunkThingy);
+        chunkThingies.insert({chunk, chunkThingyShared});
       }
     }
-  }
 
-  void simplifyDuplicates(std::shared_ptr<OctreeNode> cell_a,
-                          std::shared_ptr<OctreeNode> cell_b) {
-    for (std::shared_ptr<OctreeNode> child : cell_b->children) {
-      if (child)
-        simplifyDuplicates(cell_a,
-                           child); // recursively compare children with cell_a
-    }
-    if (cell_a == cell_b) {
-      // replace cell_b with cell_a
-      cell_b->parent->children[cell_b->indexInParent] = cell_a;
-      for (auto &child : cell_b->children) {
-        child->parent = cell_a;
-      }
-
-      leafMap->insert(cell_a, leafMap->getDepth(cell_b),
-                      leafMap->getPos(cell_b));
-      leafMap->erase(cell_b);
-      cell_b.reset();
-    }
-  }
-
-  void simplifyCell(std::shared_ptr<OctreeNode> cell) {
-
-    // find first existing child
-    int i;
-    for (auto &&child : cell->children) {
-      if (child) {
-        if (!child->leaf)
-          simplifyCell(child);
-
-        // take its properties
-        cell->transparent = child->transparent;
-
-        // then, use its leafmap info (depth, pos) to calculate the parent's
-        // leafmap info
-        i = child->indexInParent;
-        int8_t depth = leafMap->getDepth(child);
-        glm::vec3 childPos = leafMap->getPos(child);
-        glm::vec3 pos = childPos + glm::vec3(cellTree->getCellSize(depth));
-
-        // if this is the last cell in its chunk, we should unload it
-        if (!child->transparent)
-          queueChunkUpdateFromCell(
-              CellSampleData(child, 0, childPos, depth, true));
-
-        leafMap->erase(child, depth, childPos);
-        child.reset();
-
-        depth++;
-        leafMap->insert(cell, depth, pos);
-        cell->leaf = true;
-
-        break;
-      }
-    }
-
-    // now we can erase the rest of the children
-    while (i < 8) {
-      if (cell->children[i]) {
-        if (!cell->children[i]->leaf)
-          simplifyCell(cell->children[i]);
-        leafMap->erase(cell->children[i]);
-        cell->children[i].reset();
-      }
-      ++i;
-    }
-  }
-
-  void buildChunkThingy(std::shared_ptr<OctreeNode> chunk, int8_t depth) {
-
-    // create object for chunk
-    Thingy *chunkThingy = &host->createChild("chunk");
-    chunkThingy->addComponent<GaiaChunk>("GaiaChunk", chunkThingy, cellTree,
-                                         leafMap, chunk, shader, depth);
-
-    if (chunkThingy->getComponent<GaiaChunk>().updateMesh()) {
-      // map so it can be updated easily later
-      std::shared_ptr<Thingy> chunkThingyShared(chunkThingy);
-      chunkThingies.insert({chunk, chunkThingyShared});
-    }
-  }
-
-  void generateMatter(
-      std::shared_ptr<OctreeNode> cell,
-      glm::vec3
-          blockPos) { // if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2)
-                      // { float childSize = cellSize/2.f; glm::vec3 blockPos =
-                      // cellPos + glm::vec3(childSize);
+    void generateMatter(std::shared_ptr<OctreeNode> cell, Dove::Vector3 blockPos) { // if(cdepth > 0 && distance3d(pos, lodpos)/csize < lod*2)
+                      // { float childSize = cellSize/2.f; Dove::Vector3 blockPos =
+                      // cellPos + Dove::Vector3(childSize);
 
     // actual terrain generation
     const float intensity = 8192.f;

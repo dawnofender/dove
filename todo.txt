@@ -61,6 +61,9 @@ greater plan:
 
 
 high priority: 
+- connect class registry to library loader
+    - registry should know when we are loading a module, keeping track of what class data belongs to it
+    - when modules are unloaded, we can also unregister their content
 - generated reflection data during compilation
 - finish mesh face groups -> materials 
 - input listener

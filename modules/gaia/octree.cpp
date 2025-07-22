@@ -1,8 +1,13 @@
-#include "doctree.hpp"
+#include "octree.hpp"
 #include <iostream>
 #include <cmath>
 #include <stack>
 #include <bitset>
+
+CLASS_DEFINITION(Thing, OctreeNode)
+
+
+
 // Define the range of exponents
 
 // Function to compute 2^n at compile time
@@ -35,11 +40,11 @@ constexpr std::array<float, 256> buildSizeTable() {
 // Declare the lookup table as a compile-time constant.
 constexpr auto sizeLookup = buildSizeTable();
 
-float Octree::getCellSize(int8_t depth) {
+float OctreeRoot::getCellSize(int8_t depth) {
     return sizeLookup[depth + 128];
 }
 
-std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::locateCell(glm::vec3 targetPos, int8_t targetDepth) {
+std::pair<std::shared_ptr<OctreeNode>, glm::vec3> OctreeRoot::locateCell(glm::vec3 targetPos, int8_t targetDepth) {
     std::shared_ptr<OctreeNode> cell = root;
     int8_t cellDepth = maxDepth;
     glm::vec3 nodeCenter = origin;
@@ -58,8 +63,8 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::locateCell(glm::vec3 t
         bool dz = targetPos.z >= nodeCenter.z;
         
         const int childInd = (dx << 2) | (dy << 1) | dz;
-        if(cell->children[childInd]) {
-            cell = cell->children[childInd];
+        if(cell->getChildren()[childInd]) {
+            cell = cell->getChildren()[childInd];
         } else {
             nodeCenter = lastNodeCenter;
             break;
@@ -68,7 +73,7 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::locateCell(glm::vec3 t
     return(std::make_pair(cell, nodeCenter));
 }
 
-std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::makeCell(glm::vec3 targetPos, int8_t targetDepth) {
+std::pair<std::shared_ptr<OctreeNode>, glm::vec3> OctreeRoot::makeCell(glm::vec3 targetPos, int8_t targetDepth) {
     std::shared_ptr<OctreeNode> cell = root;
     int8_t cellDepth = maxDepth;
     glm::vec3 nodePos = origin;
@@ -87,10 +92,10 @@ std::pair<std::shared_ptr<OctreeNode>, glm::vec3> Octree::makeCell(glm::vec3 tar
         
         const int childInd = (dx << 2) | (dy << 1) | dz;
 
-        auto& child = cell->children[childInd];
+        auto& child = cell->getChildren()[childInd];
         if (!child) {
             child = std::make_shared<OctreeNode>();
-            child->parent = cell;
+            child->getParent() = cell;
             child->indexInParent = childInd;
         }
         cell = std::shared_ptr<OctreeNode>(child);
@@ -129,12 +134,12 @@ uint8_t siblingIndex(uint8_t idx, Direction d) {
 
 std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direction dir) { //maybe keep track of distance too so we can walk all the way back down?
     // hit the root, no neighbor
-    if (!node->parent) return nullptr;              
+    if (!node->getParent()) return nullptr;              
     uint8_t idx = node->indexInParent;
 
     // 1) If the neighbor is just a sibling in the same parent, return it.
     if (hasSiblingInDir(idx, dir)) {
-        return node->parent->children[siblingIndex(idx,dir)];
+        return node->getParent()->getChildren()[siblingIndex(idx,dir)];
     }
 
     // 2) Otherwise, find the neighbor by climbing up and back down the tree,
@@ -149,14 +154,14 @@ std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direc
     do {
         // move to parent, extend address
         address.push(node->indexInParent);
-        node = node->parent;
+        node = node->getParent();
 
-    } while (!hasSiblingInDir(address.top(), dir) && node->parent);
+    } while (!hasSiblingInDir(address.top(), dir) && node->getParent());
 
     
 
     // if we are looking for a neighbor off the side of the tree, we'll eventually hit the root - no neighbor
-    if (!node->parent && !hasSiblingInDir(address.top(), dir)) return nullptr;
+    if (!node->getParent() && !hasSiblingInDir(address.top(), dir)) return nullptr;
 
     
     // the left two bits of the dir represent the axis - so we'll flip this on the way down
@@ -169,8 +174,8 @@ std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direc
 
         address.top() = address.top() ^ (4 >> axis);
 
-        if (node->children[address.top()]) {
-            node = node->children[address.top()];    
+        if (node->getChildren()[address.top()]) {
+            node = node->getChildren()[address.top()];    
             address.pop();
         } else {
             return node; // neighbor under different parent does not exist - for now we'll just return an ancestor
@@ -181,19 +186,19 @@ std::shared_ptr<OctreeNode> findNeighbor(std::shared_ptr<OctreeNode> node, Direc
 }
 
 
-void Octree::setNeighbors(std::shared_ptr<OctreeNode> node) {
+void OctreeRoot::setNeighbors(std::shared_ptr<OctreeNode> node) {
     // assign neighbor pointers for this cell
     for (int d = 0; d < 6; ++d){
         node->neighbors[d] = findNeighbor(node, static_cast<Direction>(d));
     }
     
     // recurse into children
-    for (auto& child : node->children) {
+    for (auto& child : node->getChildren()) {
         if (child) setNeighbors(child);
     }
 }
 
-void Octree::indexLeaves(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos) {
+void OctreeRoot::indexLeaves(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, glm::vec3 cellPos) {
     float childSize = getCellSize(cellDepth-1);
 
     if(cell && cell->leaf) {
@@ -210,7 +215,7 @@ void Octree::indexLeaves(std::shared_ptr<OctreeNode>(cell), int8_t cellDepth, gl
 
             glm::vec3 childPos = cellPos + childOffset;
 
-            if (cell->children[i]) indexLeaves(cell->children[i], cellDepth-1, childPos);
+            if (cell->getChildren()[i]) indexLeaves(cell->getChildren()[i], cellDepth-1, childPos);
         }
     }
 }
