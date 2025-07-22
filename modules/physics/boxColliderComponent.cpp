@@ -2,7 +2,7 @@
 #include "../transform/transformComponent.hpp"
 CLASS_DEFINITION(Collider, BoxCollider)
         
-BoxCollider::BoxCollider(std::string &&initialName, glm::vec3 d) 
+BoxCollider::BoxCollider(std::string &&initialName, Dove::Vector3 d) 
     : Collider(std::move(initialName)), dimensions(d) {}
 
 void BoxCollider::serialize(Archive& archive) {

@@ -1,15 +1,15 @@
 #ifndef PHYSICSCOMPONENT_HPP
 #define PHYSICSCOMPONENT_HPP
 
-#include "../../core/component/component.hpp"
-#include "../../core/thingy/thingy.hpp"
+#include <core/component/component.hpp>
+#include <core/thingy/thingy.hpp>
 #include <unordered_map>
 #include <vector>
-#include <glm/glm.hpp>
 #include "../camera/cameraComponent.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <lib/bulletDebugDrawer.hpp>
 #include <set>
+#include <core/math.hpp>
 
 // TODO: 
 //  - closest surface / spherecast function
@@ -17,16 +17,16 @@
 struct RayCastInfo {
     bool hasHit;
     Thingy* thingy;
-    glm::vec3 position;
-    glm::vec3 normal;
+    Dove::Vector3 position;
+    Dove::Vector3 normal;
 };
 
 struct CollisionInfo {
     const Thingy* thingyA;
     const Thingy* thingyB;
-    const glm::vec3 pointA;
-    const glm::vec3 pointB;
-    const glm::vec3 normalOnB;
+    const Dove::Vector3 pointA;
+    const Dove::Vector3 pointB;
+    const Dove::Vector3 normalOnB;
 };
 
 class Physics : public Component {
@@ -54,8 +54,8 @@ public:
     ~Physics();
     virtual void init() override;
 
-    RayCastInfo rayCast(glm::vec3 position, glm::vec3 direction, float distance);
-    RayCastInfo sphereCast(glm::vec3 position, float distance); // not implemented yet
+    RayCastInfo rayCast(Dove::Vector3 position, Dove::Vector3 direction, float distance);
+    RayCastInfo sphereCast(Dove::Vector3 position, float distance); // not implemented yet
     std::vector<std::shared_ptr<CollisionInfo>> getCollisionInfo(Thingy* thingy);
 
     void debugDrawWorld();

@@ -20,7 +20,6 @@
 
 // temporary
 #include "defaultAssets.hpp"
-#include <glm/glm.hpp>
 
 int main() {
     
@@ -76,7 +75,7 @@ int main() {
     playerRigidBody->setRollingFriction(100.f);
     playerRigidBody->setSpinningFriction(0.9f);
 
-    playerTransform->setPosition(glm::vec3(0, 0, -2)); // just moving back a bit so the boxes dont crush us
+    playerTransform->setPosition(Dove::Vector3(0, 0, -2)); // just moving back a bit so the boxes dont crush us
 
     // main camera
     Thingy *camera = &player->addChild("Perception");
@@ -96,7 +95,7 @@ int main() {
     groundTransform->setPosition({0, -16.f, 0});
     groundTransform->setScale({32.f, 32.f, 32.f});
     ground->addComponent<ModelRenderer>("ModelRenderer", ground, testMaterial3, cube);
-    ground->addComponent<BoxCollider>("BoxCollider", glm::vec3(16.f, 16.f, 16.f));
+    ground->addComponent<BoxCollider>("BoxCollider", Dove::Vector3(16.f, 16.f, 16.f));
     RigidBody *groundRigidBody = &ground->addComponent<RigidBody>("RigidBody", physics, ground, 0.f, false, true);
     groundRigidBody->setFriction(0.9f);
 
@@ -104,7 +103,7 @@ int main() {
     Thingy *testCube = &universe->addChild("Cube");
     Transform *cubeTransform = &testCube->addComponent<Transform>("Transform", testCube);
     cubeTransform->setPosition({0, 16.f, 0});
-    testCube->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
+    testCube->addComponent<BoxCollider>("BoxCollider", Dove::Vector3(.5f, .5f, .5f));
     testCube->addComponent<RigidBody>("RigidBody", physics, testCube, 10.f);
     testCube->addComponent<ModelRenderer>("ModelRenderer", testCube, testMaterial, cube);
 
@@ -112,7 +111,7 @@ int main() {
     Thingy *testCube2 = &universe->addChild("Cube");
     Transform *cubeTransform2 = &testCube2->addComponent<Transform>("Transform", testCube2);
     cubeTransform2->setPosition({0, 16.f, 0});
-    testCube2->addComponent<BoxCollider>("BoxCollider", glm::vec3(.5f, .5f, .5f));
+    testCube2->addComponent<BoxCollider>("BoxCollider", Dove::Vector3(.5f, .5f, .5f));
     testCube2->addComponent<RigidBody>("RigidBody", physics, testCube2, 1.f);
     testCube2->addComponent<ModelRenderer>("ModelRenderer", testCube2, testMaterial2, cube);
 

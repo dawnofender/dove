@@ -1,0 +1,7 @@
+#include "math/vector2.hpp"
+#include "math/vector3.hpp"
+#include "math/vector4.hpp"
+#include "math/matrix3x3.hpp"
+#include "math/matrix4x4.hpp"
+#include "math/quaternion.hpp"
+#include "math/func_common.hpp"

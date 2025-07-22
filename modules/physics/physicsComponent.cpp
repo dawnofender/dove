@@ -78,9 +78,9 @@ void Physics::OnSimulationTick(btDynamicsWorld *world, btScalar timeStep) {
                 const btVector3& bulletPointB = point.getPositionWorldOnB();
                 const btVector3& bulletNormalOnB = point.m_normalWorldOnB;
                 
-                const glm::vec3 pointA(bulletPointA.x(), bulletPointA.y(), bulletPointA.z());
-                const glm::vec3 pointB;
-                const glm::vec3 normalOnB;
+                const Dove::Vector3 pointA(bulletPointA.x(), bulletPointA.y(), bulletPointA.z());
+                const Dove::Vector3 pointB;
+                const Dove::Vector3 normalOnB;
                 std::shared_ptr<CollisionInfo> collisionInfo = std::make_shared<CollisionInfo>(thingyA, thingyB, pointA, pointB, normalOnB);
                 physicsComponent->collisions.push_back(collisionInfo);
                 collisionInfoObjects.push_back(collisionInfo);
@@ -111,9 +111,9 @@ std::vector<std::shared_ptr<CollisionInfo>> Physics::getCollisionInfo(Thingy* th
         return collisionMap.at(thingy);
 }
 
-RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distance) {
+RayCastInfo Physics::rayCast(Dove::Vector3 origin, Dove::Vector3 direction, float distance) {
 
-    glm::vec3 out_end = origin + direction * distance;
+    Dove::Vector3 out_end = origin + direction * distance;
 
     btCollisionWorld::ClosestRayResultCallback RayCallback(
       	btVector3(origin.x, origin.y, origin.z), 
@@ -130,13 +130,13 @@ RayCastInfo Physics::rayCast(glm::vec3 origin, glm::vec3 direction, float distan
 
     if ((rayCastInfo.hasHit = RayCallback.hasHit())) {
         rayCastInfo.thingy = (Thingy*)RayCallback.m_collisionObject->getUserPointer();
-        rayCastInfo.position = glm::vec3(
+        rayCastInfo.position = Dove::Vector3(
             RayCallback.m_hitPointWorld.x(),
             RayCallback.m_hitPointWorld.y(),
             RayCallback.m_hitPointWorld.z()
         );
 
-        rayCastInfo.normal = glm::vec3(
+        rayCastInfo.normal = Dove::Vector3(
             RayCallback.m_hitNormalWorld.x(),
             RayCallback.m_hitNormalWorld.y(),
             RayCallback.m_hitNormalWorld.z()

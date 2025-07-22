@@ -2,13 +2,11 @@
 #define RIGIDBODYCOMPONENT_HPP
 
 #include <set>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include "btBulletDynamicsCommon.h"
 
 #include "physicsComponent.hpp"
 #include "colliderComponent.hpp"
+#include <core/math.hpp>
 
 // TODO: 
 // - if physicsComponent isn't given, it should just use the host and climb up through the hierarchy looking for a thingy with a physics component
@@ -52,23 +50,23 @@ public:
     float getFriction();
     float getRollingFriction();
     float getSpinningFriction();
-    glm::vec3 getLinearVelocity();
-    glm::vec3 getAngularVelocity();
+    Dove::Vector3 getLinearVelocity();
+    Dove::Vector3 getAngularVelocity();
     float getMass();
-    glm::vec3 getCenterOfMass();
-    glm::mat4 getCenterOfMassTransform();
+    Dove::Vector3 getCenterOfMass();
+    Dove::Matrix4 getCenterOfMassTransform();
     Physics* getPhysicsWorld();
 
     void setFriction(float newFriction);
     void setRollingFriction(float newRollingFriction);
     void setSpinningFriction(float newRollingFriction);
-    void setLinearVelocity(glm::vec3 newVelocity);
-    void setAngularVelocity(glm::vec3 newVelocity);
+    void setLinearVelocity(Dove::Vector3 newVelocity);
+    void setAngularVelocity(Dove::Vector3 newVelocity);
     void setMass(float newMass);
     void setBounciness(float newBounciness);
 
-    void addForce(glm::vec3 force);
-    void addForce(glm::vec3 force, glm::vec3 offset);
+    void addForce(Dove::Vector3 force);
+    void addForce(Dove::Vector3 force, Dove::Vector3 offset);
     
 };
 

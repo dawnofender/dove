@@ -1,5 +1,8 @@
 #include "rigidBodyComponent.hpp"
 #include "../transform/transformComponent.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 CLASS_DEFINITION(Component, RigidBody)
 
@@ -31,7 +34,7 @@ void RigidBody::init() {
         transform = &host->addComponent<Transform>("Transform", host);
     }
 
-    glm::vec3 position = transform->getGlobalPosition();
+    Dove::Vector3 position = transform->getGlobalPosition();
     btTransform bulletTransform;
     bulletTransform.setIdentity();
     bulletTransform.setOrigin(btVector3(position.x, position.y, position.z));
@@ -74,12 +77,12 @@ void RigidBody::init() {
     rigidBodies.insert(this);
 }
 
-void RigidBody::addForce(glm::vec3 force) {
+void RigidBody::addForce(Dove::Vector3 force) {
     bulletRigidBody->setActivationState(ACTIVE_TAG); 
     bulletRigidBody->applyCentralForce(btVector3(force.x, force.y, force.z));
 }
 
-void RigidBody::addForce(glm::vec3 force, glm::vec3 offset) {
+void RigidBody::addForce(Dove::Vector3 force, Dove::Vector3 offset) {
     bulletRigidBody->setActivationState(ACTIVE_TAG); 
     bulletRigidBody->applyForce(btVector3(force.x, force.y, force.z), btVector3(offset.x, offset.y, offset.z));
 }
@@ -95,7 +98,7 @@ void RigidBody::syncFromTransform() {
     }
     float bulletTransformMatrix[16];
     // get transform matrix from transform component, but with reset scale
-    glm::mat4 oglTransformMatrix = glm::scale(transform->getGlobalMatrix(), glm::vec3(1) / transform->getGlobalScale());
+    Dove::Matrix4 oglTransformMatrix = glm::scale(transform->getGlobalMatrix(), Dove::Vector3(1) / transform->getGlobalScale());
     memcpy(bulletTransformMatrix, (void*)glm::value_ptr(oglTransformMatrix), 16*sizeof(GLfloat));
     
     btTransform bulletTransform;
@@ -114,8 +117,8 @@ void RigidBody::syncToTransform() {
     }
     float bulletTransformMatrix[16];
     bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
-    glm::mat4 oglTransformMatrix = glm::make_mat4(bulletTransformMatrix);
-    transform->setGlobalPosition(glm::vec3(oglTransformMatrix[3]));
+    Dove::Matrix4 oglTransformMatrix = glm::make_mat4(bulletTransformMatrix);
+    transform->setGlobalPosition(Dove::Vector3(oglTransformMatrix[3]));
     transform->setGlobalOrientation(glm::quat_cast(oglTransformMatrix));
 }
 
@@ -131,30 +134,30 @@ void RigidBody::syncToTransforms() {
     }
 }
 
-glm::vec3 RigidBody::getLinearVelocity() {
+Dove::Vector3 RigidBody::getLinearVelocity() {
     btVector3 v = bulletRigidBody->getLinearVelocity();
-    return glm::vec3(v.x(), v.y(), v.z()); 
+    return Dove::Vector3(v.x(), v.y(), v.z()); 
 }
 
-glm::vec3 RigidBody::getAngularVelocity() {
+Dove::Vector3 RigidBody::getAngularVelocity() {
     bulletRigidBody->setActivationState(ACTIVE_TAG); 
 	btVector3 v = bulletRigidBody->getAngularVelocity();
-	return glm::vec3(v.x(), v.y(), v.z());
+	return Dove::Vector3(v.x(), v.y(), v.z());
 }
 
 float RigidBody::getMass() {
     return bulletRigidBody->getMass();
 }
 
-glm::mat4 RigidBody::getCenterOfMassTransform() {
+Dove::Matrix4 RigidBody::getCenterOfMassTransform() {
     float bulletTransformMatrix[16];
     bulletRigidBody->getCenterOfMassTransform().getOpenGLMatrix(bulletTransformMatrix);
     return glm::make_mat4(bulletTransformMatrix);
 }
 
-glm::vec3 RigidBody::getCenterOfMass() {
+Dove::Vector3 RigidBody::getCenterOfMass() {
     btVector3 c = bulletRigidBody->getCenterOfMassPosition();
-	return glm::vec3(c.x(), c.y(), c.z());
+	return Dove::Vector3(c.x(), c.y(), c.z());
 }
 
 void RigidBody::setMass(float newMass) {
@@ -189,11 +192,11 @@ void RigidBody::setSpinningFriction(float newSpinningFriction) {
     bulletRigidBody->setSpinningFriction(newSpinningFriction);
 }
 
-void RigidBody::setLinearVelocity(glm::vec3 v) {
+void RigidBody::setLinearVelocity(Dove::Vector3 v) {
     bulletRigidBody->setLinearVelocity(btVector3(v.x, v.y, v.z));
 }
 
-void RigidBody::setAngularVelocity(glm::vec3 v) {
+void RigidBody::setAngularVelocity(Dove::Vector3 v) {
     bulletRigidBody->setAngularVelocity(btVector3(v.x, v.y, v.z));
 }
 
